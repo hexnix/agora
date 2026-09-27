@@ -246,6 +246,11 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 .atext strong{font-weight:700;color:#fff}
 .atext em{font-style:italic}
 .atext mark{background:#84024C;color:#fff;padding:.14em 0 .1em;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+/* a video still with its line underneath, the word in blue */
+.frame.cap .fcap{width:100%;max-height:100%;display:flex;flex-direction:column;align-items:center}
+.frame.cap img{width:100%;height:auto;min-height:0;flex:0 1 auto;object-fit:contain}
+.scap{flex:none;margin:0;padding:16px 20px 0;width:100%;max-width:600px;font:300 16px/1.62 'Merriweather',Georgia,serif;color:#E4E4E4;text-align:center;text-wrap:balance}
+.scap mark{background:none;color:#4DA8FF;font-weight:400}
 /* magazine pages: the PDF fits the width, scrolls, zooms; the word is outlined in the same magenta */
 .frame.pdf{display:block}
 .pscroll{position:absolute;inset:0;overflow:hidden}
@@ -263,8 +268,7 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 .r-vid{display:flex;flex-direction:column;gap:16px;width:100%;max-width:720px;margin:0 auto;cursor:pointer}
 .r-vid .pic{width:100%;aspect-ratio:16/9;background:var(--surface);overflow:hidden}
 .r-vid .pic img{width:100%;height:100%;object-fit:cover;display:block}
-.r-vid .ttl{padding:0 22px;font:400 16px/1.55 var(--sans);color:#fff;text-wrap:pretty}
-.r-vid .pic{border-bottom:2px solid var(--gold)}
+.r-vid .ttl{padding:0 22px;font:italic 300 16px/1.6 'Merriweather',Georgia,serif;color:#D8D8D8;text-wrap:pretty}
 .r-art{width:100%;max-width:560px;margin:0 auto;padding:0 22px;color:#fff}
 .r-art .blk{max-width:340px}
 .r-art .blk[data-href]{cursor:pointer}
@@ -939,6 +943,7 @@ function makeSlide(c) {
   const s = document.createElement('div'); s.className = 'slide';
   const scene = kind === 'art' ? '<div class="frame art"><div class="atext"></div></div>'
     : kind === 'pdf' ? '<div class="frame pdf"><div class="pscroll"><div class="ppage"></div></div><div class="pwait">Loading the page…</div></div>'
+    : c.sceneCaption ? `<div class="frame cap"><div class="fcap"><img alt="Scene"><p class="scap">${runsHTML(runsOf(String(c.sceneCaption)))}</p></div></div>`
     : '<div class="frame"><img alt="Scene"></div>';
   s.innerHTML = scene + defs.map((_, i) => {
     const r = n - 1 - i, t = textOf(c, i);
@@ -1181,7 +1186,7 @@ function extent(L) {
   const clip = (a, b) => [Math.max(0, Math.min(H, a)), Math.max(0, Math.min(H, b))];
   const base = el.getBoundingClientRect();
   if (L === 0) {
-    const box = $('.atext', el) || $('.ppage', el), img = $('img', el);
+    const box = $('.atext', el) || $('.ppage', el) || $('.fcap', el), img = $('img', el);
     if (box) { const r = box.getBoundingClientRect(); return clip(r.top - base.top, r.bottom - base.top); }
     if (img && img.naturalWidth) {
       const W = el.clientWidth, h = el.clientHeight, f = Math.min(W / img.naturalWidth, h / img.naturalHeight), ih = img.naturalHeight * f;
@@ -1861,6 +1866,7 @@ async function exportAll() {
       if (texts.some(Boolean)) mc.definitionText = texts;
       if (tagsOf(c).length) mc.tags = tagsOf(c);
       if (sceneKind(c) === 'art') mc.sceneText = { paras: c.sceneText.paras };
+      if (c.sceneCaption) mc.sceneCaption = c.sceneCaption;
       if (c.pdf && c.pdf.id) {
         const pb = await store.get('blobs', c.pdf.id).catch(() => null);
         if (pb) {
@@ -2002,6 +2008,10 @@ $('#zipPicker').addEventListener('change', async e => {
                 have.ref = r; changed = true;
               }
             }
+            if ('sceneCaption' in mc) {
+              const t = typeof mc.sceneCaption === 'string' && mc.sceneCaption.trim() ? mc.sceneCaption.trim() : null;
+              if (t !== (have.sceneCaption || null)) { if (t) have.sceneCaption = t; else delete have.sceneCaption; changed = true; }
+            }
             if ('sceneText' in mc) {
               const t = cleanScene(mc.sceneText);
               if (JSON.stringify(t) !== JSON.stringify(have.sceneText || null)) { if (t) have.sceneText = t; else delete have.sceneText; changed = true; }
@@ -2028,6 +2038,7 @@ $('#zipPicker').addEventListener('change', async e => {
           if (Number.isFinite(mc.shotAt)) extra.shotAt = mc.shotAt;
           if (Number.isFinite(mc.sceneTime)) extra.sceneTime = mc.sceneTime;
           const st = cleanScene(mc.sceneText); if (st) extra.sceneText = st;
+          if (typeof mc.sceneCaption === 'string' && mc.sceneCaption.trim()) extra.sceneCaption = mc.sceneCaption.trim();
           const pd = await takePdf(mc.pdf); if (pd) extra.pdf = pd;
           const rf = cleanRef(mc.reference);
           if (rf) { const th = rf.kind === 'video' ? await read(mc.reference.thumb) : null; if (th) rf.thumbId = await putImage(th); extra.ref = rf; }

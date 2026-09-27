@@ -246,11 +246,11 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 .atext strong{font-weight:700;color:#fff}
 .atext em{font-style:italic}
 .atext mark{background:#84024C;color:#fff;padding:.14em 0 .1em;-webkit-box-decoration-break:clone;box-decoration-break:clone}
-/* a video still with its line underneath, the word in blue */
+/* a video still with its subtitle cue underneath: light serif italic, the word in blue */
 .frame.cap .fcap{width:100%;max-height:100%;display:flex;flex-direction:column;align-items:center}
 .frame.cap img{width:100%;height:auto;min-height:0;flex:0 1 auto;object-fit:contain}
-.scap{flex:none;margin:0;padding:16px 20px 0;width:100%;max-width:600px;font:300 16px/1.62 'Merriweather',Georgia,serif;color:#E4E4E4;text-align:center;text-wrap:balance}
-.scap mark{background:none;color:#4DA8FF;font-weight:400}
+.scap{flex:none;margin:0;padding:24px 20px 0;width:100%;max-width:600px;font:italic 300 14px/1.6 'Merriweather',Georgia,serif;color:#E4E4E4;text-align:center;text-wrap:balance}
+.scap mark{background:none;color:#4DA8FF}
 /* magazine pages: the PDF fits the width, scrolls, zooms; the word is outlined in the same magenta */
 .frame.pdf{display:block}
 .pscroll{position:absolute;inset:0;overflow:hidden}
@@ -943,7 +943,7 @@ function makeSlide(c) {
   const s = document.createElement('div'); s.className = 'slide';
   const scene = kind === 'art' ? '<div class="frame art"><div class="atext"></div></div>'
     : kind === 'pdf' ? '<div class="frame pdf"><div class="pscroll"><div class="ppage"></div></div><div class="pwait">Loading the page…</div></div>'
-    : c.sceneCaption ? `<div class="frame cap"><div class="fcap"><img alt="Scene"><p class="scap">${runsHTML(runsOf(String(c.sceneCaption)))}</p></div></div>`
+    : c.sceneCaption ? `<div class="frame cap"><div class="fcap"><img alt="Scene"><p class="scap">${runsHTML(runsOf(String(c.sceneCaption))).replace(/\n/g, '<br>')}</p></div></div>`
     : '<div class="frame"><img alt="Scene"></div>';
   s.innerHTML = scene + defs.map((_, i) => {
     const r = n - 1 - i, t = textOf(c, i);

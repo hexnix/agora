@@ -13,6 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,700;1,300;1,700&display=swap">
 <style>
 :root{
   --ink:#000000; --surface:#111214; --raised:#1C1D20; --line:#26282C;
@@ -143,20 +144,18 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 /* ---------- study ---------- */
 .study{position:fixed;inset:0;z-index:40;background:#000;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;
   -webkit-touch-callout:none;animation:fadein .25s ease;--hd:104px;--ft:calc(env(safe-area-inset-bottom,0px) + 52px)}
-/* tap the card to hide the header and footer and see the scene edge to edge */
-.study.bare{--hd:0px !important;--ft:0px !important}
 .noanim *,.noanim *::before,.noanim *::after{transition:none !important}
 
 @keyframes fadein{from{opacity:0}}
 .study *{touch-action:none}
 .study img{-webkit-user-drag:none;-webkit-touch-callout:none;pointer-events:none}
+.stage{position:absolute;left:0;right:0;top:var(--hd);bottom:var(--ft);overflow:hidden}
+/* every page of a card lives inside the band between the header and the footer, so nothing slides over the word or the tags */
 .slide{position:absolute;inset:0;will-change:transform,opacity;transition:transform .32s var(--ease),opacity .32s var(--ease)}
-.frame{position:absolute;left:0;right:0;top:var(--hd);bottom:var(--ft);display:flex;align-items:center;justify-content:center;overflow:hidden;transition:top .25s var(--ease),bottom .25s var(--ease)}
+.frame{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden;will-change:transform,opacity}
 .frame img{width:100%;height:100%;object-fit:contain;display:block}
-.def{position:absolute;inset:0;background:#000;transform:translateY(100%);transition:transform .3s cubic-bezier(.2,.8,.2,1);
-  overflow:hidden;touch-action:none;border-top:1px solid rgba(255,255,255,.07);will-change:transform}
-.def .scroll,.ref .scroll{position:absolute;left:0;right:0;top:var(--hd);bottom:var(--ft);overflow-y:auto;overflow-x:hidden;
-  overscroll-behavior:contain;scrollbar-width:none;touch-action:none;transition:top .25s var(--ease),bottom .25s var(--ease);}
+.def{position:absolute;inset:0;opacity:0;transform:translateY(100%);overflow:hidden;touch-action:none;will-change:transform,opacity}
+.def .scroll,.ref .scroll{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:none;touch-action:none}
 .def .scroll::-webkit-scrollbar,.ref .scroll::-webkit-scrollbar{display:none}
 .def .dwrap{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:12px 0}
 .def .dimg{width:100%}
@@ -165,7 +164,6 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 .def .more b{color:var(--gold);font-weight:500}
 .frame img{transform-origin:50% 50%;will-change:transform}
 /* definitions as text: white and blue on black */
-.def.txt{background:#000}
 .dtext{width:100%;max-width:560px;padding:0 22px;font:15px/1.6 var(--sans);color:#fff;overflow-wrap:anywhere;letter-spacing:0}
 .dtext > * + *{margin-top:14px}
 .dtext strong{font-weight:600}
@@ -198,9 +196,8 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 .peek .ptext .t-headword{font-size:26px}
 .rd mark{background:none;color:var(--gold)}
 .chrome{position:absolute;left:0;right:0;top:0;z-index:3;display:flex;flex-wrap:wrap;row-gap:0;align-items:center;justify-content:space-between;gap:10px;
-  padding:calc(env(safe-area-inset-top,0px) + 8px) 10px 8px;transition:opacity .25s}
+  padding:calc(env(safe-area-inset-top,0px) + 8px) 10px 8px}
 .chrome > .iconbtn{margin-right:2px}
-.study.bare .chrome,.study.bare .foot{opacity:0;pointer-events:none}
 .foot{position:absolute;left:0;right:0;bottom:0;z-index:3;display:flex;align-items:center;gap:14px;height:var(--ft);
   padding:0 20px env(safe-area-inset-bottom,0px);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;transition:opacity .25s;pointer-events:none}
 .foot .flag{display:inline-flex;align-items:center;gap:8px;color:var(--blue-text)}
@@ -226,9 +223,33 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 .tag .x svg{width:12px;height:12px}
 .tags.editing .tag{padding-right:10px;background:rgba(0,134,255,.08)}
 .tags.editing .tag .x{display:inline-flex}
+/* at most three tags show; the small count pill opens the rest */
+.tagmore{display:inline-flex;align-items:center;justify-content:center;gap:2px;height:34px;min-width:44px;padding:0 11px;border-radius:999px;
+  border:1px dashed rgba(0,134,255,.55);color:var(--blue-text);font-size:13px;font-variant-numeric:tabular-nums}
+.tagmore:active{background:rgba(0,134,255,.12)}
+.tagmore svg{width:15px;height:15px}
+.tags.open .tagmore{border-style:solid}
 /* reference page: above the scene, reached by swiping down */
-.ref{position:absolute;inset:0;background:#000;transform:translateY(-100%);transition:transform .3s cubic-bezier(.2,.8,.2,1);
-  overflow:hidden;touch-action:none;will-change:transform;border-bottom:1px solid rgba(255,255,255,.07)}
+.ref{position:absolute;inset:0;opacity:0;transform:translateY(-100%);overflow:hidden;touch-action:none;will-change:transform,opacity}
+/* articles as text: a serif reading face on black, the word boxed in magenta like the reader's selection */
+.frame.art{display:flex;align-items:center;justify-content:center}
+.atext{width:100%;max-width:600px;padding:0 16px;font:300 16px/1.66 'Merriweather',Georgia,'Times New Roman',serif;color:#E4E4E4;
+  letter-spacing:0;overflow-wrap:break-word;hyphens:manual;font-variant-ligatures:common-ligatures;-webkit-font-smoothing:antialiased}
+.atext p{margin:0}
+.atext p + p,.atext h3 + p,.atext p + h3{margin-top:1.05em}
+.atext h3{margin:0;font:700 17px/1.5 'Merriweather',Georgia,serif;color:#fff}
+.atext.solo h3{font-size:24px;line-height:1.4;letter-spacing:-.005em}
+.atext strong{font-weight:700;color:#fff}
+.atext em{font-style:italic}
+.atext mark{background:#84024C;color:#fff;padding:.14em 0 .1em;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+/* magazine pages: the PDF fits the width, scrolls, zooms; the word is outlined in the same magenta */
+.frame.pdf{display:block}
+.pscroll{position:absolute;inset:0;overflow:hidden}
+.ppage{position:relative;background:#111;transform-origin:0 0}
+.ppage canvas,.ppage img{position:absolute;inset:0;width:100%;height:100%;display:block}
+.pmark{position:absolute;border-radius:3px;background:rgba(214,18,122,.30);box-shadow:0 0 0 2px #E0187F,0 0 14px rgba(224,24,127,.55);pointer-events:none}
+.pwait{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);font-size:12px;color:var(--muted);background:rgba(0,0,0,.7);padding:5px 12px;border-radius:999px;transition:opacity .3s}
+.pwait.gone{opacity:0}
 .ref .rwrap{min-height:100%;display:flex;flex-direction:column;justify-content:center;padding:12px 0}
 .r-tr{width:100%;max-width:560px;margin:0 auto;padding:0 22px;font:16px/1.6 var(--sans);color:var(--muted);overflow-wrap:anywhere}
 .r-tr p{margin:0}
@@ -445,6 +466,8 @@ async function deleteCards(list) {
   const ids = new Set(list.map(c => c.id));
   cards = cards.filter(c => !ids.has(c.id));
   const blobIds = list.flatMap(c => [c.frameId, c.thumbId, ...defIdsOf(c), c.ref && c.ref.thumbId]).filter(Boolean);
+  // a magazine page can be shared by several cards: it goes with the last one
+  new Set(list.map(c => c.pdf && c.pdf.id).filter(Boolean)).forEach(id => { if (!cards.some(c => c.pdf && c.pdf.id === id)) blobIds.push(id); });
   blobIds.forEach(id => { if (urls.has(id)) { URL.revokeObjectURL(urls.get(id)); urls.delete(id); } thumbIds.delete(id); });
   await store.del('cards', [...ids]).catch(storageFail);
   await store.del('blobs', blobIds).catch(storageFail);
@@ -857,7 +880,7 @@ function openStudy(d, startId) {
     ${ls.get('hinted2') ? '' : `<div class="hint"><span><b>↑</b> Meaning</span><span><b>↓</b> Source</span><span><b>←</b> Next</span><span><b>Hold</b> Review</span></div>`}`;
   document.body.appendChild(el); document.body.classList.add('locked', 'in-study');
   S = { deck: d, el, stage: $('.stage', el), order, i: 0, cur: null, level: 0, view: 0, busy: false,
-    peeked: new Set(), counted: new Set(), z: { s: 1, x: 0, y: 0 } };
+    peeked: new Set(), counted: new Set(), z: { s: 1, x: 0, y: 0 }, tr: null, pdf: null, tagsOpen: false };
   showSlide(start, 'none');
   el.addEventListener('pointerdown', onDown);
   el.addEventListener('pointermove', onMove);
@@ -867,6 +890,7 @@ function openStudy(d, startId) {
     const b = e.target.closest('[data-s]'); if (!b || !S) return;
     if (b.dataset.s === 'edit') studyEditSheet(S.order[S.i]);
     else if (b.dataset.s === 'untag') removeTag(S.order[S.i], b.closest('.tag').dataset.tag);
+    else if (b.dataset.s === 'moretags') toggleTags();
     else if (b.dataset.s === 'tag') {
       if (tagHold.fired) { tagHold.fired = false; return; }
       if ($('.tags', S.el).classList.contains('editing')) { endTagEdit(); return; }
@@ -901,34 +925,55 @@ function closeStudy() {
   if (!searchView && !cardsView) document.body.classList.remove('locked');
   renderHome(); refreshCards();
 }
+/* the scene of a card: a screenshot, an article as text, or a magazine page (PDF) */
+const sceneKind = c => (c.pdf && c.pdf.id) ? 'pdf' : (c.sceneText && Array.isArray(c.sceneText.paras) && c.sceneText.paras.some(p => String(p).trim())) ? 'art' : 'img';
 function makeSlide(c) {
-  const defs = defIdsOf(c), n = defs.length;
+  const defs = defIdsOf(c), n = defs.length, kind = sceneKind(c);
   const s = document.createElement('div'); s.className = 'slide';
-  s.innerHTML = `<div class="frame"><img alt="Scene"></div>` + defs.map((_, i) => {
+  const scene = kind === 'art' ? '<div class="frame art"><div class="atext"></div></div>'
+    : kind === 'pdf' ? '<div class="frame pdf"><div class="pscroll"><div class="ppage"></div></div><div class="pwait">Loading the page…</div></div>'
+    : '<div class="frame"><img alt="Scene"></div>';
+  s.innerHTML = scene + defs.map((_, i) => {
     const r = n - 1 - i, t = textOf(c, i);
     return `<div class="def${t ? ' txt' : ''}"><div class="scroll"><div class="dwrap">${t ? textHTML(t) : `<div class="dimg"><img alt="Definition ${i + 1}" data-i="${i}"></div>`}
       ${r > 0 ? `<div class="more">${plural(r, 'more definition')} <b>↑</b></div>` : ''}</div></div></div>`;
   }).join('') + (hasRef(c) ? `<div class="ref"><div class="scroll"><div class="rwrap">${refHTML(c)}</div></div></div>` : '');
-  blobURL(c.frameId).then(u => { $('.frame img', s).src = u; });
+  if (kind === 'img') blobURL(c.frameId).then(u => { $('.frame img', s).src = u; });
   const rimg = $('.ref img', s);
   if (rimg) blobURL(c.ref.thumbId).then(u => { rimg.src = u || `https://i.ytimg.com/vi/${encodeURIComponent(c.ref.vid)}/hqdefault.jpg`; });
   $$('.def img[data-i]', s).forEach(img => blobURL(defs[+img.dataset.i]).then(u => { img.src = u; }));
   return s;
 }
+/* after the slide is on screen (sizes are known): fit the article, lay out the PDF page */
+function setupScene(s, c) {
+  const fr = $('.frame', s); S.pdf = null;
+  if (fr.classList.contains('art')) { fitArticle(fr, c); serifReady().then(() => { if (S && S.cur === s) fitArticle(fr, c); }); }
+  else if (fr.classList.contains('pdf')) S.pdf = pdfSetup(fr, c);
+}
+function refitScene() {
+  if (!S || !S.cur) return;
+  const fr = $('.frame', S.cur), c = S.order[S.i];
+  if (fr.classList.contains('art')) fitArticle(fr, c);
+  if (S.pdf) { const P = S.pdf; pdfLayout(P, P.s); pdfSettle(P); }
+}
 function preload(c) {
   if (!c) return;
-  [c.frameId, ...defIdsOf(c).filter((_, i) => !textOf(c, i))].forEach(id => blobURL(id).then(u => { if (u) { const im = new Image(); im.src = u; } }));
+  const k = sceneKind(c);
+  if (k === 'pdf') pdfPage(c.pdf).catch(() => {});
+  [k === 'img' ? c.frameId : '', ...defIdsOf(c).filter((_, i) => !textOf(c, i))].filter(Boolean).forEach(id => blobURL(id).then(u => { if (u) { const im = new Image(); im.src = u; } }));
 }
 function showSlide(i, dir) {
   const old = S.cur;
   const c = S.order[i];
-  S.i = i; S.level = 0; S.view++; S.z = { s: 1, x: 0, y: 0 };
+  S.i = i; S.level = 0; S.view++; S.z = { s: 1, x: 0, y: 0 }; S.tr = null; S.tagsOpen = false;
+  showWord(c); showFlag(c); // first, so the band between header and footer has its final size
   const s = makeSlide(c);
   if (dir !== 'none') {
     s.style.transition = 'none';
     s.style.transform = `translateX(${dir === 'next' ? 34 : -34}%)`; s.style.opacity = '0';
   }
   S.stage.appendChild(s); S.cur = s;
+  setupScene(s, c);
   if (dir !== 'none') { s.getBoundingClientRect(); s.style.transition = ''; s.style.transform = ''; s.style.opacity = ''; }
   if (old) {
     old.style.transition = '';
@@ -936,25 +981,243 @@ function showSlide(i, dir) {
     setTimeout(() => old.remove(), 340);
   }
   $('.count', S.el).textContent = `${i + 1} / ${S.order.length}`;
-  showWord(c); showFlag(c);
   preload(S.order[i + 1]);
 }
 /* rebuild the current card after an edit, keeping the page the person is on */
 function rebuildCurrent(c) {
   if (!S || !S.cur || S.order[S.i].id !== c.id) return;
-  const s = makeSlide(c), panels = $$('.def', s), rp = $('.ref', s);
-  const lvl = S.level === -1 ? (rp ? -1 : 0) : Math.min(S.level, panels.length);
-  panels.forEach((p, k) => { p.style.transition = 'none'; if (k < lvl) p.style.transform = 'translateY(0)'; });
-  if (rp && lvl === -1) { rp.style.transition = 'none'; rp.style.transform = 'translateY(0)'; }
-  S.cur.replaceWith(s); S.cur = s; S.level = lvl; S.z = { s: 1, x: 0, y: 0 };
+  const s = makeSlide(c), n = $$('.def', s).length, rp = $('.ref', s);
+  const lvl = S.level === -1 ? (rp ? -1 : 0) : Math.min(S.level, n);
+  S.cur.replaceWith(s); S.cur = s; S.level = lvl; S.z = { s: 1, x: 0, y: 0 }; S.tr = null;
+  setupScene(s, c);
+  if (lvl !== 0) { place(layer(0), 0, 0, 0); for (let k = 1; k < lvl; k++) place(layer(k), 0, 0, 0); place(layer(lvl), 0, 1, 0); }
+}
+
+/* ---------- articles as text ----------
+   paragraphs use **bold**, *italic* and ==the word==; a paragraph starting "# " is a heading.
+   The text is set at one size for every article; when it doesn't fit, whole sentences farthest from the word are left out. */
+function runsOf(t) {
+  const out = []; let b = false, i = false, m = false, buf = '';
+  const push = () => { if (buf) out.push({ t: buf, b, i, m }); buf = ''; };
+  for (let k = 0; k < t.length; k++) {
+    if (t.startsWith('**', k)) { push(); b = !b; k++; }
+    else if (t.startsWith('==', k)) { push(); m = !m; k++; }
+    else if (t[k] === '*') { push(); i = !i; }
+    else buf += t[k];
+  }
+  push(); return out;
+}
+const ABBR = /(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|Jr|Sr|vs|etc|No|Fig|Inc|Ltd|Co|approx)|\b[A-Z]|e\.g|i\.e)\.$/;
+function sentenceEnds(plain) {
+  const ends = [], re = /[.!?…]+["”’')\]]*(?=\s+["“‘(\[]?[A-Z0-9])/g; let m;
+  while ((m = re.exec(plain))) {
+    if (m[0][0] === '.' && m[0].length === 1 && ABBR.test(plain.slice(Math.max(0, m.index - 6), m.index + 1))) continue;
+    ends.push(m.index + m[0].length);
+  }
+  ends.push(plain.length);
+  return ends;
+}
+function articleUnits(paras) {
+  const units = [];
+  paras.map(p => String(p)).filter(p => p.trim()).forEach((raw, p) => {
+    const head = /^#\s+/.test(raw), runs = runsOf(raw.replace(/^#\s+/, '').trim());
+    if (head) { units.push({ p, head: true, first: true, runs, m: runs.some(r => r.m) }); return; }
+    const plain = runs.map(r => r.t).join(''), ends = sentenceEnds(plain);
+    let pos = 0, ri = 0, off = 0; // walk the runs, cutting them at sentence ends
+    ends.forEach((end, si) => {
+      const part = [];
+      while (pos < end && ri < runs.length) {
+        const r = runs[ri], take = Math.min(r.t.length - off, end - pos);
+        part.push({ ...r, t: r.t.slice(off, off + take) });
+        pos += take; off += take; if (off >= r.t.length) { ri++; off = 0; }
+      }
+      if (part.length) part[0].t = part[0].t.replace(/^\s+/, '');
+      const clean = part.filter(r => r.t);
+      if (clean.length) units.push({ p, head: false, first: si === 0, runs: clean, m: clean.some(r => r.m) });
+    });
+  });
+  return units;
+}
+const runsHTML = runs => runs.map(r => { let h = esc(r.t); if (r.i) h = `<em>${h}</em>`; if (r.b) h = `<strong>${h}</strong>`; if (r.m) h = `<mark>${h}</mark>`; return h; }).join('');
+function unitsHTML(units, keep) {
+  let html = '', open = -1;
+  keep.forEach(k => {
+    const u = units[k];
+    if (u.head) { if (open >= 0) html += '</p>'; open = -1; html += `<h3>${runsHTML(u.runs)}</h3>`; return; }
+    if (u.p !== open) { if (open >= 0) html += '</p>'; html += '<p>'; open = u.p; } else html += ' ';
+    html += runsHTML(u.runs);
+  });
+  return html + (open >= 0 ? '</p>' : '');
+}
+function fitArticle(fr, c) {
+  const box = $('.atext', fr); if (!box || !fr.clientHeight) return;
+  const units = fr._units || (fr._units = articleUnits(c.sceneText.paras));
+  const room = fr.clientHeight - 64, mk = Math.max(0, units.findIndex(u => u.m));
+  let keep = units.map((_, k) => k);
+  const solo = !units.some(u => !u.head); // a page that is only a headline
+  box.classList.toggle('solo', solo);
+  const tidy = () => { // a heading only stays when the start of its section stays under it
+    if (!solo) keep = keep.filter((k, j) => { if (!units[k].head) return true; const nx = units[keep[j + 1]]; return !!nx && !nx.head && nx.first && nx.p === units[k].p + 1; });
+  };
+  tidy(); box.innerHTML = unitsHTML(units, keep);
+  for (let guard = 0; box.offsetHeight > room && keep.length > 1 && guard < 400; guard++) {
+    const first = keep[0], last = keep[keep.length - 1];
+    const drop = (mk - first) > (last - mk) ? first : last;
+    if (drop === mk) break;
+    keep = keep.filter(k => k !== drop); tidy();
+    box.innerHTML = unitsHTML(units, keep);
+  }
+}
+let serifP = null;
+function serifReady() {
+  if (!serifP) serifP = (document.fonts && document.fonts.load ? Promise.all(['300 16px Merriweather', '700 16px Merriweather', 'italic 300 16px Merriweather'].map(f => document.fonts.load(f))) : Promise.resolve()).catch(() => {});
+  return serifP;
+}
+
+/* ---------- magazine pages ----------
+   pdf.js is fetched the first time a page is shown; the service worker keeps it for offline use.
+   The page fits the width, scrolls up and down, and zooms with a pinch or a double tap. */
+const PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/', PDF_MAX = 5;
+let pdfLib = null;
+const pdfPages = new Map();
+function loadPdfLib() {
+  if (!pdfLib) {
+    pdfLib = (async () => {
+      if (!window.pdfjsLib) await new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = PDFJS + 'pdf.min.js'; sc.onload = res; sc.onerror = () => rej(new Error('offline')); document.head.appendChild(sc); });
+      const lib = window.pdfjsLib; if (!lib) throw new Error('offline');
+      // the worker runs from a local copy, so it works offline and from this page's own address
+      const code = await (await fetch(PDFJS + 'pdf.worker.min.js')).text();
+      lib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
+      return lib;
+    })();
+    pdfLib.catch(() => { pdfLib = null; });
+  }
+  return pdfLib;
+}
+function pdfPage(p) {
+  const key = p.id + '#' + (p.page || 1);
+  if (!pdfPages.has(key)) {
+    const pr = (async () => {
+      const rec = await store.get('blobs', p.id); if (!rec) throw new Error('missing');
+      const lib = await loadPdfLib();
+      const doc = await lib.getDocument({ data: new Uint8Array(await rec.blob.arrayBuffer()), isEvalSupported: false }).promise;
+      return doc.getPage(Math.min(doc.numPages, Math.max(1, p.page || 1)));
+    })();
+    pdfPages.set(key, pr); pr.catch(() => pdfPages.delete(key));
+  }
+  return pdfPages.get(key);
+}
+function pdfSetup(fr, c) {
+  const P = { fr, sc: $('.pscroll', fr), pg: $('.ppage', fr), s: 1, w: +c.pdf.w || 600, h: +c.pdf.h || 800, page: null, pxW: 0, job: 0, pw: 0, ph: 0, mt: 0 };
+  P.pg.innerHTML = (Array.isArray(c.pdf.marks) ? c.pdf.marks : []).map(m => `<i class="pmark" style="left:${m[0] * 100}%;top:${m[1] * 100}%;width:${(m[2] - m[0]) * 100}%;height:${(m[3] - m[1]) * 100}%"></i>`).join('');
+  pdfLayout(P, 1);
+  const wait = $('.pwait', fr);
+  pdfPage(c.pdf).then(page => {
+    P.page = page;
+    const vp = page.getViewport({ scale: 1 });
+    if (Math.abs(vp.width / vp.height - P.w / P.h) > 0.01) { P.w = vp.width; P.h = vp.height; pdfLayout(P, P.s); }
+    return pdfRender(P);
+  }).then(() => wait.classList.add('gone'))
+    .catch(() => { wait.textContent = navigator.onLine === false ? 'Connect to the internet once to show magazine pages' : 'Couldn’t show this page'; });
+  return P;
+}
+function pdfLayout(P, s) {
+  const W = P.fr.clientWidth, H = P.fr.clientHeight;
+  P.s = s; P.pw = W * s; P.ph = P.pw * P.h / P.w; P.mt = Math.max(0, (H - P.ph) / 2);
+  const st = P.pg.style; st.width = P.pw + 'px'; st.height = P.ph + 'px'; st.marginTop = P.mt + 'px'; st.marginBottom = P.mt + 'px';
+}
+const pdfPoint = (P, fx, fy) => ({ u: (P.sc.scrollLeft + fx) / P.pw, v: (P.sc.scrollTop + fy - P.mt) / P.ph });
+function pdfPin(P, uv, fx, fy) { P.sc.scrollLeft = uv.u * P.pw - fx; P.sc.scrollTop = uv.v * P.ph + P.mt - fy; }
+function pdfZoomTo(P, s2, fx, fy, ms = 260) {
+  const s1 = P.s, t0 = performance.now(), uv = pdfPoint(P, fx, fy);
+  cancelAnimationFrame(P.anim);
+  const step = now => {
+    const k = Math.min(1, (now - t0) / ms), e = 1 - Math.pow(1 - k, 3);
+    pdfLayout(P, s1 + (s2 - s1) * e); pdfPin(P, uv, fx, fy);
+    if (k < 1) P.anim = requestAnimationFrame(step); else pdfSettle(P);
+  };
+  P.anim = requestAnimationFrame(step);
+}
+function pdfSettle(P) { clearTimeout(P.rt); P.rt = setTimeout(() => pdfRender(P), 140); }
+async function pdfRender(P) {
+  if (!P.page || !P.pg.isConnected) return;
+  const dpr = Math.min(3, window.devicePixelRatio || 1);
+  const want = Math.round(Math.min(P.pw * dpr, Math.sqrt(12e6 * P.w / P.h), 4096));
+  if (P.pxW && want <= P.pxW * 1.12 && want >= P.pxW * 0.5) return; // sharp enough already
+  const job = ++P.job, base = P.page.getViewport({ scale: 1 }), vp = P.page.getViewport({ scale: want / base.width });
+  const cv = document.createElement('canvas'); cv.width = Math.round(vp.width); cv.height = Math.round(vp.height);
+  try { await P.page.render({ canvasContext: cv.getContext('2d', { alpha: false }), viewport: vp }).promise; }
+  catch { cv.width = cv.height = 0; return; }
+  if (job !== P.job || !P.pg.isConnected) { cv.width = cv.height = 0; return; }
+  const old = $('canvas', P.pg);
+  P.pg.insertBefore(cv, P.pg.firstChild);
+  if (old) { old.remove(); old.width = old.height = 0; }
+  P.pxW = cv.width;
 }
 function dismissHint() {
   const h = S && $('.hint', S.el);
   if (h) { h.classList.add('gone'); setTimeout(() => h.remove(), 420); ls.set('hinted2', '1'); }
 }
-const panel = L => (S && S.cur && L > 0) ? ($$('.def', S.cur)[L - 1] || null) : null;
-const scr = p => p ? ($('.scroll', p) || p) : null; // the part of a page that scrolls, inside the header and footer bands
-function slideTo(el, y, ms = 300) { if (!el) return; el.style.transition = `transform ${ms}ms cubic-bezier(.2,.8,.2,1)`; el.style.transform = y; }
+/* pages of a card, bottom to top: the source (-1), the scene (0), the definitions (1, 2 …) */
+const layer = L => (!S || !S.cur) ? null : L === -1 ? $('.ref', S.cur) : L === 0 ? $('.frame', S.cur) : ($$('.def', S.cur)[L - 1] || null);
+const scr = p => p ? ($('.scroll', p) || p) : null; // the part of a page that scrolls
+const bandH = () => S.stage.clientHeight;
+function place(el, y, op, ms) {
+  if (!el) return;
+  el.style.transition = ms ? `transform ${ms}ms cubic-bezier(.2,.8,.2,1), opacity ${ms}ms cubic-bezier(.2,.8,.2,1)` : 'none';
+  el.style.transform = `translateY(${y}px)`; el.style.opacity = String(op);
+}
+/* where a page's content sits in the band when the page is at rest (top and bottom, clipped to the band) */
+function extent(L) {
+  const el = layer(L), H = bandH();
+  if (!el) return [0, H];
+  const clip = (a, b) => [Math.max(0, Math.min(H, a)), Math.max(0, Math.min(H, b))];
+  const base = el.getBoundingClientRect();
+  if (L === 0) {
+    const box = $('.atext', el) || $('.ppage', el), img = $('img', el);
+    if (box) { const r = box.getBoundingClientRect(); return clip(r.top - base.top, r.bottom - base.top); }
+    if (img && img.naturalWidth) {
+      const W = el.clientWidth, h = el.clientHeight, f = Math.min(W / img.naturalWidth, h / img.naturalHeight), ih = img.naturalHeight * f;
+      return clip((h - ih) / 2, (h + ih) / 2);
+    }
+    return [0, H];
+  }
+  const wrap = scr(el).firstElementChild, kids = wrap ? [...wrap.children] : [];
+  let a = Infinity, b = -Infinity;
+  for (const k of kids) { const r = k.getBoundingClientRect(); if (!r.height) continue; a = Math.min(a, r.top); b = Math.max(b, r.bottom); }
+  return a === Infinity ? [0, H] : clip(a - base.top, b - base.top);
+}
+/* Moving between pages: the next page's content starts right at the edge of the band and follows the finger,
+   while the page being left moves with it and fades, so there is never an empty stretch to drag through. */
+function beginMove(dir) {
+  const L = S.level, to = L + dir, inc = layer(to), cur = layer(L);
+  if (!inc || !cur) return null;
+  if (to * dir > 0) { const sc = scr(inc); if (sc) sc.scrollTop = 0; } // a page opened afresh starts at its top
+  place(inc, 0, 0, 0);
+  const [a, b] = extent(to), D = Math.max(24, dir > 0 ? bandH() - a : b);
+  place(inc, dir * D, 1, 0);
+  return { dir, from: L, to, cur, inc, D };
+}
+function dragMove(tr, e) {
+  e = Math.min(e, tr.D);
+  place(tr.cur, -tr.dir * e, 1 - e / tr.D, 0);
+  place(tr.inc, tr.dir * (tr.D - e), 1, 0);
+}
+function dropMove(tr) { place(tr.cur, 0, 1, 0); place(tr.inc, tr.dir * tr.D, 0, 0); }
+function finishMove(tr, commit, ms = 280) {
+  void tr.inc.offsetWidth;
+  if (commit) { place(tr.cur, -tr.dir * tr.D, 0, ms); place(tr.inc, 0, 1, ms); return; }
+  place(tr.cur, 0, 1, ms); place(tr.inc, tr.dir * tr.D, 1, ms);
+  const inc = tr.inc;
+  setTimeout(() => { if (S && layer(S.level) !== inc && !(g && g.tr && g.tr.inc === inc)) inc.style.opacity = '0'; }, ms + 30);
+}
+function go(dir, tr) { // animate one page up (1) or down (-1); tr is a drag already under way
+  tr = tr || beginMove(dir);
+  if (!tr) return false;
+  finishMove(tr, true); S.level = tr.to;
+  return true;
+}
+function takeTr(from, dir) { const t = S.tr; S.tr = null; return t && t.from === from && t.dir === dir ? t : null; }
 function markPeek() { // only counts how often the meaning was opened; review marks are set by long-pressing
   const c = S.order[S.i];
   if (S.peeked.has(c.id)) return;
@@ -971,33 +1234,29 @@ function toggleReview() {
   toast(c.review ? 'Marked for review' : 'Removed from review');
 }
 /* go up one page: scene -> definition 1 -> definition 2 ... Each page is one step for the Back button. */
-function openLevel() {
-  if (!S || !S.cur || S.busy) return false;
-  const L = S.level + 1, p = panel(L);
-  if (!p) return false;
-  if (S.level === 0 && zoomed()) resetZ(true);
-  stopFling(); scr(p).scrollTop = 0; slideTo(p, 'translateY(0)');
-  S.level = L; dismissHint();
+function openLevel(tr) {
+  if (!S || !S.cur || S.busy || S.level < 0) return false;
+  const L = S.level + 1;
+  if (!layer(L)) return false;
+  if (S.level === 0 && zoomed()) resetZ(false);
+  stopFling();
+  if (!go(1, tr)) return false;
+  dismissHint();
   if (L === 1) markPeek();
   const view = S.view;
-  pushLayer(() => {
-    if (S && S.view === view && S.level === L) { slideTo(panel(L), 'translateY(100%)', 260); S.level = L - 1; }
-  });
+  pushLayer(() => { if (S && S.view === view && S.level === L) go(-1, takeTr(L, -1)); });
   return true;
 }
-/* go down from the scene to its reference page (level -1) */
-const refPanel = () => (S && S.cur && $('.ref', S.cur)) || null;
-function openRef() {
+/* go down from the scene to its source page (level -1) */
+function openRef(tr) {
   if (!S || !S.cur || S.busy || S.level !== 0) return false;
-  const p = refPanel();
-  if (!p) { bounce(); return false; }
-  if (zoomed()) resetZ(true);
-  stopFling(); scr(p).scrollTop = 0; slideTo(p, 'translateY(0)');
-  S.level = -1; dismissHint();
+  if (!layer(-1)) { bounce(); return false; }
+  if (zoomed()) resetZ(false);
+  stopFling();
+  if (!go(-1, tr)) return false;
+  dismissHint();
   const view = S.view;
-  pushLayer(() => {
-    if (S && S.view === view && S.level === -1) { slideTo(refPanel(), 'translateY(-100%)', 260); S.level = 0; }
-  });
+  pushLayer(() => { if (S && S.view === view && S.level === -1) go(1, takeTr(-1, 1)); });
   return true;
 }
 function closeLevel() { if (S && S.level !== 0) back(); }
@@ -1026,10 +1285,11 @@ function snapBack() {
   S.cur.style.transition = 'transform .45s cubic-bezier(.3,1.5,.5,1), opacity .3s'; S.cur.style.transform = ''; S.cur.style.opacity = '';
 }
 
-/* zoom (scenes only) */
-const zoomed = () => !!S && S.z.s > 1.01;
+/* zoom: screenshots scale in place; magazine pages grow and scroll */
+const zoomed = () => !!S && (S.pdf ? S.pdf.s > 1.01 : S.z.s > 1.01);
 const zimg = () => S && S.cur && $('.frame img', S.cur);
 const zframe = () => (S && S.cur && $('.frame', S.cur)) || S.el;
+const canZoom = () => !!S && S.level === 0 && !!(S.pdf || zimg());
 function clampZ(z) {
   const img = zimg(), fr = zframe(); const W = fr.clientWidth, H = fr.clientHeight;
   const w = (img && img.naturalWidth) || W, h = (img && img.naturalHeight) || H, f = Math.min(W / w, H / h);
@@ -1041,39 +1301,42 @@ function applyZ(anim) {
   const img = zimg(); if (!img) return;
   img.style.transition = anim ? 'transform .3s var(--ease)' : 'none';
   img.style.transform = S.z.s <= 1.001 ? '' : `translate(${S.z.x}px, ${S.z.y}px) scale(${S.z.s})`;
-  zframe().classList.toggle('z', S.z.s > 1.001);
 }
-function resetZ(anim) { S.z = { s: 1, x: 0, y: 0 }; applyZ(anim); }
+function resetZ(anim) {
+  if (S.pdf) { const P = S.pdf; if (anim) pdfZoomTo(P, 1, P.fr.clientWidth / 2, P.fr.clientHeight / 2); else { cancelAnimationFrame(P.anim); pdfLayout(P, 1); pdfSettle(P); } return; }
+  S.z = { s: 1, x: 0, y: 0 }; applyZ(anim);
+}
 function zoomAround(fx, fy, from, s2) {
   const cx = (fx - from.x) / from.s, cy = (fy - from.y) / from.s;
   S.z = clampZ({ s: s2, x: fx - s2 * cx, y: fy - s2 * cy });
 }
 const centre = p => { const r = zframe().getBoundingClientRect(); return { x: p.x - (r.left + r.width / 2), y: p.y - (r.top + r.height / 2) }; };
+const framePt = p => { const r = zframe().getBoundingClientRect(); return { x: p.x - r.left, y: p.y - r.top }; };
 
-/* momentum scrolling for tall definitions */
+/* momentum scrolling for tall pages */
 let flingRaf = 0;
 function stopFling() { if (flingRaf) cancelAnimationFrame(flingRaf); flingRaf = 0; }
-function velocity(sm) {
+function velocity(sm, k = 1) {
   if (sm.length < 2) return 0;
-  const [t0, y0] = sm[0], [t1, y1] = sm[sm.length - 1];
-  if (performance.now() - t1 > 90) return 0;
-  return (y1 - y0) / Math.max(1, t1 - t0); // px per ms, positive = finger moving down
+  const a = sm[0], b = sm[sm.length - 1];
+  if (performance.now() - b[0] > 90) return 0;
+  return (b[k] - a[k]) / Math.max(1, b[0] - a[0]); // px per ms, positive = finger moving down (or right)
 }
-function fling(el, v) {
-  if (!el || Math.abs(v) < 0.05) return;
+function fling(el, v, vx = 0) {
+  if (!el || (Math.abs(v) < 0.05 && Math.abs(vx) < 0.05)) return;
   let last = performance.now();
   const step = now => {
     const dt = now - last; last = now;
-    el.scrollTop -= v * dt;
-    v *= Math.pow(0.996, dt);
-    flingRaf = Math.abs(v) > 0.02 ? requestAnimationFrame(step) : 0;
+    el.scrollTop -= v * dt; el.scrollLeft -= vx * dt;
+    const k = Math.pow(0.996, dt); v *= k; vx *= k;
+    flingRaf = (Math.abs(v) > 0.02 || Math.abs(vx) > 0.02) ? requestAnimationFrame(step) : 0;
   };
   flingRaf = requestAnimationFrame(step);
 }
 
 /* gestures: every page follows the finger; release decides by distance or speed, like a photo gallery */
 const pts = new Map();
-let g = null, pinch = null, holdUntilUp = false, lastTap = null, tapTimer = null, holdTimer = 0;
+let g = null, pinch = null, holdUntilUp = false, lastTap = null, holdTimer = 0;
 const tagHold = { t: 0, x: 0, y: 0, fired: false };
 function cancelHold() { clearTimeout(holdTimer); holdTimer = 0; }
 function onDown(e) {
@@ -1085,26 +1348,29 @@ function onDown(e) {
   if (pts.size === 2) {
     cancelHold();
     if (g && g.axis === 'x') snapBack();
-    if (g && g.axis === 'y') { if (g.p) slideTo(g.p, 'translateY(0)', 200); if (g.nextP) slideTo(g.nextP, '', 200); }
+    if (g && g.tr) finishMove(g.tr, false, 200);
+    if (g && g.stretch) place(layer(0), 0, 1, 200);
     g = null;
-    if (S.level !== 0 || !S.cur) { holdUntilUp = true; return; }
-    const [a, b] = [...pts.values()];
-    pinch = { d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, m0: centre({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }), z0: { ...S.z } };
+    if (!canZoom() || !S.cur) { holdUntilUp = true; return; }
+    stopFling();
+    const [a, b] = [...pts.values()], m = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, d0 = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+    if (S.pdf) { const P = S.pdf, f = framePt(m); cancelAnimationFrame(P.anim); pinch = { d0, pdf: P, s0: P.s, uv: pdfPoint(P, f.x, f.y) }; }
+    else pinch = { d0, m0: centre(m), z0: { ...S.z } };
     return;
   }
   if (pts.size > 2) return;
   holdUntilUp = false; stopFling();
-  const p = S.level === -1 ? refPanel() : panel(S.level), sc = scr(p);
+  const L = S.level, P = L === 0 ? S.pdf : null, zm = zoomed() && L === 0;
+  const sc = L === 0 ? (P && !zm ? P.sc : null) : scr(layer(L));
   g = { x: e.clientX, y: e.clientY, t: performance.now(), axis: null, dx: 0, dy: 0, samples: [],
-    pan: zoomed() && S.level === 0, z0: { ...S.z }, level: S.level, p, sc, nextP: S.level >= 0 ? panel(S.level + 1) : null,
-    ref: S.level === 0 ? refPanel() : null,
-    top0: sc ? sc.scrollTop : 0, max: sc ? Math.max(0, sc.scrollHeight - sc.clientHeight) : 0, down: 0, up: 0 };
+    pan: zm, z0: { ...S.z }, level: L, sc, sl0: P ? P.sc.scrollLeft : 0, st0: P ? P.sc.scrollTop : 0,
+    top0: sc ? sc.scrollTop : 0, max: sc ? Math.max(0, sc.scrollHeight - sc.clientHeight) : 0, tr: null, none: {}, e: 0, stretch: 0 };
   // hold still on the scene or a definition to mark or unmark the card for review
   cancelHold();
-  if (S.level >= 0) holdTimer = setTimeout(() => {
+  if (L >= 0) holdTimer = setTimeout(() => {
     holdTimer = 0;
     if (!S || !g || g.axis || pts.size !== 1) return;
-    g = null; holdUntilUp = true; clearTimeout(tapTimer); lastTap = null; toggleReview();
+    g = null; holdUntilUp = true; lastTap = null; toggleReview();
   }, 520);
 }
 function onMove(e) {
@@ -1113,8 +1379,13 @@ function onMove(e) {
   if (pinch) {
     if (pts.size < 2) return;
     const [a, b] = [...pts.values()];
-    const d = Math.hypot(a.x - b.x, a.y - b.y), m = centre({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
-    const s2 = Math.min(5, Math.max(1, pinch.z0.s * d / pinch.d0));
+    const d = Math.hypot(a.x - b.x, a.y - b.y), mm = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    if (pinch.pdf) {
+      const P = pinch.pdf, f = framePt(mm);
+      pdfLayout(P, Math.min(PDF_MAX, Math.max(1, pinch.s0 * d / pinch.d0))); pdfPin(P, pinch.uv, f.x, f.y);
+      return;
+    }
+    const m = centre(mm), s2 = Math.min(5, Math.max(1, pinch.z0.s * d / pinch.d0));
     const cx = (pinch.m0.x - pinch.z0.x) / pinch.z0.s, cy = (pinch.m0.y - pinch.z0.y) / pinch.z0.s;
     S.z = clampZ({ s: s2, x: m.x - s2 * cx, y: m.y - s2 * cy });
     applyZ(false);
@@ -1122,18 +1393,19 @@ function onMove(e) {
   }
   if (!g || holdUntilUp || !S.cur) return;
   g.dx = e.clientX - g.x; g.dy = e.clientY - g.y;
+  const now = performance.now(); g.samples.push([now, g.dy, g.dx]);
+  while (g.samples.length > 2 && now - g.samples[0][0] > 90) g.samples.shift();
   if (g.pan) {
     if (!g.axis && Math.hypot(g.dx, g.dy) > 6) { g.axis = 'pan'; cancelHold(); }
-    if (g.axis) { S.z = clampZ({ s: S.z.s, x: g.z0.x + g.dx, y: g.z0.y + g.dy }); applyZ(false); }
+    if (!g.axis) return;
+    if (S.pdf) { S.pdf.sc.scrollLeft = g.sl0 - g.dx; S.pdf.sc.scrollTop = g.st0 - g.dy; }
+    else { S.z = clampZ({ s: S.z.s, x: g.z0.x + g.dx, y: g.z0.y + g.dy }); applyZ(false); }
     return;
   }
   if (!g.axis) {
     if (Math.hypot(g.dx, g.dy) < 8) return;
     g.axis = Math.abs(g.dx) > Math.abs(g.dy) ? 'x' : 'y'; cancelHold();
     S.cur.style.transition = 'none';
-    if (g.p) g.p.style.transition = 'none';
-    if (g.nextP) g.nextP.style.transition = 'none';
-    if (g.ref) g.ref.style.transition = 'none';
   }
   if (g.axis === 'x') {
     let dx = g.dx;
@@ -1142,62 +1414,47 @@ function onMove(e) {
     S.cur.style.opacity = String(1 - Math.min(Math.abs(dx) / (innerWidth * 1.4), 0.5));
     return;
   }
-  // vertical: scroll the definition first; past its top the page is pulled down, past its bottom the next page is pulled up
-  const now = performance.now(); g.samples.push([now, g.dy]);
-  while (g.samples.length > 2 && now - g.samples[0][0] > 90) g.samples.shift();
-  if (g.level === -1) { // reference page: scroll it; past its bottom it is pushed back up
+  // vertical: scroll the page first; what is left over moves to the page above (finger up) or below (finger down)
+  let ex;
+  if (g.sc) {
     const want = g.top0 - g.dy;
-    if (!g.p) return;
-    if (want > g.max) { g.sc.scrollTop = g.max; g.up = want - g.max; } else { g.sc.scrollTop = Math.max(0, want); g.up = 0; }
-    g.p.style.transform = g.up ? `translateY(${-g.up}px)` : 'translateY(0)';
-    return;
-  }
-  if (g.level === 0 && !g.p && g.dy > 0) { // scene pulled down: bring the reference page down, or stretch a little if there is none
-    g.down = g.dy; g.up = 0;
-    if (g.ref) g.ref.style.transform = `translateY(calc(-100% + ${g.down}px))`;
-    else S.cur.style.transform = `translateY(${g.dy * 0.22}px)`;
-    if (g.nextP) g.nextP.style.transform = '';
-    return;
-  }
-  if (g.level === 0 && !g.p) { g.down = 0; if (g.ref) g.ref.style.transform = ''; else S.cur.style.transform = ''; }
-  if (g.p) {
-    const want = g.top0 - g.dy;
-    if (want < 0) { g.sc.scrollTop = 0; g.down = -want; g.up = 0; }
-    else if (want > g.max) { g.sc.scrollTop = g.max; g.up = g.nextP ? want - g.max : 0; g.down = 0; }
-    else { g.sc.scrollTop = want; g.down = 0; g.up = 0; }
-    g.p.style.transform = g.down ? `translateY(${g.down}px)` : 'translateY(0)';
-  } else {
-    g.up = g.nextP ? Math.max(0, -g.dy) : 0; g.down = 0;
-  }
-  if (g.nextP) g.nextP.style.transform = g.up ? `translateY(calc(100% - ${g.up}px))` : '';
+    if (want < 0) { g.sc.scrollTop = 0; ex = want; }
+    else if (want > g.max) { g.sc.scrollTop = g.max; ex = want - g.max; }
+    else { g.sc.scrollTop = want; ex = 0; }
+  } else ex = -g.dy;
+  const dir = ex > 0 ? 1 : ex < 0 ? -1 : 0;
+  if (g.tr && g.tr.dir !== dir) { dropMove(g.tr); g.tr = null; }
+  if (dir && !g.tr && !g.none[dir]) { g.tr = beginMove(dir); if (!g.tr) g.none[dir] = true; }
+  g.e = Math.abs(ex);
+  if (g.tr) dragMove(g.tr, g.e);
+  else if (g.level === 0 && dir < 0) { g.stretch = g.e * 0.22; place(layer(0), g.stretch, 1, 0); } // no source page: give a little
+  else if (g.stretch) { g.stretch = 0; place(layer(0), 0, 1, 0); }
 }
 function settleY(gs, v) {
-  const H = S.el.clientHeight, far = H * 0.18;
-  if (gs.level === -1) {
-    if (gs.up > 0) { if (gs.up > far || (v < -0.3 && gs.up > 8)) closeLevel(); else slideTo(gs.p, 'translateY(0)', 260); }
-    else if (gs.sc) fling(gs.sc, v);
+  const tr = gs.tr;
+  if (tr) {
+    const e = Math.min(gs.e, tr.D), far = Math.min(S.el.clientHeight * 0.18, tr.D * 0.4);
+    const fast = tr.dir > 0 ? v < -0.3 : v > 0.3;
+    if (e > far || (fast && e > 8)) {
+      if (tr.to === 0 || (tr.dir < 0 && tr.from > 0)) { S.tr = tr; closeLevel(); } // toward the scene: one step back
+      else if (tr.dir > 0) { if (!openLevel(tr)) finishMove(tr, false); }
+      else if (!openRef(tr)) finishMove(tr, false);
+    } else finishMove(tr, false, 240);
     return;
   }
-  if (gs.level === 0 && !gs.p && gs.down > 0) {
-    if (!gs.ref) { bounce(); return; }
-    if (gs.down > far || (v > 0.3 && gs.down > 8)) { if (!openRef()) slideTo(gs.ref, '', 260); }
-    else slideTo(gs.ref, '', 260);
-    return;
-  }
-  if (gs.down > 0) {
-    if (gs.down > far || (v > 0.3 && gs.down > 8)) closeLevel();
-    else slideTo(gs.p, 'translateY(0)', 260);
-  } else if (gs.up > 0) {
-    if (gs.up > far || (v < -0.3 && gs.up > 8)) { if (!openLevel()) slideTo(gs.nextP, '', 260); }
-    else slideTo(gs.nextP, '', 260);
-  } else if (gs.sc) fling(gs.sc, v);
+  if (gs.stretch) { place(layer(0), 0, 1, 380); buzz(12); return; }
+  if (gs.sc) fling(gs.sc, v);
 }
 function onUp(e) {
   if (!pts.has(e.pointerId)) return;
   pts.delete(e.pointerId); cancelHold();
   if (!S) { g = null; pinch = null; return; }
   if (pinch) {
-    if (pts.size < 2) { pinch = null; g = null; holdUntilUp = pts.size > 0; if (S.z.s < 1.03) resetZ(true); }
+    if (pts.size < 2) {
+      const pp = pinch; pinch = null; g = null; holdUntilUp = pts.size > 0;
+      if (pp.pdf) { if (pp.pdf.s < 1.03) resetZ(true); else pdfSettle(pp.pdf); }
+      else if (S.z.s < 1.03) resetZ(true);
+    }
     return;
   }
   if (holdUntilUp) { if (!pts.size) holdUntilUp = false; return; }
@@ -1206,7 +1463,7 @@ function onUp(e) {
   g = null;
   if (!S.cur) return;
   if (!gs.axis) { if (dt < 300 && e.type === 'pointerup') handleTap(e.clientX, e.clientY); return; }
-  if (gs.axis === 'pan') return;
+  if (gs.axis === 'pan') { if (S.pdf) fling(S.pdf.sc, velocity(gs.samples, 1), velocity(gs.samples, 2)); return; }
   if (gs.axis === 'x') {
     const TH = Math.min(70, innerWidth * 0.16), vx = gs.dx / dt;
     if (gs.dx < -TH || vx < -0.5) next();
@@ -1218,19 +1475,21 @@ function onUp(e) {
 }
 function handleTap(x, y) {
   const now = performance.now();
-  if (S.level === -1) { // the video or article on the reference page opens outside the app
+  if (S.level === -1) { // the video or article on the source page opens outside the app
     const a = document.elementFromPoint(x, y), h = a && a.closest('[data-href]');
     if (h && h.dataset.href) { try { window.open(h.dataset.href, '_blank', 'noopener'); } catch {} return; }
   }
-  if (lastTap && now - lastTap.t < 300 && Math.hypot(x - lastTap.x, y - lastTap.y) < 40) {
-    clearTimeout(tapTimer); lastTap = null;
-    if (S.level === 0) { if (zoomed()) resetZ(true); else { const c = centre({ x, y }); zoomAround(c.x, c.y, S.z, 2.5); applyZ(true); } }
+  if (lastTap && now - lastTap.t < 320 && Math.hypot(x - lastTap.x, y - lastTap.y) < 40) {
+    lastTap = null;
+    if (!canZoom()) return;
+    if (S.pdf) { const f = framePt({ x, y }); pdfZoomTo(S.pdf, zoomed() ? 1 : 2.6, f.x, f.y); }
+    else if (zoomed()) resetZ(true);
+    else { const c = centre({ x, y }); zoomAround(c.x, c.y, S.z, 2.5); applyZ(true); }
     return;
   }
   lastTap = { t: now, x, y };
-  clearTimeout(tapTimer);
-  tapTimer = setTimeout(() => { lastTap = null; if (S) S.el.classList.toggle('bare'); }, 300);
 }
+addEventListener('resize', () => { if (S) { fitBands(); refitScene(); } });
 addEventListener('keydown', e => {
   if (!S || sheetOpen || modalOpen) return;
   const k = e.key;
@@ -1242,17 +1501,28 @@ addEventListener('keydown', e => {
 });
 
 /* ================= study: word title, rename, edit menu ================= */
+/* tags under the word: the three that say most about the source; the rest behind a small count */
+const TAG_CATS = new Set(['tv', 'movie', 'film', 'youtube', 'article', 'magazine', 'course', 'podcast', 'book', 'news']);
+const TAG_BOTS = new Set(['chatbot', 'chatgpt', 'google ai overview', 'claude', 'gemini', 'copilot', 'perplexity']);
+const tagRank = t => /^S\d+\s*E\d+$/i.test(t) ? 1 : TAG_CATS.has(t.toLowerCase()) ? 2 : TAG_BOTS.has(t.toLowerCase()) ? 3 : 0;
+const rankTags = list => list.map((t, i) => [tagRank(t), i, t]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(x => x[2]);
+const CHEVRON_UP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>';
 function showWord(c) {
   const b = S && $('.wordbtn', S.el); if (!b) return;
   b.textContent = c.word || 'Add word'; b.classList.toggle('empty', !c.word);
-  const tg = $('.tags', S.el);
-  tg.innerHTML = tagsOf(c).map(t => `<button class="tag" data-s="tag" data-tag="${esc(t)}" aria-label="${esc(t)}: show cards with this tag, or hold to remove it"><span>${esc(t)}</span><span class="x" data-s="untag" role="button" aria-label="Remove tag ${esc(t)}">${ICON.close}</span></button>`).join('');
-  if (!tagsOf(c).length) tg.classList.remove('editing');
+  const tg = $('.tags', S.el), all = rankTags(tagsOf(c)), hidden = Math.max(0, all.length - 3);
+  if (!hidden) S.tagsOpen = false;
+  const shown = S.tagsOpen ? all : all.slice(0, 3);
+  tg.innerHTML = shown.map(t => `<button class="tag" data-s="tag" data-tag="${esc(t)}" aria-label="${esc(t)}: show cards with this tag, or hold to remove it"><span>${esc(t)}</span><span class="x" data-s="untag" role="button" aria-label="Remove tag ${esc(t)}">${ICON.close}</span></button>`).join('')
+    + (hidden ? `<button class="tagmore" data-s="moretags" aria-expanded="${S.tagsOpen}" aria-label="${S.tagsOpen ? 'Show fewer tags' : `Show ${plural(hidden, 'more tag')}`}">${S.tagsOpen ? CHEVRON_UP : `+${hidden}`}</button>` : '');
+  tg.classList.toggle('open', !!S.tagsOpen);
+  if (!all.length) tg.classList.remove('editing');
   fitBands();
 }
+function toggleTags() { if (!S) return; S.tagsOpen = !S.tagsOpen; showWord(S.order[S.i]); refitScene(); }
 /* keep the scene and definitions between the header (word and tags) and the footer (position) */
 function fitBands() { if (S) S.el.style.setProperty('--hd', $('.chrome', S.el).offsetHeight + 'px'); }
-function startTagEdit() { if (S) $('.tags', S.el).classList.add('editing'); }
+function startTagEdit() { if (!S) return; if (!S.tagsOpen && tagsOf(S.order[S.i]).length > 3) toggleTags(); $('.tags', S.el).classList.add('editing'); }
 function endTagEdit() { if (S) $('.tags', S.el).classList.remove('editing'); }
 function removeTag(c, t) {
   c.tags = tagsOf(c).filter(x => x !== t); saveCards([c]);
@@ -1329,8 +1599,11 @@ function forget(ids) {
   return store.del('blobs', ids.filter(Boolean)).catch(() => {});
 }
 async function afterEdit(c) { await saveCards([c]); rebuildCurrent(c); refreshCards(); renderHome(); }
+function dropPdf(id) { if (id && !cards.some(c => c.pdf && c.pdf.id === id)) { [...pdfPages.keys()].filter(k => k.startsWith(id + '#')).forEach(k => pdfPages.delete(k)); forget([id]); } }
 async function replaceScene(c, file) {
-  const old = [c.frameId, c.thumbId];
+  const old = [c.frameId, c.thumbId], oldPdf = c.pdf && c.pdf.id;
+  delete c.pdf; delete c.sceneText; // the new screenshot is the scene now
+  if (oldPdf) setTimeout(() => dropPdf(oldPdf));
   c.frameId = await putImage(file); c.thumbId = await putImage(await makeThumb(file)); thumbIds.add(c.thumbId);
   await afterEdit(c); forget(old);
 }
@@ -1553,6 +1826,15 @@ async function exportAll() {
       if (c.sceneTime != null) mc.sceneTime = c.sceneTime;
       if (texts.some(Boolean)) mc.definitionText = texts;
       if (tagsOf(c).length) mc.tags = tagsOf(c);
+      if (sceneKind(c) === 'art') mc.sceneText = { paras: c.sceneText.paras };
+      if (c.pdf && c.pdf.id) {
+        const pb = await store.get('blobs', c.pdf.id).catch(() => null);
+        if (pb) {
+          const key = c.pdf.id.replace(/^pdf-/, ''), file = `pdfs/${key}.pdf`;
+          if (!zip.file(file)) zip.file(file, pb.blob);
+          mc.pdf = { key, file, page: c.pdf.page || 1, w: c.pdf.w, h: c.pdf.h, marks: c.pdf.marks || [] };
+        }
+      }
       if (hasRef(c)) {
         const { thumbId, ...r } = c.ref; mc.reference = r;
         const th = thumbId && await store.get('blobs', thumbId).catch(() => null);
@@ -1584,6 +1866,25 @@ $('#zipPicker').addEventListener('change', async e => {
       const mf = zip.file('manifest.json');
       if (!mf) throw new Error(`This .zip isn’t a Subtext backup: ${files[fi].name}`);
       const man = JSON.parse(await mf.async('string'));
+      // magazine pages (PDF): stored once per page, shared by every card that points at it
+      const pdfDone = new Map();
+      const takePdf = async v => {
+        if (!v || typeof v !== 'object') return null;
+        const key = String(v.key || v.file || '').replace(/\.pdf$/i, '').replace(/[^\w.-]+/g, '-').slice(-80);
+        if (!key) return null;
+        const id = 'pdf-' + key;
+        if (!pdfDone.has(key)) {
+          const zf = v.file && zip.file(v.file);
+          if (zf) {
+            await store.put('blobs', [{ id, blob: new Blob([await zf.async('arraybuffer')], { type: 'application/pdf' }) }]);
+            [...pdfPages.keys()].filter(k => k.startsWith(id + '#')).forEach(k => pdfPages.delete(k));
+          } else if (!(await store.get('blobs', id).catch(() => null))) return null;
+          pdfDone.set(key, id);
+        }
+        const marks = (Array.isArray(v.marks) ? v.marks : []).filter(m => Array.isArray(m) && m.length === 4 && m.every(Number.isFinite));
+        return { id, page: Math.max(1, Math.round(+v.page || 1)), w: +v.w || 0, h: +v.h || 0, marks };
+      };
+      const cleanScene = v => (v && Array.isArray(v.paras) && v.paras.some(x => String(x).trim())) ? { paras: v.paras.map(String).filter(x => x.trim()) } : null;
       const total = (man.decks || []).reduce((n, d) => n + (d.cards || []).length, 0) || 1;
       let n = 0;
       for (const md of man.decks || []) {
@@ -1660,6 +1961,18 @@ $('#zipPicker').addEventListener('change', async e => {
                 have.ref = r; changed = true;
               }
             }
+            if ('sceneText' in mc) {
+              const t = cleanScene(mc.sceneText);
+              if (JSON.stringify(t) !== JSON.stringify(have.sceneText || null)) { if (t) have.sceneText = t; else delete have.sceneText; changed = true; }
+            }
+            if ('pdf' in mc) {
+              const pd = await takePdf(mc.pdf), old = have.pdf && have.pdf.id;
+              if (JSON.stringify(pd) !== JSON.stringify(have.pdf || null)) {
+                if (pd) have.pdf = pd; else delete have.pdf;
+                changed = true;
+                if (old && old !== (pd && pd.id)) dropPdf(old);
+              }
+            }
             if (changed) { await store.put('cards', [have]); updated++; touched.add(have.deckId); } else skipped++;
             continue;
           }
@@ -1673,6 +1986,8 @@ $('#zipPicker').addEventListener('change', async e => {
           if (Array.isArray(mc.tags)) extra.tags = mc.tags.map(x => String(x).trim()).filter(Boolean);
           if (Number.isFinite(mc.shotAt)) extra.shotAt = mc.shotAt;
           if (Number.isFinite(mc.sceneTime)) extra.sceneTime = mc.sceneTime;
+          const st = cleanScene(mc.sceneText); if (st) extra.sceneText = st;
+          const pd = await takePdf(mc.pdf); if (pd) extra.pdf = pd;
           const rf = cleanRef(mc.reference);
           if (rf) { const th = rf.kind === 'video' ? await read(mc.reference.thumb) : null; if (th) rf.thumbId = await putImage(th); extra.ref = rf; }
           const dd = await deckFor();

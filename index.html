@@ -265,10 +265,10 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 .r-tr p + p{margin-top:14px}
 .r-tr p.hit{color:#fff}
 .r-tr mark{background:none;color:#0086FF}
-.r-vid{display:flex;flex-direction:column;gap:16px;width:100%;max-width:720px;margin:0 auto;cursor:pointer}
-.r-vid .pic{width:100%;aspect-ratio:16/9;background:var(--surface);overflow:hidden}
-.r-vid .pic img{width:100%;height:100%;object-fit:cover;display:block}
-.r-vid .ttl{padding:0 22px;font:italic 300 16px/1.6 'Merriweather',Georgia,serif;color:#D8D8D8;text-wrap:pretty}
+.r-vid,.dvid{display:flex;flex-direction:column;gap:16px;width:100%;max-width:720px;margin:0 auto;cursor:pointer}
+.r-vid .pic,.dvid .pic{width:100%;aspect-ratio:16/9;background:var(--surface);overflow:hidden}
+.r-vid .pic img,.dvid .pic img{width:100%;height:100%;object-fit:cover;display:block}
+.r-vid .ttl,.dvid .ttl{padding:0 22px;font:italic 300 16px/1.6 'Merriweather',Georgia,serif;color:#D8D8D8;text-wrap:pretty}
 .r-art{width:100%;max-width:560px;margin:0 auto;padding:0 22px;color:#fff}
 .r-art .blk{max-width:340px}
 .r-art .blk[data-href]{cursor:pointer}
@@ -811,6 +811,9 @@ let S = null;
 /* A card's definitions: defIds[i] is the screenshot ('' once removed) and defText[i] its text version (or null). */
 const defIdsOf = c => (c.defIds && c.defIds.length) ? c.defIds : [c.defId].filter(Boolean);
 const textOf = (c, i) => { const t = c.defText && c.defText[i]; return t && Array.isArray(t.blocks) && t.blocks.length ? t : null; };
+/* a definition page can also be a YouTube video that explains the word: its thumbnail (the definition image) and title, opened untimed */
+const vidOf = (c, i) => { const t = c.defText && c.defText[i]; return t && t.video && t.video.vid ? t.video : null; };
+const vidHTML = (v, i) => `<div class="dvid" data-href="${esc('https://www.youtube.com/watch?v=' + encodeURIComponent(v.vid))}"><div class="pic"><img alt="Video" data-i="${i}"></div>${v.title ? `<div class="ttl">${esc(v.title)}</div>` : ''}</div>`;
 const SPEAKER = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#fff" d="M3 9h4l5-4v14l-5-4H3z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>';
 const marks = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>').replace(/\n/g, '<br>');
 function textHTML(t) {
@@ -828,7 +831,7 @@ function textHTML(t) {
     }
   }).join('')}</div>`;
 }
-const plainOf = t => t ? t.blocks.map(b => [b.lead, b.text, ...(b.items || []).flat()].filter(Boolean).join(' ')).join(' ').replace(/\*/g, '') : '';
+const plainOf = t => (t && t.video) ? String(t.video.title || '') : t ? t.blocks.map(b => [b.lead, b.text, ...(b.items || []).flat()].filter(Boolean).join(' ')).join(' ').replace(/\*/g, '') : '';
 /* keep defText the same length as defIds */
 function alignText(c) {
   const n = defIdsOf(c).length, t = Array.isArray(c.defText) ? c.defText.slice(0, n) : [];
@@ -946,8 +949,8 @@ function makeSlide(c) {
     : c.sceneCaption ? `<div class="frame cap"><div class="fcap"><img alt="Scene"><p class="scap">${runsHTML(runsOf(String(c.sceneCaption))).replace(/\n/g, '<br>')}</p></div></div>`
     : '<div class="frame"><img alt="Scene"></div>';
   s.innerHTML = scene + defs.map((_, i) => {
-    const r = n - 1 - i, t = textOf(c, i);
-    return `<div class="def${t ? ' txt' : ''}"><div class="scroll"><div class="dwrap">${t ? textHTML(t) : `<div class="dimg"><img alt="Definition ${i + 1}" data-i="${i}"></div>`}
+    const r = n - 1 - i, t = textOf(c, i), v = !t && vidOf(c, i);
+    return `<div class="def${t ? ' txt' : v ? ' vid' : ''}"><div class="scroll"><div class="dwrap">${t ? textHTML(t) : v ? vidHTML(v, i) : `<div class="dimg"><img alt="Definition ${i + 1}" data-i="${i}"></div>`}
       ${r > 0 ? `<div class="more">${plural(r, 'more definition')} <b>↑</b></div>` : ''}</div></div></div>`;
   }).join('') + (hasRef(c) ? `<div class="ref"><div class="scroll"><div class="rwrap">${refHTML(c)}</div></div></div>` : '');
   if (kind === 'img') blobURL(c.frameId).then(u => { $('.frame img', s).src = u; });
@@ -1487,7 +1490,7 @@ function onUp(e) {
 }
 function handleTap(x, y) {
   const now = performance.now();
-  if (S.level === -1) { // the video or article on the source page opens outside the app
+  if (S.level !== 0) { // the video or article on the source page, or a video definition, opens outside the app
     const a = document.elementFromPoint(x, y), h = a && a.closest('[data-href]');
     if (h && h.dataset.href) { try { window.open(h.dataset.href, '_blank', 'noopener'); } catch {} return; }
   }
@@ -1807,7 +1810,8 @@ function loadZip() {
 const EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'image/heic': 'heic' };
 const MIME = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', gif: 'image/gif', heic: 'image/heic' };
 const cleanText = t => (t && t.mode !== 'image' && Array.isArray(t.blocks) && t.blocks.length)
-  ? { src: String(t.source || t.src || ''), kind: String(t.kind || ''), blocks: t.blocks } : null;
+  ? { src: String(t.source || t.src || ''), kind: String(t.kind || ''), blocks: t.blocks }
+  : (t && t.video && t.video.vid) ? { src: String(t.source || t.src || ''), kind: 'youtube', video: { vid: String(t.video.vid), title: String(t.video.title || '') } } : null;
 async function appMenu() {
   let used = '';
   try { const e = await navigator.storage.estimate(); used = `${Math.max(1, Math.round(e.usage / 1048576))} MB stored on this phone`; } catch {}
@@ -1855,7 +1859,7 @@ async function exportAll() {
       const f = await store.get('blobs', c.frameId);
       const ids = defIdsOf(c);
       const dfs = await Promise.all(ids.map(id => id ? store.get('blobs', id) : null));
-      const texts = ids.map((_, i) => textOf(c, i));
+      const texts = ids.map((_, i) => textOf(c, i) || (vidOf(c, i) ? { kind: 'youtube', video: vidOf(c, i) } : null));
       if (!f || !ids.some((_, i) => dfs[i] || texts[i])) continue;
       const fp = `images/${c.id}-scene.${EXT[f.blob.type] || 'jpg'}`;
       const dps = dfs.map((df, i) => df ? `images/${c.id}-definition${i ? '-' + (i + 1) : ''}.${EXT[df.blob.type] || 'jpg'}` : null);
@@ -1967,8 +1971,12 @@ $('#zipPicker').addEventListener('change', async e => {
             } else if (mc.update) {
               const scene = await read(sp), imgs = await Promise.all(Array.from({ length: count }, (_, i) => read(dps[i])));
               const keep = imgs.map((b, i) => (b || texts[i]) ? i : -1).filter(i => i >= 0);
-              if (scene && keep.length) {
-                alignText(have);
+              alignText(have);
+              const sizeOf = async id => { const r = id && await store.get('blobs', id).catch(() => null); return r && r.blob ? r.blob.size : -1; };
+              const same = scene && keep.length === defIdsOf(have).length && (await sizeOf(have.frameId)) === scene.size
+                && (await Promise.all(keep.map(async (i, k) => (imgs[i] ? imgs[i].size : -1) === await sizeOf(defIdsOf(have)[k])))).every(Boolean)
+                && JSON.stringify(keep.map(i => texts[i] || null)) === JSON.stringify(have.defText);
+              if (scene && keep.length && !same) {
                 const oldText = have.defText, old = [have.frameId, have.thumbId, ...defIdsOf(have)];
                 have.frameId = await putImage(scene); have.thumbId = await putImage(await makeThumb(scene)); thumbIds.add(have.thumbId);
                 have.defIds = []; for (const i of keep) have.defIds.push(imgs[i] ? await putImage(imgs[i]) : '');

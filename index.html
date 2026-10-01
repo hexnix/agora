@@ -141,6 +141,59 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 .selbar .count{flex:1;color:var(--muted);font-size:14px}
 .selbar .btn{flex:none;min-height:44px}
 
+/* ---------- deck pages: sources (page 2) and cards (page 3) ---------- */
+.deckpage h1{margin-bottom:6px}
+.srcs{margin-top:22px}
+.src{display:grid;width:100%;min-width:0;text-align:left}
+.src .chev{color:var(--faint);display:none}
+/* 2A: tiles like the home screen */
+.pv-2A .srcs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:26px 14px}
+.pv-2A .src{gap:11px}
+/* 2B: a list, picture on the left */
+.pv-2B .srcs{display:flex;flex-direction:column}
+.pv-2B .src{grid-template-columns:118px minmax(0,1fr) auto;align-items:center;gap:16px;padding:12px 0;border-top:1px solid var(--line)}
+.pv-2B .src:first-child{border-top:0}
+.pv-2B .src .cover{aspect-ratio:16/10;border-radius:8px}
+.pv-2B .src .chev{display:block}
+/* 2C: wide banners, one per row */
+.pv-2C .srcs{display:flex;flex-direction:column;gap:26px}
+.pv-2C .src{gap:11px}
+.pv-2C .src .cover{aspect-ratio:2.2/1}
+/* page 3 controls: C1 icons at the top right; C2 a row under the title */
+.ctl2{display:none}
+.pv-C2 .ctl1,.pv-C2 .ctl1lbl{display:none}
+.pv-C2 .ctl2{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px}
+.sortbtn{display:inline-flex;align-items:center;gap:8px;height:38px;color:var(--blue-text);font-size:13.5px}
+.sortbtn svg{width:18px;height:18px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:2px}
+.seg button{width:40px;height:32px;border-radius:999px;display:grid;place-items:center;color:var(--faint)}
+.seg button svg{width:18px;height:18px}
+.seg button.on{background:var(--raised);color:var(--text)}
+/* gallery: 3A two across, 3B three across */
+.gal{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 12px;margin-top:20px}
+.pv-3B .gal{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 8px}
+.gcard{display:flex;flex-direction:column;gap:8px;min-width:0;text-align:left}
+.gcard .pic{aspect-ratio:16/10;border-radius:10px;overflow:hidden;background:var(--surface);position:relative}
+.pv-3B .gcard .pic{border-radius:8px}
+.gcard img,.row img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .3s}
+.gcard img.in,.row img.in{opacity:1}
+.gcard .dot{position:absolute;top:8px;right:8px;box-shadow:0 0 0 2px rgba(0,0,0,.45)}
+.gcard .w{font-size:15px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pv-3B .gcard .w{font-size:13px}
+.gcard .w.none,.row .rw.none{color:var(--muted)}
+/* list: L1 like search results, with the episode or chapter; L2 compact, the word only */
+.rows{display:flex;flex-direction:column;margin-top:14px}
+.row{display:grid;grid-template-columns:84px minmax(0,1fr) auto;gap:16px;align-items:center;width:100%;padding:10px 0;border-top:1px solid var(--line);text-align:left}
+.row:first-child{border-top:0}
+.row img{width:84px;height:auto;aspect-ratio:16/10;border-radius:6px;background:var(--surface)}
+.rtx{display:flex;flex-direction:column;gap:3px;min-width:0}
+.row .rw{font-size:var(--fs-name);font-weight:500;line-height:1.2;overflow-wrap:anywhere}
+.row .dot{margin-right:4px}
+.pv-L2 .row{grid-template-columns:56px minmax(0,1fr) auto;gap:14px;padding:7px 0;border-top:0}
+.pv-L2 .row img{width:56px;aspect-ratio:1;border-radius:8px}
+.pv-L2 .row .rw{font-size:16px;font-weight:400}
+.pv-L2 .row .rd{display:none}
+
 /* ---------- study ---------- */
 .study{position:fixed;inset:0;z-index:40;background:#000;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;
   -webkit-touch-callout:none;animation:fadein .25s ease;--hd:104px;--ft:calc(env(safe-area-inset-bottom,0px) + 52px)}
@@ -557,7 +610,7 @@ function renderHome() {
     const cs = deckCards(d.id), n = cs.length, dd = dueCount(d.id);
     const cover = coverOf(d, cs);
     return `<div class="tile">
-      <button class="tile-open" data-open="${d.id}" aria-label="Study ${esc(d.name)}">
+      <button class="tile-open" data-open="${d.id}" aria-label="Open ${esc(d.name)}">
         <div class="cover">${cover ? `<img alt="" data-blob="${cover}">` : ''}</div>
         <div><div class="tile-name">${esc(d.name)}</div>
         <div class="tile-meta">${plural(n, 'card')}${dd ? ` · <span class="due">${dd} to review</span>` : ''}</div></div>
@@ -580,7 +633,7 @@ function renderHome() {
 $('#home').addEventListener('click', e => {
   const t = e.target.closest('button'); if (!t) return;
   const deck = id => decks.find(d => d.id === id);
-  if (t.dataset.open) { const d = deck(t.dataset.open); deckCards(d.id).length ? openStudy(d) : addFlow(d); }
+  if (t.dataset.open) openDeck(deck(t.dataset.open));
   else if (t.dataset.menu) deckMenu(deck(t.dataset.menu));
   else if (t.dataset.new) nameSheet(null);
   else if (t.id === 'appMenu') appMenu();
@@ -830,6 +883,150 @@ function confirmDeleteCards(list) {
   });
 }
 
+/* ================= a deck's sources (page 2) and a source's cards (page 3) ================= */
+/* A deck's cards fall into sources: a show, film or book by its name; all YouTube cards together; all articles and magazines together. */
+const SRC_STORY = new Set(['tv', 'movie', 'film', 'book']);
+const SRC_READ = new Set(['article', 'magazine', 'news']);
+function srcOf(c) {
+  const kind = tagsOf(c).find(t => tagRank(t) === 0) || '', k = kind.toLowerCase(), name = showOf(c);
+  if (SRC_STORY.has(k)) return { key: 'n:' + (name || kind).toLowerCase(), name: name || kind, kind };
+  if (k === 'youtube') return { key: 'youtube', name: 'YouTube', kind: '' };
+  if (SRC_READ.has(k)) return { key: 'articles', name: 'Articles', kind: '' };
+  if (k) return { key: 'k:' + k, name: kind, kind: '' };
+  return name ? { key: 'n:' + name.toLowerCase(), name, kind: '' } : { key: 'other', name: 'Other', kind: '' };
+}
+function sourcesOf(d) {
+  const m = new Map();
+  for (const c of deckCards(d.id)) {
+    const s = srcOf(c);
+    if (!m.has(s.key)) m.set(s.key, Object.assign(s, { cards: [] }));
+    m.get(s.key).cards.push(c);
+  }
+  // the source you added to most recently comes first, like decks on the home screen
+  const last = g => Math.max(...g.cards.map(shotOf));
+  return [...m.values()].sort((a, b) => last(b) - last(a));
+}
+/* Order of appearance exists only when every card comes from one show, film, book or YouTube video */
+function storySort(g) {
+  const cs = g.cards;
+  if (g.key.startsWith('n:') && SRC_STORY.has(g.kind.toLowerCase())) {
+    if (g.kind.toLowerCase() === 'book') return (a, b) => (shotOf(a) - shotOf(b)) || (a.seq - b.seq); // book cards are dated in reading order
+    return (a, b) => (epKey(a) - epKey(b)) || ((a.sceneTime ?? 1e9) - (b.sceneTime ?? 1e9)) || (shotOf(a) - shotOf(b)) || (a.seq - b.seq);
+  }
+  const vid = c => c.ref && c.ref.kind === 'video' ? c.ref.vid : '';
+  if (g.key === 'youtube' && cs.length && vid(cs[0]) && cs.every(c => vid(c) === vid(cs[0])))
+    return (a, b) => ((a.ref.t || 0) - (b.ref.t || 0)) || ((a.sceneTime ?? 1e9) - (b.sceneTime ?? 1e9)) || (a.seq - b.seq);
+  return null;
+}
+const SORTS = {
+  story: { label: 'Order of appearance' },
+  newest: { label: 'Newest first', fn: (a, b) => (shotOf(b) - shotOf(a)) || (b.seq - a.seq) },
+  oldest: { label: 'Oldest first', fn: (a, b) => (shotOf(a) - shotOf(b)) || (a.seq - b.seq) },
+  az: { label: 'A to Z', fn: (a, b) => norm(a.word || '~').localeCompare(norm(b.word || '~')) || (a.seq - b.seq) }
+};
+/* a choice made once sticks for that source; until then the default follows the cards */
+const sortKey = (d, g) => `sort.${d.id}.${g.key}`;
+function sortOf(d, g) {
+  const saved = ls.get(sortKey(d, g)), story = storySort(g);
+  if (saved && SORTS[saved] && (saved !== 'story' || story)) return saved;
+  return story ? 'story' : 'newest';
+}
+function orderOf(d, g) {
+  const m = sortOf(d, g);
+  return [...g.cards].sort(m === 'story' ? storySort(g) : SORTS[m].fn);
+}
+const storyWhat = g => ({ tv: 'the show', movie: 'the film', film: 'the film', book: 'the book' })[g.kind.toLowerCase()] || 'the video';
+/* the small line under a word: what the source name doesn't already say (episode, chapter, channel, publication) */
+const subOf = (c, g) => rankTags(tagsOf(c)).filter(t => tagRank(t) !== 0 && t !== g.name && tagRank(t) !== 3).join(' · ');
+
+const ICON_GRID = svg('<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>', 20);
+const ICON_LIST = svg('<rect x="3.5" y="5" width="5" height="4" rx="1"/><rect x="3.5" y="15" width="5" height="4" rx="1"/><path d="M11.5 7h9M11.5 17h9"/>', 20);
+const ICON_SORT = svg('<path d="M8 4.5v15M4.5 16l3.5 3.5 3.5-3.5M16 19.5v-15M12.5 8L16 4.5 19.5 8"/>', 20);
+
+let pages = []; // the open deck pages, oldest first: {kind:'sources'|'cards', deck, src?, el}
+const PV = (ls.get('pv') || '2A,3A,L1,C1').split(','); // preview styles (removed before shipping)
+function openDeck(d) {
+  const gs = sourcesOf(d);
+  if (!gs.length) { addFlow(d); return; }
+  if (gs.length === 1) openSource(d, gs[0], true); else openSources(d);
+}
+function newPage(v) {
+  const el = document.createElement('div'); el.className = 'page deckpage ' + PV.map(x => 'pv-' + x).join(' ');
+  document.body.appendChild(el); document.body.classList.add('locked');
+  v.el = el; pages.push(v);
+  el.addEventListener('click', e => onPageClick(e, v));
+  pushLayer(() => {
+    el.remove(); pages = pages.filter(p => p !== v);
+    if (!pages.length && !cardsView && !searchView && !S) document.body.classList.remove('locked');
+    refreshPages(); renderHome();
+  });
+  renderPage(v);
+}
+function openSources(d) { newPage({ kind: 'sources', deck: d }); }
+function openSource(d, g, whole) { newPage({ kind: 'cards', deck: d, key: g.key, whole }); }
+function refreshPages() { pages.forEach(renderPage); }
+function pics(el) { $$('img[data-blob]', el).forEach(img => { thumbIds.add(img.dataset.blob); blobURL(img.dataset.blob).then(u => { if (u) { img.onload = () => img.classList.add('in'); img.src = u; } }); }); }
+function srcFor(v) { return sourcesOf(v.deck).find(g => g.key === v.key) || { key: v.key, name: v.deck.name, kind: '', cards: [] }; }
+function renderPage(v) {
+  const d = v.deck, top = v.el.scrollTop;
+  if (v.kind === 'sources') {
+    const gs = sourcesOf(d), total = gs.reduce((n, g) => n + g.cards.length, 0), due = dueCount(d.id);
+    v.el.innerHTML = `<div class="home">
+      <div class="bar"><button class="iconbtn" data-p="back" aria-label="Back">${ICON.back}</button></div>
+      <h1>${esc(d.name)}</h1>
+      <p class="summary">${plural(gs.length, 'source')} · ${plural(total, 'card')}${due ? ` · <span class="due">${due} to review</span>` : ''}</p>
+      <div class="srcs">${gs.map(g => {
+        const dd = g.cards.filter(c => c.review).length, c0 = orderOf(d, g)[0];
+        return `<button class="src" data-src="${esc(g.key)}"><div class="cover"><img alt="" data-blob="${c0 ? c0.thumbId : ''}"></div>
+          <div class="stxt"><div class="tile-name">${esc(g.name)}</div>
+          <div class="tile-meta">${g.kind ? esc(g.kind) + ' · ' : ''}${plural(g.cards.length, 'card')}${dd ? ` · <span class="due">${dd} to review</span>` : ''}</div></div>
+          <span class="chev">${ICON.chev}</span></button>`;
+      }).join('')}</div></div>`;
+  } else {
+    const g = srcFor(v), list = orderOf(d, g), m = sortOf(d, g), dd = list.filter(c => c.review).length;
+    const view = ls.get('cardview') === 'list' ? 'list' : 'grid';
+    const sortLbl = m === 'story' ? 'Order of appearance' : SORTS[m].label;
+    v.el.innerHTML = `<div class="home">
+      <div class="bar"><button class="iconbtn" data-p="back" aria-label="Back">${ICON.back}</button>
+        <span class="tools ctl1"><button class="iconbtn" data-p="sort" aria-label="Sort: ${sortLbl}">${ICON_SORT}</button>
+        <button class="iconbtn" data-p="view" aria-label="${view === 'grid' ? 'Show as a list' : 'Show as a gallery'}">${view === 'grid' ? ICON_LIST : ICON_GRID}</button></span></div>
+      <h1>${esc(v.whole ? d.name : g.name)}</h1>
+      <p class="summary">${plural(list.length, 'card')}${dd ? ` · <span class="due">${dd} to review</span>` : ''}<span class="ctl1lbl"> · ${sortLbl.toLowerCase()}</span></p>
+      <div class="ctl2"><button class="sortbtn" data-p="sort">${ICON_SORT}<span>${sortLbl}</span></button>
+        <span class="seg"><button data-p="grid" class="${view === 'grid' ? 'on' : ''}" aria-label="Gallery">${ICON_GRID}</button><button data-p="list" class="${view === 'list' ? 'on' : ''}" aria-label="List">${ICON_LIST}</button></span></div>
+      ${view === 'grid'
+        ? `<div class="gal">${list.map(c => `<button class="gcard" data-card="${c.id}"><div class="pic"><img alt="" data-blob="${c.thumbId}">${c.review ? '<span class="dot"></span>' : ''}</div>
+            <span class="w${c.word ? '' : ' none'}">${esc(c.word || 'No word yet')}</span></button>`).join('')}</div>`
+        : `<div class="rows">${list.map(c => { const sub = subOf(c, g);
+            return `<button class="row" data-card="${c.id}"><img alt="" data-blob="${c.thumbId}">
+            <span class="rtx"><span class="rw${c.word ? '' : ' none'}">${esc(c.word || 'No word yet')}</span>${sub ? `<span class="rd">${esc(sub)}</span>` : ''}</span>
+            ${c.review ? '<span class="dot"></span>' : ''}</button>`; }).join('')}</div>`}
+      ${list.length ? '' : '<p class="empty">No cards left here.</p>'}</div>`;
+  }
+  pics(v.el); v.el.scrollTop = top;
+}
+function onPageClick(e, v) {
+  const b = e.target.closest('button'); if (!b) return;
+  const p = b.dataset.p;
+  if (p === 'back') back();
+  else if (b.dataset.src) { const g = sourcesOf(v.deck).find(x => x.key === b.dataset.src); if (g) openSource(v.deck, g); }
+  else if (p === 'view') { ls.set('cardview', ls.get('cardview') === 'list' ? 'grid' : 'list'); v.el.scrollTop = 0; renderPage(v); }
+  else if (p === 'grid' || p === 'list') { ls.set('cardview', p); renderPage(v); }
+  else if (p === 'sort') sortSheet(v);
+  else if (b.dataset.card) {
+    const g = srcFor(v), list = orderOf(v.deck, g);
+    v.last = b.dataset.card;
+    openStudy(v.deck, b.dataset.card, list);
+  }
+}
+function sortSheet(v) {
+  const d = v.deck, g = srcFor(v), cur = sortOf(d, g), story = storySort(g);
+  const opt = (k, desc) => item(k, SORTS[k].label, k === cur ? `<span class="tick">${ICON.check}</span>` : '', '', desc);
+  sheet(`<h2>Sort cards</h2><p class="sub">${esc(v.whole ? d.name : g.name)}</p>
+    <div class="list">${story ? opt('story', `As the words come up in ${storyWhat(g)}`) : ''}${opt('newest')}${opt('oldest')}${opt('az')}</div>`,
+    Object.fromEntries(Object.keys(SORTS).map(k => [k, () => { ls.set(sortKey(d, g), k); renderPage(v); v.el.scrollTop = 0; closeSheet(); }])));
+}
+
 /* ================= study ================= */
 let S = null;
 /* A card's definitions: defIds[i] is the screenshot ('' once removed) and defText[i] its text version (or null). */
@@ -907,8 +1104,8 @@ function buildOrder(list) {
   const base = defaultOrder(list);
   return [...base.filter(c => c.review), ...base.filter(c => !c.review)];
 }
-function openStudy(d, startId) {
-  const order = buildOrder(deckCards(d.id));
+/* order: the cards in the order a deck page shows them; without it, the deck's own order */
+function openStudy(d, startId, order = buildOrder(deckCards(d.id))) {
   if (!order.length) { toast('This deck has no cards yet'); return; }
   const start = startId ? Math.max(0, order.findIndex(c => c.id === startId)) : 0;
   const el = document.createElement('div');
@@ -959,12 +1156,15 @@ function openStudy(d, startId) {
 }
 function closeStudy() {
   if (!S) return;
-  const el = S.el; S = null; pts.clear(); g = null; pinch = null; stopFling(); cancelHold();
+  const el = S.el, seen = S.order[S.i]; S = null; pts.clear(); g = null; pinch = null; stopFling(); cancelHold();
   document.body.classList.remove('in-study');
   el.style.transition = 'opacity .2s'; el.style.opacity = '0';
   setTimeout(() => { el.remove(); releaseFull(); }, 220);
-  if (!searchView && !cardsView) document.body.classList.remove('locked');
-  renderHome(); refreshCards();
+  if (!searchView && !cardsView && !pages.length) document.body.classList.remove('locked');
+  renderHome(); refreshCards(); refreshPages();
+  // back on a deck page: keep the last card you looked at in view
+  const top = pages[pages.length - 1], b = top && seen && $(`[data-card="${seen.id}"]`, top.el);
+  if (b) b.scrollIntoView({ block: 'nearest' });
 }
 /* the scene of a card: a screenshot, an article as text, or a magazine page (PDF) */
 const sceneKind = c => (c.pdf && c.pdf.id) ? 'pdf' : (c.sceneText && Array.isArray(c.sceneText.paras) && c.sceneText.paras.some(p => String(p).trim())) ? 'art' : 'img';
@@ -1784,7 +1984,7 @@ function openSearch(pins) {
     else if (b.dataset.unpin != null) { searchView.pins.splice(+b.dataset.unpin, 1); searchView.draw(); }
     else if (b.dataset.card) { const c = cards.find(x => x.id === b.dataset.card); if (c) { input.blur(); openStudy(decks.find(d => d.id === c.deckId), c.id); } }
   });
-  pushLayer(() => { el.remove(); searchView = null; if (!S) document.body.classList.remove('locked'); });
+  pushLayer(() => { el.remove(); searchView = null; if (!S && !pages.length && !cardsView) document.body.classList.remove('locked'); });
   searchView.draw();
   if (!searchView.pins.length) input.focus();
 }

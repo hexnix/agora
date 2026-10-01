@@ -78,7 +78,9 @@ IndexedDB database `subtext`, version 1, with four stores:
 
 - **Home:** "Your decks", a grid with the newest deck first.
   - Each tile has a cover (a chosen photo, a chosen card, or the deck's first card) and "N cards · N to review".
-  - The ⋯ menu on a tile: Study, Add cards, Browse cards, Rename, Cover image, Delete deck.
+  - The ⋯ menu on a tile: Study, Add cards, Browse cards, Rename, Cover image, Merge into another deck, Delete deck.
+  - **Merge into another deck** (`mergeSheet` / `doMerge`, v18) moves every card (tags, review marks and progress kept) into a chosen deck or a new one, then removes the empty deck.
+  - **Decks are kinds of content, not sources.** All vocabulary lives in one deck, "Vocabulary"; the source (show, film, channel, book) is in the tags. The owner plans to grow Subtext into a place to find anything in their digital life, with more decks over time (a finance tracker, concepts with detailed explanations, pictures and files).
   - The top ⋯ menu is Backup: "Back up everything" (one zip), "Import a backup", "Remove screenshots behind text".
   - Search covers words, meanings and tags; tapping a tag in the study view opens search pinned to that tag.
 - **Browse cards:** a thumbnail grid. Select lets the owner move or delete cards; tapping a card opens a preview sheet.
@@ -91,7 +93,7 @@ IndexedDB database `subtext`, version 1, with four stores:
   - **Hold** the scene or a definition to mark or unmark it for review. Opening the meaning only counts a "peek"; it never marks a card by itself.
   - ✎ edit menu (`studyEditSheet`): Replace scene/definition image, Add tag, Mark for review, Delete card.
   - Tags show in path order (category, source, episode, chatbot product; `tagRank`). Three are visible and the rest sit behind a **"+N ›"** text link (`‹` when open). Hold a tag to show a × on each plus a **+** pill to add one; tapping a tag opens search for it.
-- **Deck order** (`defaultOrder` / `buildOrder`): a deck that is mostly TV or Movie goes by episode (the `S01 E03` tag), then `sceneTime`. Other decks show the newest `shotAt` first. Cards marked for review always come first.
+- **Deck order** (`defaultOrder` / `buildOrder`): a deck that is mostly TV or Movie cards **from one show or film** goes by episode (the `S01 E03` tag), then `sceneTime`. Other decks, including a mixed deck like Vocabulary, show the newest `shotAt` first. Cards marked for review always come first.
 - **Android Back button:** every overlay (sheet, study view, page layer, search) calls `pushLayer(onPop)` and closes through `back()`, so Back undoes one step at a time. New overlays must do the same.
 - **UI helpers:** `sheet(html, actions)` for bottom sheets (with `item(...)` rows), `toast(msg)`, `progressSheet` / `progress`.
 
@@ -170,5 +172,6 @@ python3 tools/app-test/harness.py . --zips tools/app-test/fixtures/test-library.
 
 - **v12–v16:** article scenes as text; magazine PDF scenes; YouTube frames with a cue below; tags in path order with "+N ›"; Add tag; source page title style.
 - **v17:** video definitions (`defText` entry `{kind: 'youtube', video: {vid, title}}`); `update: true` skips identical cards.
+- **v18:** "Merge into another deck" in the deck ⋯ menu; story order only for a deck of one show or film.
 
 Add a line here with every version you ship.

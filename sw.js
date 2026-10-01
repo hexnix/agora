@@ -1,5 +1,5 @@
 // Subtext service worker: keeps the app usable offline and picks up updates in the background.
-const VERSION = 'subtext-v19';
+const VERSION = 'subtext-v20';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './maskable-512.png'];
 
 self.addEventListener('install', e => {

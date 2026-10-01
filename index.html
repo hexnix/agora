@@ -27,6 +27,8 @@
 }
 *{box-sizing:border-box}
 html,body{height:100%}
+/* no pull-to-refresh: it reloads the app and drops you on the home screen */
+html{overscroll-behavior:none}
 body{margin:0;background:var(--ink);color:var(--text);font:14px/1.5 var(--sans);
   -webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;overscroll-behavior-y:none}
 body.locked{overflow:hidden}
@@ -68,10 +70,10 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 /* ---------- sheet ---------- */
 .scrim{position:fixed;inset:0;background:rgba(0,0,0,.6);opacity:0;transition:opacity .28s;z-index:60}
 .scrim.open{opacity:1}
-.sheet{position:fixed;left:0;right:0;bottom:0;z-index:61;max-width:560px;margin:0 auto;background:#000;
+.sheet{position:fixed;left:0;right:0;bottom:var(--kb,0px);z-index:61;max-width:560px;margin:0 auto;background:#000;
   border:1px solid rgba(255,255,255,.08);border-bottom:0;box-shadow:0 -18px 60px rgba(0,0,0,.6);
   border-radius:24px 24px 0 0;padding:10px 22px calc(22px + env(safe-area-inset-bottom,0px));
-  transform:translateY(100%);transition:transform .34s var(--ease);max-height:90dvh;overflow-y:auto;overscroll-behavior:contain}
+  transform:translateY(calc(100% + var(--kb,0px)));transition:transform .34s var(--ease);max-height:calc(90dvh - var(--kb,0px));overflow-y:auto;overscroll-behavior:contain}
 .sheet.open{transform:none}
 .grab{width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.18);margin:0 auto 18px}
 .sheet h2{font-family:var(--serif);font-weight:500;font-size:var(--fs-head);line-height:1.2;letter-spacing:-.02em;margin:0 0 4px;text-wrap:balance;overflow-wrap:anywhere}
@@ -110,6 +112,14 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 .cpick{aspect-ratio:4/3;border-radius:10px;overflow:hidden;background:var(--surface);position:relative}
 .cpick img{width:100%;height:100%;object-fit:cover;display:block}
 .cpick.on{box-shadow:0 0 0 2px var(--gold)}
+/* sheets that ask for one line of text: a floating card, a grey field with a blue underline, text buttons */
+.sheet.asking{left:12px;right:12px;bottom:calc(var(--kb,0px) + 12px);border-radius:22px;border-bottom:1px solid rgba(255,255,255,.08);padding:20px 20px 8px}
+.sheet.asking .grab{display:none}
+.sheet.asking .field{margin-top:18px}
+.sheet.asking .field input{border:0;background:var(--raised);caret-color:var(--gold);box-shadow:inset 0 -2px 0 var(--gold)}
+.askbtns{display:flex;justify-content:flex-end;gap:10px;margin-top:10px}
+.askbtns .textbtn{padding:12px 10px;font-size:15px}
+.textbtn.quiet{color:var(--muted)}
 .peek{display:grid;grid-template-columns:1fr;gap:8px;margin-top:14px}
 .peek img{width:100%;border-radius:10px;display:block;background:var(--raised)}
 
@@ -119,7 +129,7 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
   animation:rise .3s var(--ease)}
 @keyframes rise{from{opacity:0;transform:translateY(14px)}}
 .page .home{padding-bottom:110px}
-.page.search .home{padding-top:6px}
+.page.search .home{padding-top:4px}
 .page h1{font-size:var(--fs-title);margin-top:14px}
 .thumbs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:22px}
 @media (max-width:360px){.thumbs{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -142,41 +152,37 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 .selbar .btn{flex:none;min-height:44px}
 
 /* ---------- deck pages: sources (page 2) and cards (page 3) ---------- */
-/* the page scrolls, but a pinch is ours: it changes the gallery's size instead of zooming the screen */
 .deckpage{touch-action:pan-y}
+/* always a pixel taller than the screen, so a pull at the top stays inside the page instead of reloading the app */
+.page:not(.search) > .home{min-height:calc(100% + 1px)}
 .deckpage h1{margin-bottom:6px}
+.nsep{color:var(--faint)}
+.ntags{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 12px}
 .srcs{margin-top:22px}
-.src{display:grid;width:100%;min-width:0;text-align:left}
-.src .chev{color:var(--faint);display:none}
-/* sources as tiles, like the home screen */
-.srcs.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:26px 14px}
-@media (min-width:640px){.srcs.tiles{grid-template-columns:repeat(3,minmax(0,1fr));gap:30px 18px}}
-.srcs.tiles .src{gap:11px}
-/* sources as a list, the picture on the left */
-.srcs.rows{display:flex;flex-direction:column}
-.srcs.rows .src{grid-template-columns:118px minmax(0,1fr) auto;align-items:center;gap:16px;padding:12px 0;border-top:1px solid var(--line)}
-.srcs.rows .src:first-child{border-top:0}
-.srcs.rows .src .cover{aspect-ratio:16/10;border-radius:8px}
-.srcs.rows .src .chev{display:block}
-/* a source's cards: a gallery two or three across (pinch to switch), or a compact list */
-.gal{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 12px;margin-top:20px}
-.gal.pop{animation:fadein .2s ease}
-.gal.c3{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 8px}
-@media (min-width:640px){.gal{grid-template-columns:repeat(3,minmax(0,1fr))}.gal.c3{grid-template-columns:repeat(4,minmax(0,1fr))}}
-.gcard{display:flex;flex-direction:column;gap:8px;min-width:0;text-align:left}
+.src{position:relative;min-width:0}
+.src-open{display:grid;width:100%;min-width:0;text-align:left}
+/* decks as tiles, like the home screen, each with its own ⋯ */
+.srcs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:26px 14px}
+@media (min-width:640px){.srcs{grid-template-columns:repeat(3,minmax(0,1fr));gap:30px 18px}}
+.src-open{gap:11px}
+.srcs .more{position:absolute;top:8px;right:8px;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;
+  background:rgba(0,0,0,.55);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:var(--text)}
+/* a deck's cards: a gallery two across; hold a card to select */
+.gal{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 12px;margin-top:20px;user-select:none;-webkit-user-select:none}
+@media (min-width:640px){.gal{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.gcard{display:flex;flex-direction:column;gap:8px;min-width:0;text-align:left;-webkit-touch-callout:none}
 .gcard .pic{aspect-ratio:16/10;border-radius:10px;overflow:hidden;background:var(--surface);position:relative}
-.c3 .gcard .pic{border-radius:8px}
-.gcard img,.crow img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .3s}
-.gcard img.in,.crow img.in{opacity:1}
+.gcard img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .3s;pointer-events:none;-webkit-user-drag:none}
+.gcard img.in{opacity:1}
 .gcard .dot{position:absolute;top:8px;right:8px;box-shadow:0 0 0 2px rgba(0,0,0,.45)}
 .gcard .w{font-size:15px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.c3 .gcard .w{font-size:13px}
-.gcard .w.none,.crow .rw.none{color:var(--muted)}
-.crows{display:flex;flex-direction:column;margin-top:14px}
-.crow{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:14px;align-items:center;width:100%;padding:7px 0;text-align:left}
-.crow img{width:56px;height:auto;aspect-ratio:1;border-radius:8px;background:var(--surface)}
-.crow .rw{font-size:16px;font-weight:400;line-height:1.25;overflow-wrap:anywhere}
-.crow .dot{margin-right:4px}
+.gcard .w.none{color:var(--muted)}
+.gcard .box{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:6px;border:1.5px solid rgba(255,255,255,.85);
+  background:rgba(0,0,0,.35);display:none;place-items:center;color:transparent}
+.selecting .gcard .box{display:grid}
+.selecting .gcard .dot{display:none}
+.selecting .gcard.on .box{background:var(--gold);border-color:var(--gold);color:#fff}
+.selcount{flex:1;font-size:16px;padding-left:4px}
 
 /* ---------- study ---------- */
 .study{position:fixed;inset:0;z-index:40;background:#000;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;
@@ -314,16 +320,21 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 .r-art .blk[data-href] .site span{text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:4px}
 .r-art .site svg{width:19px;height:19px;flex:none}
 /* search: tag suggestions and pinned tags */
-.pins{display:flex;gap:6px;flex:0 1 auto;min-width:0;max-width:72%;overflow-x:auto;scrollbar-width:none}
+.pins{display:flex;gap:6px;flex:0 1 auto;min-width:0;overflow-x:auto;scrollbar-width:none}
 .pins::-webkit-scrollbar{display:none}
-.pin{display:inline-flex;align-items:center;gap:6px;height:34px;flex:none;max-width:210px;padding:0 8px 0 12px;border-radius:999px;background:rgba(0,134,255,.16);color:#4DA8FF;font-size:13.5px;white-space:nowrap}
+.pin{display:inline-flex;align-items:center;height:34px;flex:none;max-width:170px;padding:0 14px;border-radius:999px;background:rgba(0,134,255,.2);color:#8CC6FF;font-size:13.5px;white-space:nowrap}
 .pin b{font-weight:400;min-width:0;overflow:hidden;text-overflow:ellipsis}
-.pin span{font-size:16px;line-height:1;opacity:.8}
-.qwrap input{min-width:64px}
-.qwrap{flex:1;min-width:0;display:flex;align-items:center;gap:6px;height:48px;border-radius:14px;background:var(--surface);border:1px solid var(--line);padding:0 6px}
-.qwrap:focus-within{border-color:var(--gold)}
-.qwrap input{flex:1;min-width:0;height:100%;background:none;border:0;color:var(--text);padding:0 10px;font:inherit;font-size:17px;-webkit-appearance:none;appearance:none}
+/* the search bar: one quiet pill with Back, the tags, the field and a clear button */
+.qwrap{flex:1;min-width:0;display:flex;align-items:center;gap:4px;height:56px;border-radius:28px;background:var(--raised);padding:0 4px}
+.qwrap .iconbtn{width:46px;height:46px;color:var(--text)}
+.qwrap .qclear{color:var(--muted)}
+.qwrap input{flex:1;min-width:36px;height:100%;background:none;border:0;color:var(--text);caret-color:var(--gold);padding:0 8px;font:inherit;font-size:17px;-webkit-appearance:none;appearance:none}
+.qwrap input::placeholder{color:var(--muted)}
+.qwrap input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}
 .qwrap input:focus{outline:none}
+/* the result count, with Create deck beside it */
+.rhead{display:flex;align-items:center;justify-content:space-between;color:var(--muted);font-size:14px;margin:4px 0 2px}
+.rhead .textbtn{margin-right:-6px}
 .sugg{display:flex;flex-wrap:wrap;gap:8px;padding:4px 0 14px}
 .sugg button{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px;border-radius:999px;border:1px solid rgba(0,134,255,.55);color:#4DA8FF;font-size:13.5px}
 .sugg button i{font-style:normal;color:var(--muted);font-size:12px}
@@ -336,7 +347,7 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 
 /* ---------- search ---------- */
 .tools{display:flex;gap:2px;margin-right:-8px}
-.searchbar{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:6px;padding:8px 16px 8px 8px;background:var(--ink)}
+.searchbar{position:sticky;top:0;z-index:2;display:flex;align-items:center;padding:8px 12px 10px;background:var(--ink)}
 .results{display:flex;flex-direction:column}
 .res{display:grid;grid-template-columns:76px minmax(0,1fr);gap:14px;align-items:center;width:100%;padding:10px 0;border-top:1px solid var(--line)}
 .res:first-child{border-top:0}
@@ -518,6 +529,10 @@ async function deleteCards(list) {
   blobIds.forEach(id => { if (urls.has(id)) { URL.revokeObjectURL(urls.get(id)); urls.delete(id); } thumbIds.delete(id); });
   await store.del('cards', [...ids]).catch(storageFail);
   await store.del('blobs', blobIds).catch(storageFail);
+  // and out of any deck made inside a deck
+  const touched = decks.filter(d => subsOf(d).some(sb => (sb.cards || []).some(id => ids.has(id))));
+  touched.forEach(d => subsOf(d).forEach(sb => { sb.cards = (sb.cards || []).filter(id => !ids.has(id)); }));
+  if (touched.length) await store.put('decks', touched).catch(storageFail);
 }
 function askPersist() { try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch {} }
 
@@ -557,6 +572,7 @@ let sheetOpen = false, sheetActions = {}, sheetCleanup = null;
 function sheet(html, actions = {}, onMount) {
   const sh = $('#sheet'), sc = $('#scrim');
   if (sheetCleanup) { sheetCleanup(); sheetCleanup = null; }
+  sh.classList.remove('asking');
   sh.innerHTML = '<div class="grab"></div>' + html;
   sheetActions = actions;
   if (!sheetOpen) {
@@ -572,6 +588,11 @@ function hideSheet() {
   sheetOpen = false; sh.classList.remove('open'); sc.classList.remove('open');
   if (sheetCleanup) { sheetCleanup(); sheetCleanup = null; }
   setTimeout(() => { if (!sheetOpen) { sh.hidden = true; sc.hidden = true; sh.innerHTML = ''; } }, 340);
+}
+/* the keyboard covers the bottom of the screen without resizing the page: keep sheets just above it */
+if (window.visualViewport) {
+  const vv = visualViewport, fit = () => document.documentElement.style.setProperty('--kb', Math.max(0, Math.round(innerHeight - vv.height - vv.offsetTop)) + 'px');
+  vv.addEventListener('resize', fit); vv.addEventListener('scroll', fit);
 }
 function closeSheet(then) { if (sheetOpen) back(then); else if (then) then(); }
 $('#scrim').addEventListener('click', () => closeSheet());
@@ -687,23 +708,27 @@ async function doMerge(d, target) {
   list.forEach(c => { c.deckId = target.id; c.seq = s++; });
   try { await store.put('cards', list); } catch (e) { storageFail(e); return; }
   // the old deck is empty now: drop it (its cover photo too, unless it was one of the cards)
+  if (subsOf(d).length) { target.subs = [...subsOf(target), ...subsOf(d)]; saveDeck(target); }
   if (d.coverId) forget([d.coverId]);
   decks = decks.filter(x => x.id !== d.id);
   await store.del('decks', [d.id]).catch(storageFail);
   renderHome(); closeSheet(); toast(`Moved ${plural(list.length, 'card')} to ${target.name}`);
 }
 function nameSheet(d, then) {
-  sheet(`<h2>${d ? 'Rename deck' : 'New deck'}</h2>
-    <form><div class="field"><input id="deckName" type="text" maxlength="80" autocomplete="off" enterkeyhint="done"
-      placeholder="Film or show, e.g. Oppenheimer" value="${d ? esc(d.name) : ''}" aria-label="Deck name"></div>
-    <div class="btns"><button type="submit" class="btn primary">${d ? 'Save' : 'Create deck'}</button></div></form>`, {
-    submit: f => {
-      const v = $('#deckName', f).value.trim();
-      if (!v) { $('#deckName', f).focus(); return; }
-      if (d) { d.name = v; saveDeck(d); renderHome(); closeSheet(); toast('Renamed'); }
+  askSheet({ title: d ? 'Rename deck' : 'New deck', value: d ? d.name : '', placeholder: 'e.g. Vocabulary', btn: d ? 'Save' : 'Create deck', label: 'Deck name',
+    done: v => {
+      if (d) { d.name = v; saveDeck(d); renderHome(); refreshPages(); closeSheet(); toast('Renamed'); }
       else { const nd = newDeck(v); renderHome(); then ? then(nd) : addFlow(nd); }
-    }
-  }, sh => setTimeout(() => { const i = $('#deckName', sh); if (i) { i.focus(); i.select(); } }, 360));
+    } });
+}
+/* a sheet that asks for one line of text (a deck's name, a card's word): a card floating just above the keyboard */
+function askSheet({ title, sub = '', value = '', placeholder = '', btn = 'Save', label = '', empty = false, attrs = 'autocomplete="off" enterkeyhint="done"', done }) {
+  sheet(`<form class="ask"><h2>${title}</h2>${sub ? `<p class="sub">${sub}</p>` : ''}
+    <div class="field"><input id="askIn" type="text" maxlength="80" ${attrs} value="${esc(value)}" placeholder="${esc(placeholder)}" aria-label="${esc(label || title)}"></div>
+    <div class="askbtns"><button type="button" class="textbtn quiet" data-act="cancel">Cancel</button><button type="submit" class="textbtn">${btn}</button></div></form>`, {
+    cancel: () => closeSheet(),
+    submit: f => { const i = $('#askIn', f), x = i.value.trim(); if (!x && !empty) { i.focus(); return; } done(x); }
+  }, sh => { sh.classList.add('asking'); setTimeout(() => { const i = $('#askIn', sh); if (i) { i.focus(); i.select(); } }, 360); });
 }
 function confirmDeleteDeck(d) {
   const n = deckCards(d.id).length;
@@ -835,12 +860,9 @@ async function cardSheet(c) {
   const pf = $('#pf'), pd = $('#pd'); if (pf) pf.src = f; if (pd) pd.src = d;
 }
 function wordSheet(c, then) {
-  sheet(`<h2>${c.word ? 'Edit word' : 'Add word'}</h2>
-    <form><div class="field"><input id="wordName" type="text" maxlength="80" autocomplete="off" autocapitalize="none" spellcheck="false"
-      enterkeyhint="done" value="${esc(c.word)}" placeholder="e.g. squaddie" aria-label="Word"></div>
-    <div class="btns"><button type="submit" class="btn primary">Save</button></div></form>`, {
-    submit: f => { c.word = $('#wordName', f).value.trim(); saveCards([c]); refreshCards(); then ? then() : cardSheet(c); }
-  }, sh => setTimeout(() => { const i = $('#wordName', sh); if (i) i.focus(); }, 360));
+  askSheet({ title: c.word ? 'Edit word' : 'Add word', value: c.word, placeholder: 'e.g. squaddie', label: 'Word', empty: true,
+    attrs: 'autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="done"',
+    done: v => { c.word = v; saveCards([c]); refreshCards(); then ? then() : cardSheet(c); } });
 }
 function moveSheet(list) {
   const from = list[0] && list[0].deckId;
@@ -868,7 +890,9 @@ function confirmDeleteCards(list) {
 }
 
 /* ================= a deck's sources (page 2) and a source's cards (page 3) ================= */
-/* A deck's cards fall into sources: a show, film or book by its name; all YouTube cards together; all articles and magazines together. */
+/* A deck's cards fall into sources: a show, film or book by its name; all YouTube cards together; all articles and magazines together.
+   Next to them sit the decks you make yourself (from a search, or from selected cards): a name and a fixed list of cards.
+   They live on the deck record: subs [{id, name, cards: [ids], createdAt}], srcNames {key: name} (renamed sources), srcHidden [keys] (deleted sources, cards kept). */
 const SRC_STORY = new Set(['tv', 'movie', 'film', 'book']);
 const SRC_READ = new Set(['article', 'magazine', 'news']);
 function srcOf(c) {
@@ -879,26 +903,38 @@ function srcOf(c) {
   if (k) return { key: 'k:' + k, name: kind, kind: '' };
   return name ? { key: 'n:' + name.toLowerCase(), name, kind: '' } : { key: 'other', name: 'Other', kind: '' };
 }
+const subsOf = d => Array.isArray(d.subs) ? d.subs : [];
 function sourcesOf(d) {
-  const m = new Map();
-  for (const c of deckCards(d.id)) {
+  const m = new Map(), all = deckCards(d.id), names = d.srcNames || {}, hidden = new Set(d.srcHidden || []);
+  for (const c of all) {
     const s = srcOf(c);
-    if (!m.has(s.key)) m.set(s.key, Object.assign(s, { cards: [] }));
+    if (hidden.has(s.key)) continue;
+    if (!m.has(s.key)) m.set(s.key, Object.assign(s, { name: names[s.key] || s.name, cards: [] }));
     m.get(s.key).cards.push(c);
   }
-  // the source you added to most recently comes first, like decks on the home screen
-  const last = g => Math.max(...g.cards.map(shotOf));
+  for (const s of subsOf(d)) {
+    const ids = new Set(s.cards || []);
+    m.set('s:' + s.id, { key: 's:' + s.id, name: s.name, kind: '', sub: s, cards: all.filter(c => ids.has(c.id)) });
+  }
+  // the deck you added to (or made) most recently comes first, like decks on the home screen
+  const last = g => Math.max(g.sub ? g.sub.createdAt || 0 : 0, ...g.cards.map(shotOf));
   return [...m.values()].sort((a, b) => last(b) - last(a));
 }
 /* Order of appearance exists only when every card comes from one show, film, book or YouTube video */
+function storyOf(g) {
+  const cs = g.cards; if (!cs.length) return null;
+  const s = srcOf(cs[0]);
+  return cs.every(c => srcOf(c).key === s.key) ? s : null;
+}
 function storySort(g) {
-  const cs = g.cards;
-  if (g.key.startsWith('n:') && SRC_STORY.has(g.kind.toLowerCase())) {
-    if (g.kind.toLowerCase() === 'book') return (a, b) => (shotOf(a) - shotOf(b)) || (a.seq - b.seq); // book cards are dated in reading order
+  const s = storyOf(g); if (!s) return null;
+  const k = s.kind.toLowerCase();
+  if (SRC_STORY.has(k)) {
+    if (k === 'book') return (a, b) => (shotOf(a) - shotOf(b)) || (a.seq - b.seq); // book cards are dated in reading order
     return (a, b) => (epKey(a) - epKey(b)) || ((a.sceneTime ?? 1e9) - (b.sceneTime ?? 1e9)) || (shotOf(a) - shotOf(b)) || (a.seq - b.seq);
   }
-  const vid = c => c.ref && c.ref.kind === 'video' ? c.ref.vid : '';
-  if (g.key === 'youtube' && cs.length && vid(cs[0]) && cs.every(c => vid(c) === vid(cs[0])))
+  const vid = c => c.ref && c.ref.kind === 'video' ? c.ref.vid : '', cs = g.cards;
+  if (s.key === 'youtube' && vid(cs[0]) && cs.every(c => vid(c) === vid(cs[0])))
     return (a, b) => ((a.ref.t || 0) - (b.ref.t || 0)) || ((a.sceneTime ?? 1e9) - (b.sceneTime ?? 1e9)) || (a.seq - b.seq);
   return null;
 }
@@ -919,26 +955,29 @@ function orderOf(d, g) {
   const m = sortOf(d, g);
   return [...g.cards].sort(m === 'story' ? storySort(g) : SORTS[m].fn);
 }
-const storyWhat = g => ({ tv: 'the show', movie: 'the film', film: 'the film', book: 'the book' })[g.kind.toLowerCase()] || 'the video';
+const storyWhat = g => ({ tv: 'the show', movie: 'the film', film: 'the film', book: 'the book' })[(storyOf(g) || { kind: '' }).kind.toLowerCase()] || 'the video';
 
-const ICON_GRID = svg('<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>', 20);
-const ICON_LIST = svg('<rect x="3.5" y="5" width="5" height="4" rx="1"/><rect x="3.5" y="15" width="5" height="4" rx="1"/><path d="M11.5 7h9M11.5 17h9"/>', 20);
+/* a name in parts, like "The 48 Laws of Power · Law 1" (a deck made from tags): its tile reads "The 48 Laws of Power | Law 1",
+   and its page shows the first part as the title with the rest as tags under it */
+const nameParts = n => String(n).split(' · ').map(x => x.trim()).filter(Boolean);
+const nameHTML = n => nameParts(n).map(esc).join('<span class="nsep"> | </span>');
+const titleHTML = n => { const [t, ...rest] = nameParts(n); return `<h1>${esc(t || n)}</h1>${rest.length ? `<div class="ntags">${rest.map(x => `<span class="tag">${esc(x)}</span>`).join('')}</div>` : ''}`; };
 const ICON_SORT = svg('<path d="M8 4.5v15M4.5 16l3.5 3.5 3.5-3.5M16 19.5v-15M12.5 8L16 4.5 19.5 8"/>', 20);
-/* the view toggles show what a tap switches to */
-const viewBtn = (list, what) => `<button class="iconbtn" data-p="view" aria-label="${list ? `Show ${what} as tiles` : `Show ${what} as a list`}">${list ? ICON_GRID : ICON_LIST}</button>`;
 
-let pages = []; // the open deck pages, oldest first: {kind: 'sources' | 'cards', deck, key?, whole?, el}
+let pages = []; // the open deck pages, oldest first: {kind: 'sources' | 'cards', deck, key?, whole?, sel?, el}
 function openDeck(d) {
   const gs = sourcesOf(d);
-  if (!gs.length) { addFlow(d); return; }
-  if (gs.length === 1) openSource(d, gs[0], true); else openSources(d);
+  if (!deckCards(d.id).length) { addFlow(d); return; }
+  // a deck of one source, with nothing made or deleted in it, goes straight to its cards
+  if (gs.length === 1 && !gs[0].sub && !(d.srcHidden || []).length) openSource(d, gs[0], true); else openSources(d);
 }
 function newPage(v) {
   const el = document.createElement('div'); el.className = 'page deckpage';
   document.body.appendChild(el); document.body.classList.add('locked');
   v.el = el; pages.push(v);
   el.addEventListener('click', e => onPageClick(e, v));
-  if (v.kind === 'cards') pinchSize(v);
+  el.addEventListener('contextmenu', e => e.preventDefault());
+  if (v.kind === 'cards') holdToSelect(v);
   pushLayer(() => {
     el.remove(); pages = pages.filter(p => p !== v);
     if (!pages.length && !cardsView && !searchView && !S) document.body.classList.remove('locked');
@@ -950,72 +989,73 @@ function openSources(d) { newPage({ kind: 'sources', deck: d }); }
 function openSource(d, g, whole) { newPage({ kind: 'cards', deck: d, key: g.key, whole }); }
 function refreshPages() { pages.forEach(renderPage); }
 function pics(el) { $$('img[data-blob]', el).forEach(img => { thumbIds.add(img.dataset.blob); blobURL(img.dataset.blob).then(u => { if (u) { img.onload = () => img.classList.add('in'); img.src = u; } }); }); }
-function srcFor(v) { return sourcesOf(v.deck).find(g => g.key === v.key) || { key: v.key, name: v.deck.name, kind: '', cards: [] }; }
+function srcFor(v) { return sourcesOf(v.deck).find(g => g.key === v.key) || { key: v.key, name: v.deck.name, kind: '', cards: v.whole ? deckCards(v.deck.id) : [] }; }
+const BOX = '<span class="box">' + svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 14) + '</span>';
 function renderPage(v) {
   const d = v.deck, top = v.el.scrollTop;
   if (v.kind === 'sources') {
-    const gs = sourcesOf(d), total = gs.reduce((n, g) => n + g.cards.length, 0), due = dueCount(d.id);
-    const list = ls.get('srcview') === 'list';
+    const gs = sourcesOf(d), total = deckCards(d.id).length, due = dueCount(d.id);
     v.el.innerHTML = `<div class="home">
-      <div class="bar"><button class="iconbtn" data-p="back" aria-label="Back">${ICON.back}</button><span class="tools">${viewBtn(list, 'sources')}</span></div>
+      <div class="bar"><button class="iconbtn" data-p="back" aria-label="Back">${ICON.back}</button></div>
       <h1>${esc(d.name)}</h1>
-      <p class="summary">${plural(gs.length, 'source')} · ${plural(total, 'card')}${due ? ` · <span class="due">${due} to review</span>` : ''}</p>
-      <div class="srcs ${list ? 'rows' : 'tiles'}">${gs.map(g => {
+      <p class="summary">${plural(gs.length, 'deck')} · ${plural(total, 'card')}${due ? ` · <span class="due">${due} to review</span>` : ''}</p>
+      <div class="srcs">${gs.map(g => {
         const dd = g.cards.filter(c => c.review).length, c0 = orderOf(d, g)[0];
-        return `<button class="src" data-src="${esc(g.key)}"><div class="cover"><img alt="" data-blob="${c0 ? c0.thumbId : ''}"></div>
-          <div><div class="tile-name">${esc(g.name)}</div>
-          <div class="tile-meta">${g.kind ? esc(g.kind) + ' · ' : ''}${plural(g.cards.length, 'card')}${dd ? ` · <span class="due">${dd} to review</span>` : ''}</div></div>
-          <span class="chev">${ICON.chev}</span></button>`;
-      }).join('')}</div></div>`;
+        return `<div class="src"><button class="src-open" data-src="${esc(g.key)}"><div class="cover"><img alt="" data-blob="${c0 ? c0.thumbId : ''}"></div>
+          <div><div class="tile-name">${nameHTML(g.name)}</div>
+          <div class="tile-meta">${g.kind ? esc(g.kind) + ' · ' : ''}${plural(g.cards.length, 'card')}${dd ? ` · <span class="due">${dd} to review</span>` : ''}</div></div></button>
+          <button class="more" data-srcmenu="${esc(g.key)}" aria-label="Options for ${esc(g.name)}">${ICON.more}</button></div>`;
+      }).join('')}</div>
+      ${gs.length ? '' : '<p class="empty">No decks here. Search for a tag or a word to make one.</p>'}</div>`;
   } else {
-    const g = srcFor(v), list = orderOf(d, g), m = sortOf(d, g), dd = list.filter(c => c.review).length;
-    const rows = ls.get('cardview') === 'list', sortLbl = SORTS[m].label;
-    v.el.innerHTML = `<div class="home">
-      <div class="bar"><button class="iconbtn" data-p="back" aria-label="Back">${ICON.back}</button>
-        <span class="tools"><button class="iconbtn" data-p="sort" aria-label="Sort: ${sortLbl}">${ICON_SORT}</button>${viewBtn(rows, 'cards')}</span></div>
-      <h1>${esc(v.whole ? d.name : g.name)}</h1>
+    const g = srcFor(v), list = orderOf(d, g), m = sortOf(d, g), dd = list.filter(c => c.review).length, sel = v.sel;
+    const sortLbl = SORTS[m].label;
+    if (sel) [...sel].forEach(id => { if (!list.some(c => c.id === id)) sel.delete(id); });
+    v.el.innerHTML = `<div class="home${sel ? ' selecting' : ''}">
+      ${sel ? `<div class="bar"><button class="iconbtn" data-p="unsel" aria-label="Stop selecting">${ICON.close}</button>
+          <span class="selcount num">${sel.size} selected</span>
+          <button class="iconbtn" data-p="selmenu" aria-label="Options for the selected cards" ${sel.size ? '' : 'disabled'}>${ICON.more}</button></div>`
+        : `<div class="bar"><button class="iconbtn" data-p="back" aria-label="Back">${ICON.back}</button>
+          <span class="tools"><button class="iconbtn" data-p="sort" aria-label="Sort: ${sortLbl}">${ICON_SORT}</button></span></div>`}
+      ${titleHTML(v.whole ? d.name : g.name)}
       <p class="summary">${plural(list.length, 'card')}${dd ? ` · <span class="due">${dd} to review</span>` : ''} · ${sortLbl.toLowerCase()}</p>
-      ${rows
-        ? `<div class="crows">${list.map(c => `<button class="crow" data-card="${c.id}"><img alt="" data-blob="${c.thumbId}">
-            <span class="rw${c.word ? '' : ' none'}">${esc(c.word || 'No word yet')}</span>${c.review ? '<span class="dot"></span>' : ''}</button>`).join('')}</div>`
-        : `<div class="gal${ls.get('galcols') === '3' ? ' c3' : ''}">${list.map(c => `<button class="gcard" data-card="${c.id}"><div class="pic"><img alt="" data-blob="${c.thumbId}">${c.review ? '<span class="dot"></span>' : ''}</div>
-            <span class="w${c.word ? '' : ' none'}">${esc(c.word || 'No word yet')}</span></button>`).join('')}</div>`}
+      <div class="gal">${list.map(c => `<button class="gcard${sel && sel.has(c.id) ? ' on' : ''}" data-card="${c.id}"><div class="pic"><img alt="" data-blob="${c.thumbId}">${c.review ? '<span class="dot"></span>' : ''}${BOX}</div>
+          <span class="w${c.word ? '' : ' none'}">${esc(c.word || 'No word yet')}</span></button>`).join('')}</div>
       ${list.length ? '' : '<p class="empty">No cards left here.</p>'}</div>`;
   }
   pics(v.el); v.el.scrollTop = top;
 }
-/* pinch on the gallery: fingers apart for bigger pictures (two across), together for smaller (three across) */
-function pinchSize(v) {
-  let p = null;
-  const dist = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
-  v.el.addEventListener('touchstart', e => { p = e.touches.length === 2 ? { d: dist(e.touches), y: (e.touches[0].clientY + e.touches[1].clientY) / 2, done: false } : null; }, { passive: true });
-  v.el.addEventListener('touchmove', e => {
-    if (!p || e.touches.length !== 2) return;
-    if (e.cancelable) e.preventDefault();
-    const r = dist(e.touches) / p.d, gal = $('.gal', v.el);
-    if (p.done || !gal || (r < 1.25 && r > 0.8)) return;
-    const three = r < 1; p.done = true;
-    if (three === gal.classList.contains('c3')) return;
-    // keep the card under the fingers in the same place on screen
-    const at = $$('.gcard', gal).find(b => b.getBoundingClientRect().bottom >= p.y), id = at && at.dataset.card, y0 = at && at.getBoundingClientRect().top;
-    ls.set('galcols', three ? '3' : '2'); renderPage(v); $('.gal', v.el).classList.add('pop');
-    const now = id && $(`[data-card="${id}"]`, v.el);
-    if (now) v.el.scrollTop += now.getBoundingClientRect().top - y0;
-  }, { passive: false });
-  v.el.addEventListener('touchend', e => { if (e.touches.length < 2) p = null; });
-  v.el.addEventListener('touchcancel', () => { p = null; });
+/* hold a card to start selecting; while selecting, a tap adds or removes a card, and Back stops */
+function holdToSelect(v) {
+  const h = { t: 0, x: 0, y: 0, fired: false };
+  v.el.addEventListener('pointerdown', e => {
+    const b = e.target.closest('.gcard'); h.fired = false; clearTimeout(h.t);
+    if (!b || v.sel) return;
+    h.x = e.clientX; h.y = e.clientY;
+    h.t = setTimeout(() => { h.fired = true; buzz(); startSelect(v, b.dataset.card); }, 480);
+  });
+  v.el.addEventListener('pointermove', e => { if (Math.hypot(e.clientX - h.x, e.clientY - h.y) > 8) clearTimeout(h.t); });
+  ['pointerup', 'pointercancel'].forEach(k => v.el.addEventListener(k, () => clearTimeout(h.t)));
+  v.el.addEventListener('scroll', () => clearTimeout(h.t), { passive: true });
+  // the tap that ends a hold must not open the card
+  v.el.addEventListener('click', e => { if (h.fired) { h.fired = false; e.stopPropagation(); } }, true);
+}
+function startSelect(v, id) {
+  v.sel = new Set(id ? [id] : []); renderPage(v);
+  pushLayer(() => { v.sel = null; if (v.el.isConnected) renderPage(v); });
 }
 function onPageClick(e, v) {
-  const b = e.target.closest('button'); if (!b) return;
+  const b = e.target.closest('button'); if (!b || b.disabled) return;
   const p = b.dataset.p;
-  if (p === 'back') back();
+  if (p === 'back' || p === 'unsel') back();
   else if (b.dataset.src) { const g = sourcesOf(v.deck).find(x => x.key === b.dataset.src); if (g) openSource(v.deck, g); }
-  else if (p === 'view') {
-    const k = v.kind === 'sources' ? 'srcview' : 'cardview';
-    ls.set(k, ls.get(k) === 'list' ? 'tiles' : 'list'); v.el.scrollTop = 0; renderPage(v);
-  }
+  else if (b.dataset.srcmenu) { const g = sourcesOf(v.deck).find(x => x.key === b.dataset.srcmenu); if (g) srcMenu(v.deck, g); }
   else if (p === 'sort') sortSheet(v);
-  else if (b.dataset.card) openStudy(v.deck, b.dataset.card, orderOf(v.deck, srcFor(v)));
+  else if (p === 'selmenu') selMenu(v);
+  else if (b.dataset.card) {
+    if (v.sel) { const id = b.dataset.card; v.sel.has(id) ? v.sel.delete(id) : v.sel.add(id); renderPage(v); }
+    else openStudy(v.deck, b.dataset.card, orderOf(v.deck, srcFor(v)));
+  }
 }
 function sortSheet(v) {
   const d = v.deck, g = srcFor(v), cur = sortOf(d, g), story = storySort(g);
@@ -1023,6 +1063,77 @@ function sortSheet(v) {
   sheet(`<h2>Sort cards</h2><p class="sub">${esc(v.whole ? d.name : g.name)}</p>
     <div class="list">${story ? opt('story', `As the words come up in ${storyWhat(g)}`) : ''}${opt('newest')}${opt('oldest')}${opt('az')}</div>`,
     Object.fromEntries(Object.keys(SORTS).map(k => [k, () => { ls.set(sortKey(d, g), k); renderPage(v); v.el.scrollTop = 0; closeSheet(); }])));
+}
+/* the ⋯ on a deck in page 2. Deleting the deck alone keeps its cards in the main deck (and in search). */
+function srcMenu(d, g) {
+  const n = g.cards.length, dd = g.cards.filter(c => c.review).length;
+  sheet(`<h2>${esc(g.name)}</h2><p class="sub">${plural(n, 'card')}${dd ? ` · <span class="due">${dd} to review</span>` : ''}</p>
+    <div class="list">
+      ${item('rename', 'Rename')}
+      ${item('drop', 'Delete deck only', '', '', `The cards stay in ${esc(d.name)}`)}
+      ${n ? item('dropall', 'Delete deck and cards', '', 'danger') : ''}
+    </div>`, {
+    rename: () => subNameSheet(g.name, 'Rename deck', 'Save', name => {
+      if (g.sub) g.sub.name = name; else d.srcNames = Object.assign({}, d.srcNames, { [g.key]: name });
+      saveDeck(d); refreshPages(); closeSheet(); toast('Renamed');
+    }),
+    drop: () => {
+      if (g.sub) d.subs = subsOf(d).filter(s => s !== g.sub); else d.srcHidden = [...new Set([...(d.srcHidden || []), g.key])];
+      saveDeck(d); refreshPages(); closeSheet(); toast(`Deleted “${g.name}”. Its cards are still in ${d.name}.`);
+    },
+    dropall: () => sheet(`<h2>Delete “${esc(g.name)}” and its ${plural(n, 'card')}?</h2>
+      <p class="note">The cards and their screenshots are removed from Subtext, from every deck they’re in. This can’t be undone.</p>
+      <div class="btns"><button class="btn" data-act="keep">Keep them</button><button class="btn danger" data-act="yes">Delete</button></div>`, {
+      keep: () => srcMenu(d, g),
+      yes: async () => {
+        await deleteCards(g.cards);
+        if (g.sub) { d.subs = subsOf(d).filter(s => s !== g.sub); saveDeck(d); }
+        refreshPages(); renderHome(); closeSheet(); toast(`Deleted “${g.name}” and ${plural(n, 'card')}`);
+      }
+    })
+  });
+}
+function subNameSheet(value, title, btn, done, sub = '') { askSheet({ title, sub, value, btn, label: 'Deck name', done }); }
+/* a new deck inside d, holding these cards */
+function makeSub(d, list, name) {
+  const s = { id: uid(), name, cards: list.filter(c => c.deckId === d.id).map(c => c.id), createdAt: Date.now() };
+  d.subs = [...subsOf(d), s]; saveDeck(d);
+  return s;
+}
+function addToSub(d, s, list) {
+  s.cards = [...new Set([...(s.cards || []), ...list.filter(c => c.deckId === d.id).map(c => c.id)])]; saveDeck(d);
+}
+/* the ⋯ while selecting cards on page 3 */
+function selMenu(v) {
+  const d = v.deck, g = srcFor(v), list = g.cards.filter(c => v.sel.has(c.id)), n = list.length;
+  const marked = list.every(c => c.review), others = subsOf(d).filter(s => !g.sub || s !== g.sub);
+  const done = msg => back(() => { refreshPages(); renderHome(); toast(msg); }, 2); // the sheet and the selection
+  const pickSub = (title, then) => sheet(`<h2>${title}</h2><p class="sub">${plural(n, 'card')}</p>
+    <div class="list">${others.map(s => item('to', esc(s.name), `<span class="num">${(s.cards || []).length}</span>`).replace('data-act="to"', `data-act="to" data-id="${s.id}"`)).join('')}
+    ${item('fresh', 'New deck…')}</div>`, {
+    to: b => then(subsOf(d).find(s => s.id === b.dataset.id)),
+    fresh: () => subNameSheet('', 'New deck', 'Create deck', name => then(makeSub(d, [], name)), `${plural(n, 'card')} · in ${esc(d.name)}`)
+  });
+  const unSub = () => { const ids = new Set(list.map(c => c.id)); g.sub.cards = (g.sub.cards || []).filter(id => !ids.has(id)); saveDeck(d); };
+  sheet(`<h2>${plural(n, 'card')} selected</h2>
+    <div class="list">
+      ${item('all', 'Select all')}
+      ${item('add', 'Add to deck')}
+      ${g.sub ? item('move', 'Move to deck') + item('out', 'Remove from deck', '', '', `The cards stay in ${esc(d.name)}`) : ''}
+      ${item('flag', marked ? 'Clear review mark' : 'Mark for review')}
+      ${item('del', 'Delete cards', '', 'danger')}
+    </div>`, {
+    all: () => { g.cards.forEach(c => v.sel.add(c.id)); renderPage(v); closeSheet(); },
+    add: () => pickSub('Add to deck', s => { addToSub(d, s, list); done(`Added ${plural(n, 'card')} to ${s.name}`); }),
+    move: () => pickSub('Move to deck', s => { addToSub(d, s, list); unSub(); done(`Moved ${plural(n, 'card')} to ${s.name}`); }),
+    out: () => { unSub(); done(`Removed ${plural(n, 'card')} from ${g.name}`); },
+    flag: () => { list.forEach(c => { c.review = !marked; c.streak = 0; }); saveCards(list); done(marked ? 'Review marks cleared' : `Marked ${plural(n, 'card')} for review`); },
+    del: () => sheet(`<h2>Delete ${plural(n, 'card')}?</h2><p class="note">The screenshots are removed from Subtext, from every deck they’re in. Your gallery keeps its copies.</p>
+      <div class="btns"><button class="btn" data-act="keep">Cancel</button><button class="btn danger" data-act="yes">Delete</button></div>`, {
+      keep: () => selMenu(v),
+      yes: async () => { await deleteCards(list); done(`Deleted ${plural(n, 'card')}`); }
+    })
+  });
 }
 
 /* ================= study ================= */
@@ -1957,20 +2068,22 @@ const hasTags = (c, pins) => { const mine = tagsOf(c).map(norm); return pins.eve
 function openSearch(pins) {
   if (searchView) { if (pins) { searchView.pins = [...pins]; searchView.draw(); } return; }
   const el = document.createElement('div'); el.className = 'page search';
-  el.innerHTML = `<div class="searchbar"><button class="iconbtn" data-q="back" aria-label="Back">${ICON.back}</button>
-      <div class="qwrap"><div class="pins"></div><input id="q" type="search" placeholder="Search words and meanings" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="search" aria-label="Search your words"></div></div>
+  el.innerHTML = `<div class="searchbar"><div class="qwrap"><button class="iconbtn" data-q="back" aria-label="Back">${ICON.back}</button>
+      <div class="pins"></div><input id="q" type="search" placeholder="Search words and meanings" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="search" aria-label="Search your words">
+      <button class="iconbtn qclear" data-q="clear" aria-label="Clear the search" hidden>${ICON.close}</button></div></div>
     <div class="home"><div class="sugg" id="sugg" hidden></div><div class="results" id="results"></div></div>`;
   document.body.appendChild(el); document.body.classList.add('locked');
   const input = $('#q', el);
   searchView = { el, pins: pins ? [...pins] : [] };
   searchView.draw = () => {
     const P = searchView.pins;
-    $('.pins', el).innerHTML = P.map((t, k) => `<button class="pin" data-unpin="${k}" aria-label="Remove tag ${esc(t)}"><b>${esc(t)}</b><span aria-hidden="true">×</span></button>`).join('');
-    input.placeholder = P.length ? 'Search' : 'Search words and meanings';
+    $('.pins', el).innerHTML = P.map((t, k) => `<button class="pin" data-unpin="${k}" aria-label="Remove tag ${esc(t)}"><b>${esc(t)}</b></button>`).join('');
+    input.placeholder = P.length ? '' : 'Search words and meanings'; // with tags in the bar, the cursor is enough
     const pb = $('.pins', el); pb.scrollLeft = pb.scrollWidth;
     renderResults(input.value);
   };
   input.addEventListener('input', () => renderResults(input.value));
+  searchView.input = input;
   input.addEventListener('keydown', e => {
     if (e.key === 'Enter') { const f = $('#sugg button', el) || $('.res', el); if (f) f.click(); }
     else if (e.key === 'Backspace' && !input.value && searchView.pins.length) { searchView.pins.pop(); searchView.draw(); }
@@ -1980,6 +2093,8 @@ function openSearch(pins) {
     if (b.dataset.q === 'back') back();
     else if (b.dataset.pin != null) { searchView.pins.push(b.dataset.pin); input.value = ''; searchView.draw(); input.focus(); }
     else if (b.dataset.unpin != null) { searchView.pins.splice(+b.dataset.unpin, 1); searchView.draw(); }
+    else if (b.dataset.q === 'clear') { searchView.pins = []; input.value = ''; searchView.draw(); input.focus(); }
+    else if (b.dataset.q === 'mkdeck') { input.blur(); deckFromSearch(); }
     else if (b.dataset.card) { const c = cards.find(x => x.id === b.dataset.card); if (c) { input.blur(); openStudy(decks.find(d => d.id === c.deckId), c.id); } }
   });
   pushLayer(() => { el.remove(); searchView = null; if (!S && !pages.length && !cardsView) document.body.classList.remove('locked'); });
@@ -2000,10 +2115,17 @@ function renderResults(q) {
       <span><span class="rw">${title}</span>
       <span class="rd">${esc(d ? d.name : '')}${c.review ? ' · <span class="due">review</span>' : ''}</span>${snip ? `<span class="rd">${snip}</span>` : ''}</span></button>`; };
   const pics = () => $$('img[data-blob]', box).forEach(img => { thumbIds.add(img.dataset.blob); blobURL(img.dataset.blob).then(u => { if (u) img.src = u; }); });
+  $('.qclear', searchView.el).hidden = !(P.length || q);
+  searchView.hits = [];
+  // what was found can become a deck of its own
+  const mk = list => {
+    searchView.hits = list;
+    return `<div class="rhead"><span class="num">${plural(list.length, 'card')}</span><button class="textbtn" data-q="mkdeck">Create deck</button></div>`;
+  };
   if (!n) {
     if (P.length) {
       const list = [...pool].sort((a, b) => norm(a.word || '~').localeCompare(norm(b.word || '~')));
-      box.innerHTML = list.length ? `<p class="note">${plural(list.length, 'card')}</p><div class="results">${list.map(c => row(c, c.word ? esc(c.word) : '<span class="rd">No word yet</span>')).join('')}</div>`
+      box.innerHTML = list.length ? `${mk(list)}<div class="results">${list.map(c => row(c, c.word ? esc(c.word) : '<span class="rd">No word yet</span>')).join('')}</div>`
         : `<p class="note">No card has all of these tags.</p>`;
       pics(); return;
     }
@@ -2014,11 +2136,27 @@ function renderResults(q) {
   const hits = findWords(q, pool);
   if (!hits.length) { box.innerHTML = tg.length ? '' : `<p class="note">Nothing matches “${esc(q.trim())}”${P.length ? ' in these cards' : ' in your words or definitions'}.</p>`; return; }
   const k = n.length;
-  box.innerHTML = hits.map(({ c, i, snip }) => {
+  box.innerHTML = mk(hits.map(h => h.c)) + hits.map(({ c, i, snip }) => {
     const w = c.word || '';
     return row(c, i < 0 ? (w ? esc(w) : '<span class="rd">No word yet</span>') : `${esc(w.slice(0, i))}<mark>${esc(w.slice(i, i + k))}</mark>${esc(w.slice(i + k))}`, snip);
   }).join('');
   pics();
+}
+
+/* make a deck inside the main deck from what search found; it opens on that deck's page */
+function deckFromSearch() {
+  const list = searchView && searchView.hits; if (!list || !list.length) return;
+  const count = new Map(); list.forEach(c => count.set(c.deckId, (count.get(c.deckId) || 0) + 1));
+  const d = decks.find(x => x.id === [...count.entries()].sort((a, b) => b[1] - a[1])[0][0]); if (!d) return;
+  const mine = list.filter(c => c.deckId === d.id), q = searchView.input.value.trim();
+  subNameSheet(searchView.pins.join(' · ') || q, 'New deck', 'Create deck', name => {
+    makeSub(d, mine, name);
+    back(() => {
+      const top = pages[pages.length - 1];
+      if (top && top.kind === 'sources' && top.deck === d) refreshPages(); else openSources(d);
+      toast(`Created “${name}”`);
+    }, 2);
+  }, `${plural(mine.length, 'card')} · in ${esc(d.name)}`);
 }
 
 /* ================= backup & import ================= */
@@ -2079,6 +2217,10 @@ async function exportAll() {
   for (const d of decks) {
     const out = { id: d.id, name: d.name, sort: d.sort, createdAt: d.createdAt, cards: [] };
     if (d.coverCard) out.coverCard = d.coverCard;
+    // decks made inside this deck, renamed and deleted sources (optional fields: older versions ignore them)
+    if (subsOf(d).length) out.subdecks = subsOf(d).map(x => ({ id: x.id, name: x.name, cards: x.cards || [], createdAt: x.createdAt }));
+    if (d.srcNames && Object.keys(d.srcNames).length) out.sourceNames = d.srcNames;
+    if (d.srcHidden && d.srcHidden.length) out.hiddenSources = d.srcHidden;
     if (d.coverId) { const cv = await store.get('blobs', d.coverId).catch(() => null); if (cv) { out.cover = `images/deck-${d.id}-cover.${EXT[cv.blob.type] || 'jpg'}`; zip.file(out.cover, cv.blob); } }
     for (const c of deckCards(d.id)) {
       const f = await store.get('blobs', c.frameId);
@@ -2170,6 +2312,20 @@ $('#zipPicker').addEventListener('change', async e => {
           if (!d || d.coverId || d.coverCard) return;
           if (md.cover && zip.file(md.cover)) { d.coverId = await putImage(new Blob([await zip.file(md.cover).async('arraybuffer')], { type: MIME[md.cover.split('.').pop().toLowerCase()] || 'image/jpeg' })); await store.put('decks', [d]); }
           else if (md.coverCard) { d.coverCard = String(md.coverCard); await store.put('decks', [d]); }
+        };
+        const takeSubs = async () => { // after the cards: adds what's missing, never undoes a change made in the app
+          if (!d) return;
+          let ch = false;
+          for (const x of Array.isArray(md.subdecks) ? md.subdecks : []) {
+            if (!x || !x.id || !x.name || subsOf(d).some(y => y.id === String(x.id))) continue;
+            d.subs = [...subsOf(d), { id: String(x.id), name: String(x.name), cards: (Array.isArray(x.cards) ? x.cards : []).map(String), createdAt: +x.createdAt || Date.now() }]; ch = true;
+          }
+          if (md.sourceNames && typeof md.sourceNames === 'object') for (const [k, v] of Object.entries(md.sourceNames)) {
+            if (typeof v === 'string' && v.trim() && !(d.srcNames && d.srcNames[k])) { d.srcNames = Object.assign({}, d.srcNames, { [k]: v.trim() }); ch = true; }
+          }
+          const hid = (Array.isArray(md.hiddenSources) ? md.hiddenSources : []).map(String).filter(k => !(d.srcHidden || []).includes(k));
+          if (hid.length) { d.srcHidden = [...(d.srcHidden || []), ...hid]; ch = true; }
+          if (ch) await store.put('decks', [d]);
         };
         for (const mc of list) {
           n++;
@@ -2279,7 +2435,7 @@ $('#zipPicker').addEventListener('change', async e => {
           await addPair(dd, scene, keep.map(i => imgs[i]), extra);
           added++; touched.add(dd.id);
         }
-        await takeCover();
+        await takeCover(); await takeSubs();
       }
     }
     askPersist(); renderHome(); closeSheet();

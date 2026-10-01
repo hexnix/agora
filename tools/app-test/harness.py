@@ -1,4 +1,4 @@
-"""Subtext phone test harness (Playwright, 412x915 phone view).
+"""Agora phone test harness (Playwright, 412x915 phone view).
 
 Works offline: JSZip, pdf.js and the fonts come from this folder, so nothing is fetched
 from cdnjs or Google Fonts. The app is served from APP_DIR on a local port.

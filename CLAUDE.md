@@ -47,7 +47,7 @@ IndexedDB database `subtext`, version 1, with four stores:
 
 | Store | Key | Holds |
 |---|---|---|
-| `decks` | `id` | `{id, name, sort, createdAt, coverId?, coverCard?}` |
+| `decks` | `id` | `{id, name, sort, createdAt, coverId?, coverCard?, subs?, srcNames?, srcHidden?}` |
 | `cards` | `id`, index `deckId` | see the card fields below |
 | `blobs` | `id` | `{id, blob}`: every image, thumbnail and PDF |
 | `meta` | `k` | flags: `seeded`, `reviewRules2` |
@@ -82,11 +82,16 @@ IndexedDB database `subtext`, version 1, with four stores:
   - **Merge into another deck** (`mergeSheet` / `doMerge`, v18) moves every card (tags, review marks and progress kept) into a chosen deck or a new one, then removes the empty deck.
   - **Decks are kinds of content, not sources.** All vocabulary lives in one deck, "Vocabulary"; the source (show, film, channel, book) is in the tags. The owner plans to grow Subtext into a place to find anything in their digital life, with more decks over time (a finance tracker, concepts with detailed explanations, pictures and files).
   - The top ⋯ menu is Backup: "Back up everything" (one zip), "Import a backup", "Remove screenshots behind text".
-  - Search covers words, meanings and tags; tapping a tag in the study view opens search pinned to that tag.
-- **Deck pages (v19):** tapping a deck tile opens its sources, then a source's cards, then the study view; Back steps out one page at a time (`openDeck`, `pages`, `renderPage`).
-  - **Page 2, sources** (`sourcesOf` / `srcOf`): a show, film or book by its name tag; all YouTube cards together as "YouTube"; articles and magazines together as "Articles"; the most recently added-to source first. A view icon at the top right switches tiles ↔ list (`localStorage` `srcview`). A deck with one source skips page 2.
-  - **Page 3, a source's cards:** sort and view icons at the top right; the sort shows in grey under the title. Gallery (two across, or three across: pinch to switch, `galcols`) or a compact list (small square picture, word only; `cardview`).
-  - **Sort** (`SORTS`, `storySort`, `sortOf`): "Order of appearance" only when every card is from one show, film, book or YouTube video (episode then `sceneTime`; a book by `shotAt`, which follows reading order; one video by `ref.t`), otherwise newest first. Also Newest first, Oldest first, A to Z. A choice sticks per deck and source (`localStorage` `sort.<deckId>.<sourceKey>`).
+  - Search covers words, meanings and tags; tapping a tag in the study view opens search pinned to that tag. The search bar (v20) is one grey pill: Back, the pinned tags as soft-blue filled chips (tap one to remove it), the field, and × to clear all.
+- **Deck pages (v19–v20):** tapping a deck tile opens its decks (page 2), then a deck's cards (page 3), then the study view; Back steps out one page at a time (`openDeck`, `pages`, `renderPage`).
+  - **Page 2** shows tiles only (no list view). Two kinds of deck, newest activity first:
+    - **Sources** (`sourcesOf` / `srcOf`), automatic from tags: a show, film or book by its name tag; all YouTube cards as "YouTube"; articles and magazines as "Articles".
+    - **Decks the owner makes** (`d.subs = [{id, name, cards: [ids], createdAt}]`): a fixed list of cards, made from search ("Create deck" beside the result count, `deckFromSearch`) or from selected cards ("Add to deck › New deck…"). New matching cards don't join on their own.
+    - Each tile's ⋯ (`srcMenu`): "Rename", "Delete deck only" (cards stay; a source is hidden via `d.srcHidden`, a renamed source is in `d.srcNames`), "Delete deck and cards" (asks first).
+    - A deck with one source, nothing made and nothing hidden, skips page 2.
+  - **Names in parts:** a deck made from tags is named "The 48 Laws of Power · Law 1" by default. Its tile reads "The 48 Laws of Power | Law 1"; page 3 shows "The 48 Laws of Power" as the title and "Law 1" as a tag pill under it (`nameHTML`, `titleHTML`). This applies to any name with " · ".
+  - **Page 3, a deck's cards:** a gallery, two across, no other view; the sort icon at the top right, the sort in grey under the title. **Hold a card** to select: small boxes appear on every card; the bar shows × , "N selected" and ⋯ (`selMenu`): Select all, Add to deck, Move to deck and Remove from deck (in a made deck), Mark for review / Clear review mark, Delete cards.
+  - **Sort** (`SORTS`, `storySort`, `sortOf`): "Order of appearance" only when every card (in a source or a made deck) is from one show, film, book or YouTube video (episode then `sceneTime`; a book by `shotAt`, which follows reading order; one video by `ref.t`), otherwise newest first. Also Newest first, Oldest first, A to Z. A choice sticks per deck and source (`localStorage` `sort.<deckId>.<sourceKey>`).
   - The study view opened from page 3 shows exactly that page's cards in that order (`openStudy(d, id, order)`); no review-first.
 - **Browse cards:** a thumbnail grid. Select lets the owner move or delete cards; tapping a card opens a preview sheet.
 - **Study view**, the heart of the app:
@@ -100,7 +105,9 @@ IndexedDB database `subtext`, version 1, with four stores:
   - Tags show in path order (category, source, episode, chatbot product; `tagRank`). Three are visible and the rest sit behind a **"+N ›"** text link (`‹` when open). Hold a tag to show a × on each plus a **+** pill to add one; tapping a tag opens search for it.
 - **Deck order** (`defaultOrder` / `buildOrder`): a deck that is mostly TV or Movie cards **from one show or film** goes by episode (the `S01 E03` tag), then `sceneTime`. Other decks, including a mixed deck like Vocabulary, show the newest `shotAt` first. Cards marked for review always come first.
 - **Android Back button:** every overlay (sheet, study view, page layer, search) calls `pushLayer(onPop)` and closes through `back()`, so Back undoes one step at a time. New overlays must do the same.
-- **UI helpers:** `sheet(html, actions)` for bottom sheets (with `item(...)` rows), `toast(msg)`, `progressSheet` / `progress`.
+- **UI helpers:** `sheet(html, actions)` for bottom sheets (with `item(...)` rows), `askSheet({...})` for one line of text (a floating card: grey field with a blue underline, "Cancel" / blue text button), `toast(msg)`, `progressSheet` / `progress`.
+- **The keyboard** doesn't resize the page on Android; `--kb` (from `visualViewport`) lifts every sheet above it.
+- **No pull-to-refresh** (`html{overscroll-behavior:none}`, and pages are always a pixel scrollable): a reload dropped the owner on the home screen.
 
 ## Import and export
 
@@ -111,6 +118,7 @@ The only way cards get in and out of the app.
 - Both update modes skip cards that are already identical, so re-importing reports "already up to date". Review progress is always kept.
 - A deck is found by id, then by name, and created only if a new card needs it.
 - Export writes the same format, so a backup is also an import file.
+- A deck entry may also carry `subdecks: [{id, name, cards: [card ids], createdAt}]`, `sourceNames: {key: name}` and `hiddenSources: [keys]` (v20). Import only adds what's missing, never undoes a change made in the app.
 - **Rules:** never break older zips or backups. New fields are optional. An import must be safe to repeat.
 
 ## Design system (keep it unless the owner changes it)
@@ -179,5 +187,6 @@ python3 tools/app-test/harness.py . --zips tools/app-test/fixtures/test-library.
 - **v17:** video definitions (`defText` entry `{kind: 'youtube', video: {vid, title}}`); `update: true` skips identical cards.
 - **v18:** "Merge into another deck" in the deck ⋯ menu; story order only for a deck of one show or film.
 - **v19:** deck pages: tapping a deck opens its sources (tiles or list), then a source's cards (gallery, pinch for two or three across, or a compact list) with a remembered sort; Back steps out one page at a time.
+- **v20:** decks made from search or selected cards; ⋯ on page 2 decks (Rename, Delete deck only, Delete deck and cards); hold to select cards on page 3; page 2 tiles only and page 3 gallery only (no pinch); names in parts ("A · B"); new search bar; name box as a floating card above the keyboard; no pull-to-refresh.
 
 Add a line here with every version you ship.

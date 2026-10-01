@@ -155,9 +155,14 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 .deckpage{touch-action:pan-y}
 /* always a pixel taller than the screen, so a pull at the top stays inside the page instead of reloading the app */
 .page:not(.search) > .home{min-height:calc(100% + 1px)}
-.deckpage h1{margin-bottom:6px}
 .nsep{color:var(--faint)}
-.ntags{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 12px}
+/* the bar: Back, the title and its count, locked at the top while the page scrolls */
+.pbar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:4px;min-height:60px;margin:-10px -20px 0;padding:8px 10px 8px 6px;background:var(--ink);transition:box-shadow .2s}
+.pbar.scrolled{box-shadow:0 1px 0 var(--line)}
+.ptitle{flex:1;min-width:0;display:flex;align-items:center;gap:12px}
+.pbar .pt{margin:0;font-size:20px;font-weight:500;line-height:1.25;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.ptag{flex:none;display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:999px;border:1px solid rgba(0,134,255,.55);color:var(--blue-text);font-size:12px;white-space:nowrap}
+.deckpage .summary{margin-top:6px}
 .srcs{margin-top:22px}
 .src{position:relative;min-width:0}
 .src-open{display:grid;width:100%;min-width:0;text-align:left}
@@ -182,7 +187,7 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 .selecting .gcard .box{display:grid}
 .selecting .gcard .dot{display:none}
 .selecting .gcard.on .box{background:var(--gold);border-color:var(--gold);color:#fff}
-.selcount{flex:1;font-size:16px;padding-left:4px}
+.selcount{flex:1;font-size:17px;padding-left:4px}
 
 /* ---------- study ---------- */
 .study{position:fixed;inset:0;z-index:40;background:#000;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;
@@ -958,10 +963,9 @@ function orderOf(d, g) {
 const storyWhat = g => ({ tv: 'the show', movie: 'the film', film: 'the film', book: 'the book' })[(storyOf(g) || { kind: '' }).kind.toLowerCase()] || 'the video';
 
 /* a name in parts, like "The 48 Laws of Power · Law 1" (a deck made from tags): its tile reads "The 48 Laws of Power | Law 1",
-   and its page shows the first part as the title with the rest as tags under it */
+   and its page shows the first part as the title with the rest as small tags beside it */
 const nameParts = n => String(n).split(' · ').map(x => x.trim()).filter(Boolean);
 const nameHTML = n => nameParts(n).map(esc).join('<span class="nsep"> | </span>');
-const titleHTML = n => { const [t, ...rest] = nameParts(n); return `<h1>${esc(t || n)}</h1>${rest.length ? `<div class="ntags">${rest.map(x => `<span class="tag">${esc(x)}</span>`).join('')}</div>` : ''}`; };
 const ICON_SORT = svg('<path d="M8 4.5v15M4.5 16l3.5 3.5 3.5-3.5M16 19.5v-15M12.5 8L16 4.5 19.5 8"/>', 20);
 
 let pages = []; // the open deck pages, oldest first: {kind: 'sources' | 'cards', deck, key?, whole?, sel?, el}
@@ -977,6 +981,7 @@ function newPage(v) {
   v.el = el; pages.push(v);
   el.addEventListener('click', e => onPageClick(e, v));
   el.addEventListener('contextmenu', e => e.preventDefault());
+  el.addEventListener('scroll', () => markScrolled(v), { passive: true });
   if (v.kind === 'cards') holdToSelect(v);
   pushLayer(() => {
     el.remove(); pages = pages.filter(p => p !== v);
@@ -988,17 +993,34 @@ function newPage(v) {
 function openSources(d) { newPage({ kind: 'sources', deck: d }); }
 function openSource(d, g, whole) { newPage({ kind: 'cards', deck: d, key: g.key, whole }); }
 function refreshPages() { pages.forEach(renderPage); }
-function pics(el) { $$('img[data-blob]', el).forEach(img => { thumbIds.add(img.dataset.blob); blobURL(img.dataset.blob).then(u => { if (u) { img.onload = () => img.classList.add('in'); img.src = u; } }); }); }
+function pics(el) {
+  $$('img[data-blob]', el).forEach(img => {
+    const id = img.dataset.blob; thumbIds.add(id);
+    // a picture already loaded shows at once, so a redrawn page never blinks
+    if (urls.has(id)) { img.src = urls.get(id); img.classList.add('in'); return; }
+    blobURL(id).then(u => { if (u) { img.onload = () => img.classList.add('in'); img.src = u; } });
+  });
+}
 function srcFor(v) { return sourcesOf(v.deck).find(g => g.key === v.key) || { key: v.key, name: v.deck.name, kind: '', cards: v.whole ? deckCards(v.deck.id) : [] }; }
 const BOX = '<span class="box">' + svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 14) + '</span>';
+/* the top bar of a deck page: Back and the title (any extra name parts as small tags beside it); it stays put while the cards scroll under it */
+function pageBar(v, tools = '') {
+  if (v.sel) return `<div class="pbar"><button class="iconbtn" data-p="unsel" aria-label="Stop selecting">${ICON.close}</button>
+    <span class="selcount num">${v.sel.size} selected</span>
+    <button class="iconbtn" data-p="selmenu" aria-label="Options for the selected cards" ${v.sel.size ? '' : 'disabled'}>${ICON.more}</button></div>`;
+  const [t, ...rest] = nameParts(v.title);
+  return `<div class="pbar"><button class="iconbtn" data-p="back" aria-label="Back">${ICON.back}</button>
+    <div class="ptitle"><h1 class="pt">${esc(t || v.title)}</h1>${rest.map(x => `<span class="ptag">${esc(x)}</span>`).join('')}</div>
+    ${tools ? `<span class="tools">${tools}</span>` : ''}</div>`;
+}
 function renderPage(v) {
   const d = v.deck, top = v.el.scrollTop;
   if (v.kind === 'sources') {
     const gs = sourcesOf(d), total = deckCards(d.id).length, due = dueCount(d.id);
-    v.el.innerHTML = `<div class="home">
-      <div class="bar"><button class="iconbtn" data-p="back" aria-label="Back">${ICON.back}</button></div>
-      <h1>${esc(d.name)}</h1>
-      <p class="summary">${plural(gs.length, 'deck')} · ${plural(total, 'card')}${due ? ` · <span class="due">${due} to review</span>` : ''}</p>
+    const meta = `${plural(gs.length, 'deck')} · ${plural(total, 'card')}${due ? ` · <span class="due">${due} to review</span>` : ''}`;
+    v.title = d.name;
+    v.el.innerHTML = `<div class="home">${pageBar(v)}
+      <p class="summary">${meta}</p>
       <div class="srcs">${gs.map(g => {
         const dd = g.cards.filter(c => c.review).length, c0 = orderOf(d, g)[0];
         return `<div class="src"><button class="src-open" data-src="${esc(g.key)}"><div class="cover"><img alt="" data-blob="${c0 ? c0.thumbId : ''}"></div>
@@ -1011,19 +1033,27 @@ function renderPage(v) {
     const g = srcFor(v), list = orderOf(d, g), m = sortOf(d, g), dd = list.filter(c => c.review).length, sel = v.sel;
     const sortLbl = SORTS[m].label;
     if (sel) [...sel].forEach(id => { if (!list.some(c => c.id === id)) sel.delete(id); });
-    v.el.innerHTML = `<div class="home${sel ? ' selecting' : ''}">
-      ${sel ? `<div class="bar"><button class="iconbtn" data-p="unsel" aria-label="Stop selecting">${ICON.close}</button>
-          <span class="selcount num">${sel.size} selected</span>
-          <button class="iconbtn" data-p="selmenu" aria-label="Options for the selected cards" ${sel.size ? '' : 'disabled'}>${ICON.more}</button></div>`
-        : `<div class="bar"><button class="iconbtn" data-p="back" aria-label="Back">${ICON.back}</button>
-          <span class="tools"><button class="iconbtn" data-p="sort" aria-label="Sort: ${sortLbl}">${ICON_SORT}</button></span></div>`}
-      ${titleHTML(v.whole ? d.name : g.name)}
-      <p class="summary">${plural(list.length, 'card')}${dd ? ` · <span class="due">${dd} to review</span>` : ''} · ${sortLbl.toLowerCase()}</p>
+    const meta = `${plural(list.length, 'card')}${dd ? ` · <span class="due">${dd} to review</span>` : ''} · ${sortLbl.toLowerCase()}`;
+    v.title = v.whole ? d.name : g.name;
+    v.el.innerHTML = `<div class="home${sel ? ' selecting' : ''}">${pageBar(v, sortTool(sortLbl))}
+      <p class="summary">${meta}</p>
       <div class="gal">${list.map(c => `<button class="gcard${sel && sel.has(c.id) ? ' on' : ''}" data-card="${c.id}"><div class="pic"><img alt="" data-blob="${c.thumbId}">${c.review ? '<span class="dot"></span>' : ''}${BOX}</div>
           <span class="w${c.word ? '' : ' none'}">${esc(c.word || 'No word yet')}</span></button>`).join('')}</div>
       ${list.length ? '' : '<p class="empty">No cards left here.</p>'}</div>`;
   }
-  pics(v.el); v.el.scrollTop = top;
+  pics(v.el); v.el.scrollTop = top; markScrolled(v);
+}
+const sortTool = lbl => `<button class="iconbtn" data-p="sort" aria-label="Sort: ${lbl}">${ICON_SORT}</button>`;
+/* a hairline under the bar once cards scroll beneath it */
+function markScrolled(v) { const b = $('.pbar', v.el); if (b) b.classList.toggle('scrolled', v.el.scrollTop > 4); }
+/* selecting only changes the boxes and the bar: nothing else is redrawn */
+function paintSel(v) {
+  const home = $('.home', v.el); if (!home) return;
+  home.classList.toggle('selecting', !!v.sel);
+  $$('.gcard', home).forEach(b => b.classList.toggle('on', !!(v.sel && v.sel.has(b.dataset.card))));
+  const g = srcFor(v);
+  $('.pbar', home).outerHTML = pageBar(v, sortTool(SORTS[sortOf(v.deck, g)].label));
+  markScrolled(v);
 }
 /* hold a card to start selecting; while selecting, a tap adds or removes a card, and Back stops */
 function holdToSelect(v) {
@@ -1041,8 +1071,8 @@ function holdToSelect(v) {
   v.el.addEventListener('click', e => { if (h.fired) { h.fired = false; e.stopPropagation(); } }, true);
 }
 function startSelect(v, id) {
-  v.sel = new Set(id ? [id] : []); renderPage(v);
-  pushLayer(() => { v.sel = null; if (v.el.isConnected) renderPage(v); });
+  v.sel = new Set(id ? [id] : []); paintSel(v);
+  pushLayer(() => { v.sel = null; if (v.el.isConnected) paintSel(v); });
 }
 function onPageClick(e, v) {
   const b = e.target.closest('button'); if (!b || b.disabled) return;
@@ -1053,7 +1083,7 @@ function onPageClick(e, v) {
   else if (p === 'sort') sortSheet(v);
   else if (p === 'selmenu') selMenu(v);
   else if (b.dataset.card) {
-    if (v.sel) { const id = b.dataset.card; v.sel.has(id) ? v.sel.delete(id) : v.sel.add(id); renderPage(v); }
+    if (v.sel) { const id = b.dataset.card; v.sel.has(id) ? v.sel.delete(id) : v.sel.add(id); paintSel(v); }
     else openStudy(v.deck, b.dataset.card, orderOf(v.deck, srcFor(v)));
   }
 }
@@ -1123,7 +1153,7 @@ function selMenu(v) {
       ${item('flag', marked ? 'Clear review mark' : 'Mark for review')}
       ${item('del', 'Delete cards', '', 'danger')}
     </div>`, {
-    all: () => { g.cards.forEach(c => v.sel.add(c.id)); renderPage(v); closeSheet(); },
+    all: () => { g.cards.forEach(c => v.sel.add(c.id)); paintSel(v); closeSheet(); },
     add: () => pickSub('Add to deck', s => { addToSub(d, s, list); done(`Added ${plural(n, 'card')} to ${s.name}`); }),
     move: () => pickSub('Move to deck', s => { addToSub(d, s, list); unSub(); done(`Moved ${plural(n, 'card')} to ${s.name}`); }),
     out: () => { unSub(); done(`Removed ${plural(n, 'card')} from ${g.name}`); },

@@ -83,6 +83,11 @@ IndexedDB database `subtext`, version 1, with four stores:
   - **Decks are kinds of content, not sources.** All vocabulary lives in one deck, "Vocabulary"; the source (show, film, channel, book) is in the tags. The owner plans to grow Subtext into a place to find anything in their digital life, with more decks over time (a finance tracker, concepts with detailed explanations, pictures and files).
   - The top ⋯ menu is Backup: "Back up everything" (one zip), "Import a backup", "Remove screenshots behind text".
   - Search covers words, meanings and tags; tapping a tag in the study view opens search pinned to that tag.
+- **Deck pages (v19):** tapping a deck tile opens its sources, then a source's cards, then the study view; Back steps out one page at a time (`openDeck`, `pages`, `renderPage`).
+  - **Page 2, sources** (`sourcesOf` / `srcOf`): a show, film or book by its name tag; all YouTube cards together as "YouTube"; articles and magazines together as "Articles"; the most recently added-to source first. A view icon at the top right switches tiles ↔ list (`localStorage` `srcview`). A deck with one source skips page 2.
+  - **Page 3, a source's cards:** sort and view icons at the top right; the sort shows in grey under the title. Gallery (two across, or three across: pinch to switch, `galcols`) or a compact list (small square picture, word only; `cardview`).
+  - **Sort** (`SORTS`, `storySort`, `sortOf`): "Order of appearance" only when every card is from one show, film, book or YouTube video (episode then `sceneTime`; a book by `shotAt`, which follows reading order; one video by `ref.t`), otherwise newest first. Also Newest first, Oldest first, A to Z. A choice sticks per deck and source (`localStorage` `sort.<deckId>.<sourceKey>`).
+  - The study view opened from page 3 shows exactly that page's cards in that order (`openStudy(d, id, order)`); no review-first.
 - **Browse cards:** a thumbnail grid. Select lets the owner move or delete cards; tapping a card opens a preview sheet.
 - **Study view**, the heart of the app:
   - The header band has the word (hold it to rename), ✎ (the edit menu) and tags. The footer band has "i / n" and the blue "Review" mark.
@@ -173,5 +178,6 @@ python3 tools/app-test/harness.py . --zips tools/app-test/fixtures/test-library.
 - **v12–v16:** article scenes as text; magazine PDF scenes; YouTube frames with a cue below; tags in path order with "+N ›"; Add tag; source page title style.
 - **v17:** video definitions (`defText` entry `{kind: 'youtube', video: {vid, title}}`); `update: true` skips identical cards.
 - **v18:** "Merge into another deck" in the deck ⋯ menu; story order only for a deck of one show or film.
+- **v19:** deck pages: tapping a deck opens its sources (tiles or list), then a source's cards (gallery, pinch for two or three across, or a compact list) with a remembered sort; Back steps out one page at a time.
 
 Add a line here with every version you ship.

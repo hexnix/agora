@@ -1,8 +1,8 @@
-# Subtext: notes for Claude
+# Agora: notes for Claude
 
-Subtext is a vocabulary flashcard app: a single-file web app (PWA) installed on the owner's Android phone. Every card has a **word**, a **scene** (where the word was met), one or more **definitions**, **tags**, and a **source** page.
+Agora (called Subtext until v22) is a vocabulary flashcard app: a single-file web app (PWA) installed on the owner's Android phone. Every card has a **word**, a **scene** (where the word was met), one or more **definitions**, **tags**, and a **source** page.
 
-This repo is the app. `main` is published by GitHub Pages at https://hexnix.github.io/subtext/, so **merging into `main` is what ships a new version** to the phone.
+This repo is the app. `main` is published by GitHub Pages at https://hexnix.github.io/agora/, so **merging into `main` is what ships a new version** to the phone.
 
 ## Who you're working with
 
@@ -38,12 +38,12 @@ This repo is the app. `main` is published by GitHub Pages at https://hexnix.gith
 - `sw.js` caches the app's own files plus `fonts.googleapis.com`, `fonts.gstatic.com` and `cdnjs.cloudflare.com`. A new outside host must be added there, or it won't work offline.
 
 **Service worker (`sw.js`):**
-- `VERSION = 'subtext-vN'`. **Bump it with every change to `index.html`.** A new VERSION is what makes phones take the update.
+- `VERSION = 'agora-vN'`. **Bump it with every change to `index.html`.** A new VERSION is what makes phones take the update.
 - The app's own files are served from the cache and refreshed from the network in the background. After a merge, the first open fetches the new version and the next open shows it.
 
 ## Storage
 
-IndexedDB database `subtext`, version 1, with four stores:
+IndexedDB database `subtext`, version 1, with four stores. The database keeps the app's old name on purpose: renaming it would leave every saved card behind.
 
 | Store | Key | Holds |
 |---|---|---|
@@ -52,7 +52,7 @@ IndexedDB database `subtext`, version 1, with four stores:
 | `blobs` | `id` | `{id, blob}`: every image, thumbnail and PDF |
 | `meta` | `k` | flags: `seeded`, `reviewRules2` |
 
-- `localStorage` only remembers small things, such as `hinted2` (the first-run gesture hint has been seen).
+- `localStorage` only remembers small things under `agora.` keys (older `subtext.` keys are still read), such as `hinted2` (the first-run gesture hint has been seen).
 - Adding a store means a database version bump plus an upgrade step. **Never drop or rewrite the owner's data.** They have hundreds of cards on the phone and only a backup zip.
 
 **Card fields:**
@@ -80,7 +80,7 @@ IndexedDB database `subtext`, version 1, with four stores:
   - Each tile has a cover (a chosen photo, a chosen card, or the deck's first card) and "N cards · N to review".
   - The ⋯ menu on a tile: Study, Add cards, Browse cards, Rename, Cover image, Merge into another deck, Delete deck.
   - **Merge into another deck** (`mergeSheet` / `doMerge`, v18) moves every card (tags, review marks and progress kept) into a chosen deck or a new one, then removes the empty deck.
-  - **Decks are kinds of content, not sources.** All vocabulary lives in one deck, "Vocabulary"; the source (show, film, channel, book) is in the tags. The owner plans to grow Subtext into a place to find anything in their digital life, with more decks over time (a finance tracker, concepts with detailed explanations, pictures and files).
+  - **Decks are kinds of content, not sources.** All vocabulary lives in one deck, "Vocabulary"; the source (show, film, channel, book) is in the tags. The owner plans to grow Agora into a place to find anything in their digital life, with more decks over time (a finance tracker, concepts with detailed explanations, pictures and files).
   - The top ⋯ menu is Backup: "Back up everything" (one zip), "Import a backup", "Remove screenshots behind text".
   - Search covers words, meanings and tags; tapping a tag in the study view opens search pinned to that tag. The search bar (v20) is one grey pill: Back, the pinned tags as soft-blue filled chips (tap one to remove it), the field, and × to clear all.
 - **Deck pages (v19–v20):** tapping a deck tile opens its decks (page 2), then a deck's cards (page 3), then the study view; Back steps out one page at a time (`openDeck`, `pages`, `renderPage`).
@@ -113,7 +113,8 @@ IndexedDB database `subtext`, version 1, with four stores:
 ## Import and export
 
 The only way cards get in and out of the app.
-- A zip holds `manifest.json` plus images: `{app: 'subtext', version: 1, decks: [{id?, name, cover?, coverCard?, cards: [...]}]}`.
+- A zip holds `manifest.json` plus images: `{app: 'agora', version: 1, decks: [{id?, name, cover?, coverCard?, cards: [...]}]}`.
+  - Older zips say `app: 'subtext'`; the import doesn't check `app`, so they keep working.
 - A card is matched **by id**, never by word. A new card needs a `scene` plus `definition(s)`.
 - For an existing card, only the fields present change: `word`, `tags`, `reference` (null removes it), `definitionText`, `shotAt`, `sceneTime`, `sceneText`, `sceneCaption`, `pdf` (null removes any of these). `update: 'scene'` replaces only the scene image; `update: true` replaces everything.
 - Both update modes skip cards that are already identical, so re-importing reports "already up to date". Review progress is always kept.
@@ -148,7 +149,7 @@ The only way cards get in and out of the app.
 
 1. **Restate the request** in one or two plain sentences. Settle any open design choice with numbered phone-sized previews.
 2. **Work on a new branch.** Make small, targeted edits to `index.html`. Keep the code's style: short plain-English comments that say *why*. Reuse existing CSS variables and components instead of inventing new ones.
-3. **Bump `VERSION`** in `sw.js` to `subtext-v(N+1)`.
+3. **Bump `VERSION`** in `sw.js` to `agora-v(N+1)`.
 4. **Test on a phone-sized view** (below), and look at the screenshots yourself.
 5. **Open a pull request** with a plain-English description:
    - what changed and what the owner will see;
@@ -190,5 +191,6 @@ python3 tools/app-test/harness.py . --zips tools/app-test/fixtures/test-library.
 - **v19:** deck pages: tapping a deck opens its sources (tiles or list), then a source's cards (gallery, pinch for two or three across, or a compact list) with a remembered sort; Back steps out one page at a time.
 - **v20:** decks made from search or selected cards; ⋯ on page 2 decks (Rename, Delete deck only, Delete deck and cards); hold to select cards on page 3; page 2 tiles only and page 3 gallery only (no pinch); names in parts ("A · B"); new search bar; name box as a floating card above the keyboard; no pull-to-refresh.
 - **v21:** page titles sit beside "<" in a bar locked at the top; selecting cards no longer flickers (loaded pictures show at once on any redraw).
+- **v22:** the app is renamed from Subtext to Agora (home-screen name, page title, messages, backup file name `agora-backup-…zip`, manifest `app: 'agora'`). The database keeps its old name so every card stays; older Subtext backups and import zips still import.
 
 Add a line here with every version you ship.

@@ -1,4 +1,4 @@
-"""Builds fixtures/test-library.zip: a small, made-up Subtext library for testing.
+"""Builds fixtures/test-library.zip: a small, made-up Agora library for testing.
 
 Everything in it is invented (abstract pictures, our own example sentences and definitions),
 so it is safe to keep in a public repo. The user's real cards never go in the repo.
@@ -185,7 +185,7 @@ def build():
     for d in (show, reading):
         for c in d['cards']:
             c['definition'] = c['definitions'][0]
-    man = {'app': 'subtext', 'version': 1, 'decks': [show, reading]}
+    man = {'app': 'agora', 'version': 1, 'decks': [show, reading]}
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with zipfile.ZipFile(OUT, 'w', zipfile.ZIP_DEFLATED) as z:
         z.writestr('manifest.json', json.dumps(man, ensure_ascii=False, indent=2))

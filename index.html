@@ -9,7 +9,7 @@
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style>
-<title>Subtext</title>
+<title>Agora</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap">
@@ -402,9 +402,10 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 const plural = (n, w, p) => `${n} ${n === 1 ? w : (p || w + 's')}`;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+// small settings; the app was called Subtext before v22, so settings saved under that name still count
 const ls = {
-  get(k) { try { return localStorage.getItem('subtext.' + k); } catch { return null; } },
-  set(k, v) { try { localStorage.setItem('subtext.' + k, v); } catch {} }
+  get(k) { try { return localStorage.getItem('agora.' + k) ?? localStorage.getItem('subtext.' + k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem('agora.' + k, v); } catch {} }
 };
 const svg = (d, s = 22) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const ICON = {
@@ -448,6 +449,7 @@ function memStore() {
 }
 function openDB() {
   return new Promise((res, rej) => {
+    // the database keeps its first name from when the app was called Subtext: renaming it would leave every saved card behind
     const r = indexedDB.open('subtext', 1);
     r.onupgradeneeded = () => {
       const d = r.result;
@@ -546,7 +548,7 @@ const stack = [];
 let histOK = true, afterPop = null;
 function pushLayer(onPop) {
   stack.push(onPop);
-  try { history.pushState({ subtext: stack.length }, ''); } catch { histOK = false; }
+  try { history.pushState({ agora: stack.length }, ''); } catch { histOK = false; }
 }
 let ownBack = false; // true while a Back started inside the app (a swipe, a button): those keep their animation
 function back(then, n = 1) {
@@ -559,11 +561,11 @@ addEventListener('popstate', e => {
   // the phone's Back button only performs the action: turn transitions off for this step
   if (!ownBack) { const r = document.documentElement; r.classList.add('noanim'); requestAnimationFrame(() => requestAnimationFrame(() => r.classList.remove('noanim'))); }
   ownBack = false;
-  const depth = (e.state && e.state.subtext) || 0;
+  const depth = (e.state && e.state.agora) || 0;
   while (stack.length > depth) { const f = stack.pop(); if (f) f(); }
   const t = afterPop; afterPop = null; if (t) t();
 });
-try { if (history.state && history.state.subtext) history.replaceState(null, ''); } catch {}
+try { if (history.state && (history.state.agora || history.state.subtext)) history.replaceState(null, ''); } catch {}
 
 /* ================= toast ================= */
 let toastTimer;
@@ -738,7 +740,7 @@ function askSheet({ title, sub = '', value = '', placeholder = '', btn = 'Save',
 function confirmDeleteDeck(d) {
   const n = deckCards(d.id).length;
   sheet(`<h2>Delete “${esc(d.name)}”?</h2>
-    <p class="note">${n ? `Its ${plural(n, 'card')} and their screenshots will be removed from Subtext. ` : ''}This can’t be undone.</p>
+    <p class="note">${n ? `Its ${plural(n, 'card')} and their screenshots will be removed from Agora. ` : ''}This can’t be undone.</p>
     <div class="btns"><button class="btn" data-act="cancel">Keep it</button><button class="btn danger" data-act="yes">Delete</button></div>`, {
     cancel: () => deckMenu(d),
     yes: async () => {
@@ -755,7 +757,7 @@ let pickCb = null;
 $('#picker').addEventListener('change', e => { const f = [...e.target.files]; e.target.value = ''; if (pickCb && f.length) pickCb(f); });
 function addFlow(d) {
   sheet(`<h2>Add cards</h2><p class="sub">to ${esc(d.name)}</p>
-    <p class="note">Select this deck’s screenshots from your gallery. Subtext pairs them in the order you took them: each scene, then its definition.</p>
+    <p class="note">Select this deck’s screenshots from your gallery. Agora pairs them in the order you took them: each scene, then its definition.</p>
     <div class="btns"><button class="btn primary" data-act="pick">Choose screenshots</button></div>`, {
     pick: () => { pickCb = files => previewPairs(d, files); $('#picker').click(); }
   });
@@ -887,7 +889,7 @@ function doMove(list, target) {
   refreshCards(); renderHome(); closeSheet(); toast(`Moved ${plural(list.length, 'card')} to ${target.name}`);
 }
 function confirmDeleteCards(list) {
-  sheet(`<h2>Delete ${plural(list.length, 'card')}?</h2><p class="note">The screenshots are removed from Subtext only. Your gallery keeps its copies.</p>
+  sheet(`<h2>Delete ${plural(list.length, 'card')}?</h2><p class="note">The screenshots are removed from Agora only. Your gallery keeps its copies.</p>
     <div class="btns"><button class="btn" data-act="cancel">Cancel</button><button class="btn danger" data-act="yes">Delete</button></div>`, {
     cancel: () => closeSheet(),
     yes: async () => { await deleteCards(list); if (cardsView) cardsView.select = null; refreshCards(); renderHome(); closeSheet(); toast(`Deleted ${plural(list.length, 'card')}`); }
@@ -1112,7 +1114,7 @@ function srcMenu(d, g) {
       saveDeck(d); refreshPages(); closeSheet(); toast(`Deleted “${g.name}”. Its cards are still in ${d.name}.`);
     },
     dropall: () => sheet(`<h2>Delete “${esc(g.name)}” and its ${plural(n, 'card')}?</h2>
-      <p class="note">The cards and their screenshots are removed from Subtext, from every deck they’re in. This can’t be undone.</p>
+      <p class="note">The cards and their screenshots are removed from Agora, from every deck they’re in. This can’t be undone.</p>
       <div class="btns"><button class="btn" data-act="keep">Keep them</button><button class="btn danger" data-act="yes">Delete</button></div>`, {
       keep: () => srcMenu(d, g),
       yes: async () => {
@@ -1158,7 +1160,7 @@ function selMenu(v) {
     move: () => pickSub('Move to deck', s => { addToSub(d, s, list); unSub(); done(`Moved ${plural(n, 'card')} to ${s.name}`); }),
     out: () => { unSub(); done(`Removed ${plural(n, 'card')} from ${g.name}`); },
     flag: () => { list.forEach(c => { c.review = !marked; c.streak = 0; }); saveCards(list); done(marked ? 'Review marks cleared' : `Marked ${plural(n, 'card')} for review`); },
-    del: () => sheet(`<h2>Delete ${plural(n, 'card')}?</h2><p class="note">The screenshots are removed from Subtext, from every deck they’re in. Your gallery keeps its copies.</p>
+    del: () => sheet(`<h2>Delete ${plural(n, 'card')}?</h2><p class="note">The screenshots are removed from Agora, from every deck they’re in. Your gallery keeps its copies.</p>
       <div class="btns"><button class="btn" data-act="keep">Cancel</button><button class="btn danger" data-act="yes">Delete</button></div>`, {
       keep: () => selMenu(v),
       yes: async () => { await deleteCards(list); done(`Deleted ${plural(n, 'card')}`); }
@@ -1979,7 +1981,7 @@ function studyEditSheet(c) {
       if (L === 0) await replaceScene(c, f); else await replaceDef(c, L - 1, f);
       closeSheet(); toast('Image replaced');
     }),
-    del: () => sheet(`<h2>Delete this card?</h2><p class="note">${c.word ? `“${esc(c.word)}” and its screenshots` : 'The card and its screenshots'} will be removed from Subtext. Your gallery keeps its copies.</p>
+    del: () => sheet(`<h2>Delete this card?</h2><p class="note">${c.word ? `“${esc(c.word)}” and its screenshots` : 'The card and its screenshots'} will be removed from Agora. Your gallery keeps its copies.</p>
       <div class="btns"><button class="btn" data-act="keep">Keep it</button><button class="btn danger" data-act="yes">Delete</button></div>`, {
       keep: () => studyEditSheet(c),
       yes: () => closeSheet(() => deleteCurrent(c))
@@ -2211,7 +2213,7 @@ async function appMenu() {
   sheet(`<h2>Backup</h2><p class="sub num">${used || plural(cards.length, 'card')}</p>
     <div class="list">
       ${item('export', 'Back up everything', '', '', 'Saves one .zip with all decks, screenshots and review marks')}
-      ${item('import', 'Import a backup', '', '', 'Adds decks and cards from a Subtext .zip')}
+      ${item('import', 'Import a backup', '', '', 'Adds decks and cards from an Agora .zip')}
       ${textPairs().length ? item('slim', 'Remove screenshots behind text', '', '', `${plural(textPairs().length, 'definition')} also have a text version`) : ''}
     </div>`, {
     export: exportAll,
@@ -2242,7 +2244,7 @@ async function exportAll() {
   if (!cards.length) { toast('Nothing to back up yet'); return; }
   progressSheet('Preparing backup', 'Loading…');
   let JSZip; try { JSZip = await loadZip(); } catch { closeSheet(); toast('Backup needs an internet connection the first time'); return; }
-  const zip = new JSZip(), man = { app: 'subtext', version: 1, exportedAt: new Date().toISOString(), decks: [] };
+  const zip = new JSZip(), man = { app: 'agora', version: 1, exportedAt: new Date().toISOString(), decks: [] };
   let done = 0;
   for (const d of decks) {
     const out = { id: d.id, name: d.name, sort: d.sort, createdAt: d.createdAt, cards: [] };
@@ -2288,7 +2290,7 @@ async function exportAll() {
   }
   zip.file('manifest.json', JSON.stringify(man, null, 2));
   const blob = await zip.generateAsync({ type: 'blob', compression: 'STORE' }, m => progress('Packing…', 0.6 + m.percent / 250));
-  const name = `subtext-backup-${new Date().toISOString().slice(0, 10)}.zip`;
+  const name = `agora-backup-${new Date().toISOString().slice(0, 10)}.zip`;
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 60000);
@@ -2305,7 +2307,7 @@ $('#zipPicker').addEventListener('change', async e => {
       progress(`${label}Reading…`, 0);
       const zip = await JSZip.loadAsync(files[fi]);
       const mf = zip.file('manifest.json');
-      if (!mf) throw new Error(`This .zip isn’t a Subtext backup: ${files[fi].name}`);
+      if (!mf) throw new Error(`This .zip isn’t an Agora backup: ${files[fi].name}`);
       const man = JSON.parse(await mf.async('string'));
       // magazine pages (PDF): stored once per page, shared by every card that points at it
       const pdfDone = new Map();

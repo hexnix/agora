@@ -621,6 +621,7 @@ function deckMenu(d) {
       ${n ? item('browse', 'Browse cards') : ''}
       ${item('rename', 'Rename')}
       ${n ? item('cover', 'Cover image') : ''}
+      ${n ? item('merge', 'Merge into another deck', '', '', 'Moves every card, then removes this deck') : ''}
       ${item('del', 'Delete deck', '', 'danger')}
     </div>`, {
     study: () => closeSheet(() => openStudy(d)),
@@ -628,8 +629,31 @@ function deckMenu(d) {
     browse: () => closeSheet(() => openCards(d)),
     rename: () => nameSheet(d),
     cover: () => coverSheet(d),
+    merge: () => mergeSheet(d),
     del: () => confirmDeleteDeck(d)
   });
+}
+/* merge: every card keeps its tags, review marks and progress; only the deck it sits in changes */
+function mergeSheet(d) {
+  const list = deckCards(d.id);
+  const others = decks.filter(x => x.id !== d.id).sort((a, b) => a.name.localeCompare(b.name));
+  sheet(`<h2>Merge “${esc(d.name)}”</h2><p class="sub">Move its ${plural(list.length, 'card')} into</p>
+    <div class="list">${others.map(x => item('to', esc(x.name), `<span class="num">${deckCards(x.id).length}</span>`).replace('data-act="to"', `data-act="to" data-id="${x.id}"`)).join('')}
+    ${item('fresh', 'New deck…')}</div>`, {
+    to: b => doMerge(d, decks.find(x => x.id === b.dataset.id)),
+    fresh: () => nameSheet(null, nd => doMerge(d, nd))
+  });
+}
+async function doMerge(d, target) {
+  const list = deckCards(d.id).sort((a, b) => a.seq - b.seq);
+  let s = nextSeq(target.id);
+  list.forEach(c => { c.deckId = target.id; c.seq = s++; });
+  try { await store.put('cards', list); } catch (e) { storageFail(e); return; }
+  // the old deck is empty now: drop it (its cover photo too, unless it was one of the cards)
+  if (d.coverId) forget([d.coverId]);
+  decks = decks.filter(x => x.id !== d.id);
+  await store.del('decks', [d.id]).catch(storageFail);
+  renderHome(); closeSheet(); toast(`Moved ${plural(list.length, 'card')} to ${target.name}`);
 }
 function nameSheet(d, then) {
   sheet(`<h2>${d ? 'Rename deck' : 'New deck'}</h2>
@@ -865,13 +889,16 @@ function cleanRef(r) { // from an import file
   if (kind === 'article' && r.title) return { kind, title: String(r.title), site: String(r.site || ''), url: String(r.url || '') };
   return null;
 }
-/* Default order: TV and film cards follow the story (episode, then time in the episode);
-   everything else shows the newest screenshot first. Cards marked for review always come first. */
+/* Default order: a deck that is one show or film follows the story (episode, then time in the episode);
+   everything else, including a deck that mixes several shows, shows the newest screenshot first.
+   Cards marked for review always come first. */
 const isScreen = c => tagsOf(c).some(t => t === 'TV' || t === 'Movie');
 const epKey = c => { for (const t of tagsOf(c)) { const m = /^S(\d+)\s*E(\d+)$/i.exec(t); if (m) return +m[1] * 1000 + +m[2]; } return 0; };
 const shotOf = c => c.shotAt || c.addedAt || 0;
+const showOf = c => tagsOf(c).find(t => tagRank(t) === 1) || ''; // the source name: Slow Horses, Tenet…
 function defaultOrder(list) {
-  const screen = list.filter(isScreen).length * 2 > list.length;
+  const scr = list.filter(isScreen);
+  const screen = scr.length * 2 > list.length && new Set(scr.map(showOf)).size === 1;
   return [...list].sort(screen
     ? (a, b) => (epKey(a) - epKey(b)) || ((a.sceneTime ?? 1e9) - (b.sceneTime ?? 1e9)) || (shotOf(a) - shotOf(b)) || (a.seq - b.seq)
     : (a, b) => (shotOf(b) - shotOf(a)) || (b.seq - a.seq));

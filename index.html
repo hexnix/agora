@@ -189,6 +189,41 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 .selecting .gcard.on .box{background:var(--gold);border-color:var(--gold);color:#fff}
 .selcount{flex:1;font-size:17px;padding-left:4px}
 
+/* ---------- Study: the banner on Vocabulary's page, today's cards, the queue of new cards ---------- */
+.sban{display:block;width:100%;text-align:left;margin-top:22px;padding:18px 18px 20px;border-radius:14px;background:var(--surface);box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+.sban .t{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.sban .n{font-size:var(--fs-name);font-weight:500}
+.sban .go{color:var(--blue-text);font-size:14px;white-space:nowrap}
+.sban .go.quiet{color:var(--muted)}
+.sban .m{color:var(--muted);font-size:12.5px;margin-top:6px}
+.sbar{height:3px;border-radius:2px;background:var(--line);margin-top:14px;overflow:hidden}
+.sbar i{display:block;height:100%;background:var(--gold)}
+.sstart{display:flex;width:100%;height:52px;border-radius:14px;background:var(--gold);color:#fff;font-weight:500;font-size:16px;align-items:center;justify-content:center;margin-top:22px}
+.sstart:active{opacity:.85}
+.gcard .lbl{position:absolute;left:8px;bottom:8px;font-size:11px;line-height:1.5;padding:1px 8px;border-radius:999px;background:rgba(0,0,0,.65);color:#fff}
+.gcard .lbl.r{color:var(--blue-text)}
+.gcard.gdone .pic,.gcard.gdone .w{opacity:.35}
+.gcard .qn{position:absolute;left:8px;top:8px;min-width:24px;height:22px;padding:0 7px;border-radius:999px;background:rgba(0,0,0,.7);color:#fff;font-size:12px;display:grid;place-items:center}
+.qlist{display:flex;flex-direction:column;margin-top:14px;user-select:none;-webkit-user-select:none}
+.qrow{display:grid;grid-template-columns:28px 76px minmax(0,1fr);gap:12px;align-items:center;width:100%;padding:10px 0;border-top:1px solid var(--line);text-align:left;-webkit-touch-callout:none}
+.qrow:first-child{border-top:0}
+.qrow .i{color:var(--faint);font-size:12.5px;text-align:right}
+.qrow .pic{width:76px;aspect-ratio:16/10;border-radius:6px;overflow:hidden;background:var(--surface)}
+.qrow img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .25s;pointer-events:none;-webkit-user-drag:none}
+.qrow img.in{opacity:1}
+.qrow .qm{display:flex;flex-direction:column;gap:2px;min-width:0}
+.qrow .w{font-size:var(--fs-name);font-weight:500;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qrow .w.none{color:var(--muted);font-weight:400;font-size:15px}
+.qrow .d{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qrow .box{display:none;width:22px;height:22px;border-radius:6px;border:1.5px solid rgba(255,255,255,.85);background:rgba(0,0,0,.35);place-items:center;color:transparent;justify-self:center}
+.selecting .qrow .i{display:none}
+.selecting .qrow .box{display:grid}
+.selecting .qrow.on .box{background:var(--gold);border-color:var(--gold);color:#fff}
+.qfront{margin-right:6px;font-size:15px}
+.qfront:disabled{color:var(--faint)}
+.qsearch{margin:-10px -20px 0;padding:8px 12px 10px}
+.qsearching .sugg{padding-top:2px}
+
 /* ---------- study ---------- */
 .study{position:fixed;inset:0;z-index:40;background:#000;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;
   -webkit-touch-callout:none;animation:fadein .25s ease;--hd:104px;--ft:calc(env(safe-area-inset-bottom,0px) + 52px)}
@@ -248,8 +283,20 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 .chrome > .iconbtn{margin-right:2px}
 .foot{position:absolute;left:0;right:0;bottom:0;z-index:3;display:flex;align-items:center;gap:14px;height:var(--ft);
   padding:0 20px env(safe-area-inset-bottom,0px);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;transition:opacity .25s;pointer-events:none}
-.foot .flag{display:inline-flex;align-items:center;gap:8px;color:var(--blue-text)}
-.foot .flag::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--gold)}
+/* Study: Continue, or Repeat / Tomorrow / Pass, in one bar under the card, with when the card comes back */
+.study.drill{--ft:calc(env(safe-area-inset-bottom,0px) + 124px)}
+.study.drill .foot{height:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 80px)}
+.answer{position:absolute;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);z-index:3;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);
+  height:56px;border-radius:16px;background:var(--raised);overflow:hidden}
+.answer button{display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:15px;line-height:1.3;color:var(--text);border-left:1px solid rgba(255,255,255,.08)}
+.answer button:first-child{border-left:0}
+.answer button:active{background:rgba(255,255,255,.05)}
+.answer .p{color:var(--blue-text);font-weight:500}
+.answer small{display:block;font-size:11.5px;color:var(--muted);font-weight:400;margin-top:2px}
+.sdone{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 32px;background:#000;animation:fadein .25s ease}
+.sdone h2{font-size:var(--fs-head);font-weight:500;margin:0 0 10px;letter-spacing:-.02em}
+.sdone p{margin:0;color:var(--muted);font-size:14px;line-height:1.7}
+.sdone .textbtn{margin-top:26px;font-size:15px}
 .wordbtn{min-width:0;max-width:calc(100vw - 80px);padding:8px 10px;font-size:var(--fs-head);font-weight:500;letter-spacing:-.02em;color:var(--text);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-radius:10px}
 .wordbtn.empty{font-size:16px;font-weight:400;color:var(--muted)}
@@ -378,6 +425,7 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
   color:#fff;font-size:14px;line-height:1.45;font-weight:400;padding:13px 18px 13px 16px;border-radius:16px;
   opacity:0;transition:opacity .25s,transform .3s var(--ease);pointer-events:none;text-align:left}
 .in-study .toast{bottom:calc(env(safe-area-inset-bottom,0px) + 64px)}
+.in-drill .toast{bottom:calc(env(safe-area-inset-bottom,0px) + 136px)}
 .item .lbl:has(.ico) .desc{padding-left:38px}
 .toast::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 4px rgba(0,134,255,.18);flex:none}
 .toast.show{opacity:1;transform:translate(-50%,0)}
@@ -558,7 +606,6 @@ let decks = [];
 let cards = [];
 
 const deckCards = id => cards.filter(c => c.deckId === id).sort((a, b) => a.seq - b.seq);
-const dueCount = id => cards.filter(c => c.deckId === id && c.review).length;
 const nextSeq = id => cards.reduce((m, c) => c.deckId === id ? Math.max(m, c.seq) : m, 0) + 1;
 const saveCards = list => store.put('cards', list).catch(storageFail);
 const saveDeck = d => store.put('decks', [d]).catch(storageFail);
@@ -710,15 +757,15 @@ const item = (act, label, detail = '', cls = '', desc = '') =>
 function renderHome() {
   const el = $('#home');
   const list = [...decks].sort((a, b) => b.createdAt - a.createdAt);
-  const total = cards.length, due = cards.filter(c => c.review).length;
+  const total = cards.length;
   const tiles = list.map(d => {
-    const cs = deckCards(d.id), n = cs.length, dd = dueCount(d.id);
+    const cs = deckCards(d.id), n = cs.length;
     const cover = coverOf(d, cs);
     return `<div class="tile">
       <button class="tile-open" data-open="${d.id}" aria-label="Open ${esc(d.name)}">
         <div class="cover">${cover ? `<img alt="" data-blob="${cover}">` : ''}</div>
         <div><div class="tile-name">${esc(d.name)}</div>
-        <div class="tile-meta">${plural(n, 'card')}${dd ? ` · <span class="due">${dd} to review</span>` : ''}</div></div>
+        <div class="tile-meta">${plural(n, 'card')}</div></div>
       </button>
       <button class="more" data-menu="${d.id}" aria-label="Options for ${esc(d.name)}">${ICON.more}</button>
     </div>`;
@@ -726,7 +773,7 @@ function renderHome() {
   el.innerHTML = `
     <div class="bar title"><h1>Your decks</h1>
       <span class="tools"><button class="iconbtn" id="searchBtn" aria-label="Search words">${ICON.search}</button><button class="iconbtn" id="appMenu" aria-label="Backup and import">${ICON.more}</button></span></div>
-    <p class="summary">${list.length ? `${plural(list.length, 'deck')} · ${plural(total, 'card')}${due ? ` · <span class="due">${due} to review</span>` : ''}` : 'Make a deck for each film or show you watch.'}</p>
+    <p class="summary">${list.length ? `${plural(list.length, 'deck')} · ${plural(total, 'card')}` : 'Make a deck for each film or show you watch.'}</p>
     <div class="grid">${tiles}
       ${filesTile()}
       <div class="tile new"><button class="tile-open" data-new="1"><div class="cover">${ICON.plus}</div><div class="tile-name">New deck</div></button></div>
@@ -773,9 +820,9 @@ function coverSheet(d) {
   }, sh => $$('img[data-blob]', sh).forEach(img => { thumbIds.add(img.dataset.blob); blobURL(img.dataset.blob).then(u => { if (u) img.src = u; }); }));
 }
 function deckMenu(d) {
-  const n = deckCards(d.id).length, dd = dueCount(d.id);
+  const n = deckCards(d.id).length;
   sheet(`<h2>${esc(d.name)}</h2>
-    <p class="sub">${plural(n, 'card')}${dd ? ` · <span class="due">${dd} to review</span>` : ''}</p>
+    <p class="sub">${plural(n, 'card')}</p>
     <div class="list">
       ${n ? item('study', 'Study') : ''}
       ${item('add', 'Add cards')}
@@ -785,7 +832,7 @@ function deckMenu(d) {
       ${n ? item('merge', 'Merge into another deck', '', '', 'Moves every card, then removes this deck') : ''}
       ${item('del', 'Delete deck', '', 'danger')}
     </div>`, {
-    study: () => closeSheet(() => openStudy(d)),
+    study: () => closeSheet(() => d === studyDeck() ? (SD.loaded && openStudyPage(d)) : openStudy(d)),
     add: () => addFlow(d),
     browse: () => closeSheet(() => openCards(d)),
     rename: () => nameSheet(d),
@@ -919,9 +966,9 @@ function renderCards() {
     <div class="bar"><button class="iconbtn" data-c="back" aria-label="Back">${ICON.back}</button>
       ${cs.length ? `<button class="textbtn" data-c="select">${select ? 'Done' : 'Select'}</button>` : ''}</div>
     <h1>${esc(d.name)}</h1>
-    <p class="summary">${plural(cs.length, 'card')}${dueCount(d.id) ? ` · <span class="due">${dueCount(d.id)} to review</span>` : ''}</p>
+    <p class="summary">${plural(cs.length, 'card')}</p>
     <div class="thumbs">${cs.map(c => `<button class="thumb${select && select.has(c.id) ? ' on' : ''}" data-id="${c.id}">
-      <div class="pic"><img alt="" data-blob="${c.thumbId}">${c.review ? '<span class="dot"></span>' : ''}
+      <div class="pic"><img alt="" data-blob="${c.thumbId}">
       <div class="sel"><span>${ICON.check}</span></div></div>
       ${c.word ? `<span class="w">${esc(c.word)}</span>` : ''}</button>`).join('')}</div>
     ${cs.length ? '' : '<p class="empty">No cards left in this deck.</p>'}
@@ -949,11 +996,9 @@ async function cardSheet(c) {
     <div class="list">
       ${item('word', c.word ? 'Edit word' : 'Add word', '', '', c.word ? '' : 'So you can find it in search')}
       ${item('edit', 'Change screenshots', defIdsOf(c).length > 1 ? `${defIdsOf(c).length} definitions` : '', '', 'Replace the scene or a definition, or add another definition')}
-      ${item('flag', c.review ? 'Clear review mark' : 'Mark for review', c.review ? '<span class="dot"></span>' : '')}
       ${item('move', 'Move to another deck')}
       ${item('del', 'Delete card', '', 'danger')}
     </div>`, {
-    flag: () => { c.review = !c.review; c.streak = 0; saveCards([c]); renderCards(); cardSheet(c); },
     word: () => wordSheet(c),
     edit: () => editSheet(c),
     move: () => moveSheet([c]),
@@ -1070,8 +1115,8 @@ let pages = []; // the open deck pages, oldest first: {kind: 'sources' | 'cards'
 function openDeck(d) {
   const gs = sourcesOf(d);
   if (!deckCards(d.id).length) { addFlow(d); return; }
-  // a deck of one source, with nothing made or deleted in it, goes straight to its cards
-  if (gs.length === 1 && !gs[0].sub && !(d.srcHidden || []).length) openSource(d, gs[0], true); else openSources(d);
+  // a deck of one source, with nothing made or deleted in it, goes straight to its cards (Vocabulary always shows Study first)
+  if (d !== studyDeck() && gs.length === 1 && !gs[0].sub && !(d.srcHidden || []).length) openSource(d, gs[0], true); else openSources(d);
 }
 function newPage(v) {
   const el = document.createElement('div'); el.className = 'page deckpage';
@@ -1081,6 +1126,7 @@ function newPage(v) {
   el.addEventListener('contextmenu', e => e.preventDefault());
   el.addEventListener('scroll', () => markScrolled(v), { passive: true });
   if (v.kind === 'cards') holdToSelect(v);
+  else if (v.kind === 'queue') holdToSelect(v, '[data-qc]', b => startQueueSelect(v, b.dataset.qc));
   else if (v.kind === 'files') holdToSelect(v, '[data-fp]', b => startFileSelect(v, b.dataset.fp));
   pushLayer(() => {
     el.remove(); pages = pages.filter(p => p !== v);
@@ -1114,30 +1160,32 @@ function pageBar(v, tools = '') {
 }
 function renderPage(v) {
   if (v.kind === 'files') { renderFiles(v); return; }
+  if (v.kind === 'study') { renderStudyPage(v); return; }
+  if (v.kind === 'queue') { renderQueue(v); return; }
   const d = v.deck, top = v.el.scrollTop;
   if (v.kind === 'sources') {
-    const gs = sourcesOf(d), total = deckCards(d.id).length, due = dueCount(d.id);
-    const meta = `${plural(gs.length, 'deck')} · ${plural(total, 'card')}${due ? ` · <span class="due">${due} to review</span>` : ''}`;
+    const gs = sourcesOf(d), total = deckCards(d.id).length;
+    const meta = `${plural(gs.length, 'deck')} · ${plural(total, 'card')}`;
     v.title = d.name;
     v.el.innerHTML = `<div class="home">${pageBar(v)}
-      <p class="summary">${meta}</p>
+      <p class="summary">${meta}</p>${d === studyDeck() ? studyBanner(d) : ''}
       <div class="srcs">${gs.map(g => {
-        const dd = g.cards.filter(c => c.review).length, c0 = orderOf(d, g)[0];
+        const c0 = orderOf(d, g)[0];
         return `<div class="src"><button class="src-open" data-src="${esc(g.key)}"><div class="cover"><img alt="" data-blob="${c0 ? c0.thumbId : ''}"></div>
           <div><div class="tile-name">${nameHTML(g.name)}</div>
-          <div class="tile-meta">${g.kind ? esc(g.kind) + ' · ' : ''}${plural(g.cards.length, 'card')}${dd ? ` · <span class="due">${dd} to review</span>` : ''}</div></div></button>
+          <div class="tile-meta">${g.kind ? esc(g.kind) + ' · ' : ''}${plural(g.cards.length, 'card')}</div></div></button>
           <button class="more" data-srcmenu="${esc(g.key)}" aria-label="Options for ${esc(g.name)}">${ICON.more}</button></div>`;
       }).join('')}</div>
       ${gs.length ? '' : '<p class="empty">No decks here. Search for a tag or a word to make one.</p>'}</div>`;
   } else {
-    const g = srcFor(v), list = orderOf(d, g), m = sortOf(d, g), dd = list.filter(c => c.review).length, sel = v.sel;
+    const g = srcFor(v), list = orderOf(d, g), m = sortOf(d, g), sel = v.sel;
     const sortLbl = SORTS[m].label;
     if (sel) [...sel].forEach(id => { if (!list.some(c => c.id === id)) sel.delete(id); });
-    const meta = `${plural(list.length, 'card')}${dd ? ` · <span class="due">${dd} to review</span>` : ''} · ${sortLbl.toLowerCase()}`;
+    const meta = `${plural(list.length, 'card')} · ${sortLbl.toLowerCase()}`;
     v.title = v.whole ? d.name : g.name;
     v.el.innerHTML = `<div class="home${sel ? ' selecting' : ''}">${pageBar(v, sortTool(sortLbl))}
       <p class="summary">${meta}</p>
-      <div class="gal">${list.map(c => `<button class="gcard${sel && sel.has(c.id) ? ' on' : ''}" data-card="${c.id}"><div class="pic"><img alt="" data-blob="${c.thumbId}">${c.review ? '<span class="dot"></span>' : ''}${BOX}</div>
+      <div class="gal">${list.map(c => `<button class="gcard${sel && sel.has(c.id) ? ' on' : ''}" data-card="${c.id}"><div class="pic"><img alt="" data-blob="${c.thumbId}">${BOX}</div>
           <span class="w${c.word ? '' : ' none'}">${esc(c.word || 'No word yet')}</span></button>`).join('')}</div>
       ${list.length ? '' : '<p class="empty">No cards left here.</p>'}</div>`;
   }
@@ -1176,9 +1224,12 @@ function startSelect(v, id) {
 }
 function onPageClick(e, v) {
   if (v.kind === 'files') { onFilesClick(e, v); return; }
+  if (v.kind === 'queue') { onQueueClick(e, v); return; }
   const b = e.target.closest('button'); if (!b || b.disabled) return;
   const p = b.dataset.p;
   if (p === 'back' || p === 'unsel') back();
+  else if (v.kind === 'study') onStudyClick(b, v);
+  else if (p === 'study') { if (SD.loaded) openStudyPage(v.deck); }
   else if (b.dataset.src) { const g = sourcesOf(v.deck).find(x => x.key === b.dataset.src); if (g) openSource(v.deck, g); }
   else if (b.dataset.srcmenu) { const g = sourcesOf(v.deck).find(x => x.key === b.dataset.srcmenu); if (g) srcMenu(v.deck, g); }
   else if (p === 'sort') sortSheet(v);
@@ -1197,8 +1248,8 @@ function sortSheet(v) {
 }
 /* the ⋯ on a deck in page 2. Deleting the deck alone keeps its cards in the main deck (and in search). */
 function srcMenu(d, g) {
-  const n = g.cards.length, dd = g.cards.filter(c => c.review).length;
-  sheet(`<h2>${esc(g.name)}</h2><p class="sub">${plural(n, 'card')}${dd ? ` · <span class="due">${dd} to review</span>` : ''}</p>
+  const n = g.cards.length;
+  sheet(`<h2>${esc(g.name)}</h2><p class="sub">${plural(n, 'card')}</p>
     <div class="list">
       ${item('rename', 'Rename')}
       ${item('drop', 'Delete deck only', '', '', `The cards stay in ${esc(d.name)}`)}
@@ -1237,7 +1288,7 @@ function addToSub(d, s, list) {
 /* the ⋯ while selecting cards on page 3 */
 function selMenu(v) {
   const d = v.deck, g = srcFor(v), list = g.cards.filter(c => v.sel.has(c.id)), n = list.length;
-  const marked = list.every(c => c.review), others = subsOf(d).filter(s => !g.sub || s !== g.sub);
+  const others = subsOf(d).filter(s => !g.sub || s !== g.sub);
   const done = msg => back(() => { refreshPages(); renderHome(); toast(msg); }, 2); // the sheet and the selection
   const pickSub = (title, then) => sheet(`<h2>${title}</h2><p class="sub">${plural(n, 'card')}</p>
     <div class="list">${others.map(s => item('to', esc(s.name), `<span class="num">${(s.cards || []).length}</span>`).replace('data-act="to"', `data-act="to" data-id="${s.id}"`)).join('')}
@@ -1251,14 +1302,12 @@ function selMenu(v) {
       ${item('all', 'Select all')}
       ${item('add', 'Add to deck')}
       ${g.sub ? item('move', 'Move to deck') + item('out', 'Remove from deck', '', '', `The cards stay in ${esc(d.name)}`) : ''}
-      ${item('flag', marked ? 'Clear review mark' : 'Mark for review')}
       ${item('del', 'Delete cards', '', 'danger')}
     </div>`, {
     all: () => { g.cards.forEach(c => v.sel.add(c.id)); paintSel(v); closeSheet(); },
     add: () => pickSub('Add to deck', s => { addToSub(d, s, list); done(`Added ${plural(n, 'card')} to ${s.name}`); }),
     move: () => pickSub('Move to deck', s => { addToSub(d, s, list); unSub(); done(`Moved ${plural(n, 'card')} to ${s.name}`); }),
     out: () => { unSub(); done(`Removed ${plural(n, 'card')} from ${g.name}`); },
-    flag: () => { list.forEach(c => { c.review = !marked; c.streak = 0; }); saveCards(list); done(marked ? 'Review marks cleared' : `Marked ${plural(n, 'card')} for review`); },
     del: () => sheet(`<h2>Delete ${plural(n, 'card')}?</h2><p class="note">The screenshots are removed from Agora, from every deck they’re in. Your gallery keeps its copies.</p>
       <div class="btns"><button class="btn" data-act="keep">Cancel</button><button class="btn danger" data-act="yes">Delete</button></div>`, {
       keep: () => selMenu(v),
@@ -1327,8 +1376,7 @@ function cleanRef(r) { // from an import file
   return null;
 }
 /* Default order: a deck that is one show or film follows the story (episode, then time in the episode);
-   everything else, including a deck that mixes several shows, shows the newest screenshot first.
-   Cards marked for review always come first. */
+   everything else, including a deck that mixes several shows, shows the newest screenshot first. */
 const isScreen = c => tagsOf(c).some(t => t === 'TV' || t === 'Movie');
 const epKey = c => { for (const t of tagsOf(c)) { const m = /^S(\d+)\s*E(\d+)$/i.exec(t); if (m) return +m[1] * 1000 + +m[2]; } return 0; };
 const shotOf = c => c.shotAt || c.addedAt || 0;
@@ -1340,23 +1388,21 @@ function defaultOrder(list) {
     ? (a, b) => (epKey(a) - epKey(b)) || ((a.sceneTime ?? 1e9) - (b.sceneTime ?? 1e9)) || (shotOf(a) - shotOf(b)) || (a.seq - b.seq)
     : (a, b) => (shotOf(b) - shotOf(a)) || (b.seq - a.seq));
 }
-function buildOrder(list) {
-  const base = defaultOrder(list);
-  return [...base.filter(c => c.review), ...base.filter(c => !c.review)];
-}
-/* order: the cards in the order a deck page shows them; without it, the deck's own order */
-function openStudy(d, startId, order = buildOrder(deckCards(d.id))) {
+const buildOrder = list => defaultOrder(list);
+/* order: the cards in the order a deck page shows them; without it, the deck's own order.
+   drill: a Study session ({base, repeats}): each card is answered (Continue, or Repeat / Tomorrow / Pass) instead of swiped past */
+function openStudy(d, startId, order = buildOrder(deckCards(d.id)), drill = null) {
   if (!order.length) { toast('This deck has no cards yet'); return; }
   const start = startId ? Math.max(0, order.findIndex(c => c.id === startId)) : 0;
   const el = document.createElement('div');
-  el.className = 'study';
+  el.className = 'study' + (drill ? ' drill' : '');
   el.innerHTML = `<div class="stage"></div>
     <div class="chrome"><div class="head"><button class="wordbtn" aria-label="The word. Hold to rename it"></button></div>
       <button class="iconbtn" data-s="edit" aria-label="Edit this card">${ICON.edit}</button><div class="tags"></div></div>
-    <div class="foot"><span class="count num"></span><span class="flag" hidden>Review</span></div>
-    ${ls.get('hinted2') ? '' : `<div class="hint"><span><b>↑</b> Meaning</span><span><b>↓</b> Source</span><span><b>←</b> Next</span><span><b>Hold</b> Review</span></div>`}`;
-  document.body.appendChild(el); document.body.classList.add('locked', 'in-study');
-  S = { deck: d, el, stage: $('.stage', el), order, i: 0, cur: null, level: 0, view: 0, busy: false,
+    <div class="foot"><span class="count num"></span></div>${drill ? '<div class="answer"></div>' : ''}
+    ${ls.get('hinted2') || drill ? '' : `<div class="hint"><span><b>↑</b> Meaning</span><span><b>↓</b> Source</span><span><b>←</b> Next</span></div>`}`;
+  document.body.appendChild(el); document.body.classList.add('locked', 'in-study'); document.body.classList.toggle('in-drill', !!drill);
+  S = { deck: d, el, stage: $('.stage', el), order, drill, over: false, i: 0, cur: null, level: 0, view: 0, busy: false,
     peeked: new Set(), counted: new Set(), z: { s: 1, x: 0, y: 0 }, tr: null, pdf: null, tagsOpen: false };
   showSlide(start, 'none');
   el.addEventListener('pointerdown', onDown);
@@ -1366,6 +1412,8 @@ function openStudy(d, startId, order = buildOrder(deckCards(d.id))) {
   el.addEventListener('click', e => {
     const b = e.target.closest('[data-s]'); if (!b || !S) return;
     if (b.dataset.s === 'edit') studyEditSheet(S.order[S.i]);
+    else if (b.dataset.s === 'ans') answer(b.dataset.a);
+    else if (b.dataset.s === 'more') studyMore();
     else if (b.dataset.s === 'untag') removeTag(S.order[S.i], b.closest('.tag').dataset.tag);
     else if (b.dataset.s === 'moretags') toggleTags();
     else if (b.dataset.s === 'addtag') tagSheet(S.order[S.i]);
@@ -1397,7 +1445,7 @@ function openStudy(d, startId, order = buildOrder(deckCards(d.id))) {
 function closeStudy() {
   if (!S) return;
   const el = S.el, seen = S.order[S.i]; S = null; pts.clear(); g = null; pinch = null; stopFling(); cancelHold();
-  document.body.classList.remove('in-study');
+  document.body.classList.remove('in-study', 'in-drill');
   el.style.transition = 'opacity .2s'; el.style.opacity = '0';
   setTimeout(() => { el.remove(); releaseFull(); }, 220);
   unlockIdle();
@@ -1448,7 +1496,7 @@ function showSlide(i, dir) {
   const old = S.cur;
   const c = S.order[i];
   S.i = i; S.level = 0; S.view++; S.z = { s: 1, x: 0, y: 0 }; S.tr = null; S.tagsOpen = false;
-  showWord(c); showFlag(c); // first, so the band between header and footer has its final size
+  showWord(c); if (S.drill) showAnswer(c); // first, so the band between header and footer has its final size
   const s = makeSlide(c);
   if (dir !== 'none') {
     s.style.transition = 'none';
@@ -1462,7 +1510,8 @@ function showSlide(i, dir) {
     old.style.transform = `translateX(${dir === 'next' ? -34 : 34}%)`; old.style.opacity = '0';
     setTimeout(() => old.remove(), 340);
   }
-  $('.count', S.el).textContent = `${i + 1} / ${S.order.length}`;
+  const base = S.drill ? S.drill.base : 0;
+  $('.count', S.el).textContent = `${base + i + 1} / ${base + S.order.length}`;
   preload(S.order[i + 1]);
 }
 /* rebuild the current card after an edit, keeping the page the person is on */
@@ -1700,7 +1749,7 @@ function go(dir, tr) { // animate one page up (1) or down (-1); tr is a drag alr
   return true;
 }
 function takeTr(from, dir) { const t = S.tr; S.tr = null; return t && t.from === from && t.dir === dir ? t : null; }
-function markPeek() { // only counts how often the meaning was opened; review marks are set by long-pressing
+function markPeek() { // only counts how often the meaning was opened; it never moves a card along its Study cycle
   const c = S.order[S.i];
   if (S.peeked.has(c.id)) return;
   S.peeked.add(c.id);
@@ -1708,13 +1757,6 @@ function markPeek() { // only counts how often the meaning was opened; review ma
   saveCards([c]);
 }
 function buzz(ms = 15) { try { navigator.vibrate && navigator.vibrate(ms); } catch {} }
-function showFlag(c) { const f = S && $('.foot .flag', S.el); if (f) f.hidden = !c.review; }
-function toggleReview() {
-  if (!S || !S.cur || S.level < 0) return;
-  const c = S.order[S.i];
-  c.review = !c.review; c.streak = 0; saveCards([c]); showFlag(c); buzz(25);
-  toast(c.review ? 'Marked for review' : 'Removed from review');
-}
 /* go up one page: scene -> definition 1 -> definition 2 ... Each page is one step for the Back button. */
 function openLevel(tr) {
   if (!S || !S.cur || S.busy || S.level < 0) return false;
@@ -1756,11 +1798,12 @@ function countCurrent() {
 }
 function next() {
   if (!S || !S.cur) return;
+  if (S.drill) { bounce(); return; } // in Study every card is answered before the next one
   countCurrent(); dismissHint();
   if (S.i + 1 < S.order.length) { leaveLevels(); showSlide(S.i + 1, 'next'); }
   else bounce();
 }
-function prev() { if (S && S.cur && S.i > 0) { leaveLevels(); showSlide(S.i - 1, 'prev'); } else bounce(); }
+function prev() { if (S && S.cur && !S.drill && S.i > 0) { leaveLevels(); showSlide(S.i - 1, 'prev'); } else bounce(); }
 function bounce() { snapBack(); try { navigator.vibrate && navigator.vibrate(12); } catch {} }
 function snapBack() {
   if (!S || !S.cur) return;
@@ -1824,7 +1867,7 @@ function cancelHold() { clearTimeout(holdTimer); holdTimer = 0; }
 function onDown(e) {
   if (S && !e.target.closest('.tags') && $('.tags', S.el).classList.contains('editing')) endTagEdit();
   if (modalOpen) { const w = S && $('.wordedit', S.el); if (w && e.target !== w) w.blur(); return; }
-  if (!S || e.target.closest('button') || (e.pointerType === 'mouse' && e.button !== 0)) return;
+  if (!S || S.over || e.target.closest('button') || (e.pointerType === 'mouse' && e.button !== 0)) return;
   pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
   try { S.el.setPointerCapture(e.pointerId); } catch {}
   if (pts.size === 2) {
@@ -1847,13 +1890,7 @@ function onDown(e) {
   g = { x: e.clientX, y: e.clientY, t: performance.now(), axis: null, dx: 0, dy: 0, samples: [],
     pan: zm, z0: { ...S.z }, level: L, sc, sl0: P ? P.sc.scrollLeft : 0, st0: P ? P.sc.scrollTop : 0,
     top0: sc ? sc.scrollTop : 0, max: sc ? Math.max(0, sc.scrollHeight - sc.clientHeight) : 0, tr: null, none: {}, e: 0, stretch: 0 };
-  // hold still on the scene or a definition to mark or unmark the card for review
   cancelHold();
-  if (L >= 0) holdTimer = setTimeout(() => {
-    holdTimer = 0;
-    if (!S || !g || g.axis || pts.size !== 1) return;
-    g = null; holdUntilUp = true; lastTap = null; toggleReview();
-  }, 520);
 }
 function onMove(e) {
   if (!pts.has(e.pointerId) || !S) return;
@@ -1891,7 +1928,7 @@ function onMove(e) {
   }
   if (g.axis === 'x') {
     let dx = g.dx;
-    if ((dx > 0 && S.i === 0) || (dx < 0 && S.i === S.order.length - 1)) dx *= 0.28;
+    if (S.drill || (dx > 0 && S.i === 0) || (dx < 0 && S.i === S.order.length - 1)) dx *= 0.28;
     S.cur.style.transform = `translateX(${dx}px)`;
     S.cur.style.opacity = String(1 - Math.min(Math.abs(dx) / (innerWidth * 1.4), 0.5));
     return;
@@ -2071,11 +2108,9 @@ function studyEditSheet(c) {
     <div class="list">
       ${L >= 0 ? item('replace', ico('image', L === 0 ? 'Replace scene image' : 'Replace definition image')) : ''}
       ${item('tag', ico('tag', 'Add tag'), '', '', 'Or hold a tag and tap +')}
-      ${item('flag', ico(c.review ? 'unflag' : 'flag', c.review ? 'Remove from review' : 'Mark for review'), '', '', 'Or hold on the card')}
       ${item('del', ico('trash', 'Delete card'), '', 'danger')}
     </div>`, {
     tag: () => tagSheet(c),
-    flag: () => closeSheet(() => { if (S && S.order[S.i].id === c.id) { const lv = S.level; S.level = Math.max(0, lv); toggleReview(); S.level = lv; } }),
     replace: () => pickOne(async f => {
       if (L === 0) await replaceScene(c, f); else await replaceDef(c, L - 1, f);
       closeSheet(); toast('Image replaced');
@@ -2097,6 +2132,301 @@ async function deleteCurrent(c) {
   if (!S.order.length) { back(null, 1 + Math.abs(S.level)); return; }
   leaveLevels();
   showSlide(Math.min(Math.max(i, 0), S.order.length - 1), 'next');
+}
+
+/* ================= Study: new cards each day on a fixed cycle ================= */
+/* The Study deck sits inside Vocabulary. A card waits in the queue of new cards (never overdue) until the day you first study it;
+   from then on it comes back after 1, 3, 7, 14, 30, 60 and 120 days, each gap counted from the day you passed it, and then it is done.
+   Each day brings 20 new cards (a setting) plus every review that is due.
+   Progress lives in a database of its own, "agora-study", so the cards' database is never upgraded:
+     store `cards`: {id, step, due, first, last, at, done?} for a card you have studied (step: how many gaps it has passed),
+                    {id, front, at} for a new card brought to the front of the queue;
+     store `meta`:  {k: 'daily', v} new cards a day, {k: 'extra', day, n} more new cards asked for today. */
+const GAPS = [1, 3, 7, 14, 30, 60, 120];
+const SD = { recs: new Map(), daily: 20, dailySet: false, extra: null, loaded: false };
+let sstore = memStore(['cards', 'meta']);
+function openStudyDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('agora-study', 1);
+    r.onupgradeneeded = () => { const d = r.result; d.createObjectStore('cards', { keyPath: 'id' }); d.createObjectStore('meta', { keyPath: 'k' }); };
+    r.onsuccess = () => { const db = r.result; db.onversionchange = () => db.close(); res(db); };
+    r.onerror = () => rej(r.error);
+    r.onblocked = () => rej(new Error('blocked'));
+  });
+}
+async function loadStudy() {
+  try { sstore = idbStore(await openStudyDB()); } catch (e) { console.warn('study storage unavailable, using memory', e); }
+  try {
+    (await sstore.all('cards')).forEach(r => SD.recs.set(r.id, r));
+    const m = await sstore.get('meta', 'daily'); if (m && m.v > 0) { SD.daily = m.v; SD.dailySet = true; }
+    SD.extra = (await sstore.get('meta', 'extra')) || null;
+  } catch (e) { console.warn('study progress', e); }
+  SD.loaded = true;
+}
+/* a study day starts at 4 am, so a late-night session still counts as the same day */
+const dayNo = (t = Date.now()) => { const d = new Date(t - 4 * 3600e3); return Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5); };
+const recOf = c => SD.recs.get(c.id);
+const studied = c => { const r = recOf(c); return !!r && r.step != null; };
+const frontOf = c => { const r = recOf(c); return r && r.step == null && r.front != null ? r.front : null; };
+const studyDeck = () => decks.find(d => norm(d.name) === 'vocabulary') || null;
+function saveRecs(list) { list.forEach(r => SD.recs.set(r.id, r)); return sstore.put('cards', list).catch(storageFail); }
+/* the queue: oldest first, a show's, film's or book's cards taking their places in story order; cards brought to the front come first */
+function queueOrder(d = studyDeck()) {
+  if (!d) return [];
+  const list = deckCards(d.id).filter(c => !studied(c)).sort(SORTS.oldest.fn), out = [...list], groups = new Map();
+  list.forEach((c, i) => { const s = srcOf(c); if (!SRC_STORY.has(s.kind.toLowerCase())) return; if (!groups.has(s.key)) groups.set(s.key, []); groups.get(s.key).push(i); });
+  for (const idx of groups.values()) {
+    if (idx.length < 2) continue;
+    const cs = idx.map(i => list[i]), fn = storySort({ cards: cs });
+    if (fn) [...cs].sort(fn).forEach((c, k) => { out[idx[k]] = c; });
+  }
+  const front = out.filter(c => frontOf(c) != null).sort((a, b) => frontOf(a) - frontOf(b));
+  return front.length ? [...front, ...out.filter(c => frontOf(c) == null)] : out;
+}
+/* today's cards: what you've done today, the reviews that are due (oldest due first), then today's new cards */
+function studyToday(d = studyDeck()) {
+  const day = dayNo(), all = d ? deckCards(d.id) : [], queue = queueOrder(d);
+  const due = [], done = []; let started = 0;
+  for (const c of all) {
+    const r = recOf(c); if (!r || r.step == null) continue;
+    if (r.first === day) started++;
+    if (!r.done && r.due <= day) due.push(c); else if (r.last === day) done.push(c);
+  }
+  due.sort((a, b) => (recOf(a).due - recOf(b).due) || (recOf(a).at - recOf(b).at));
+  done.sort((a, b) => recOf(a).at - recOf(b).at);
+  const allow = SD.daily + (SD.extra && SD.extra.day === day ? SD.extra.n : 0);
+  const fresh = queue.slice(0, Math.max(0, allow - started));
+  return { day, due, fresh, done, queue, left: due.length + fresh.length, total: done.length + due.length + fresh.length,
+    learning: all.filter(c => studied(c) && !recOf(c).done).length, finished: all.filter(c => studied(c) && recOf(c).done).length };
+}
+/* the Study banner at the top of Vocabulary's page */
+function studyBanner(d) {
+  if (!SD.loaded) return `<button class="sban" data-p="study"><div class="t"><span class="n">Study</span></div><div class="m">Loading…</div></button>`;
+  const t = studyToday(d), q = t.queue.length - t.fresh.length;
+  const go = t.left ? (t.done.length ? 'Continue' : 'Start') : 'Done';
+  const meta = t.left ? `${t.left} of ${t.total} left today` : t.total ? 'Done for today' : 'Nothing to study';
+  return `<button class="sban" data-p="study"><div class="t"><span class="n">Study</span><span class="go${t.left ? '' : ' quiet'}">${go} ›</span></div>
+    <div class="m num">${meta} · ${q.toLocaleString()} new in queue</div><div class="sbar"><i style="width:${t.total ? Math.round(t.done.length / t.total * 100) : 0}%"></i></div></button>`;
+}
+function openStudyPage(d) { newPage({ kind: 'study', deck: d }); }
+const ICON_QUEUE = svg('<path d="M4 6.5h16M4 12h16M4 17.5h10"/>');
+function renderStudyPage(v) {
+  const d = v.deck, t = studyToday(d), top = v.el.scrollTop, q = t.queue.length - t.fresh.length;
+  v.title = 'Study';
+  const meta = t.left ? `${t.left} of ${t.total} left today` : t.total ? 'Done for today' : 'Nothing to study today';
+  const btn = t.left ? `<button class="sstart" data-p="start">${t.done.length ? 'Continue' : `Start · ${plural(t.left, 'card')}`}</button>`
+    : q ? `<button class="sstart" data-p="more">Learn 10 more new cards</button>` : '';
+  const card = (c, cls, lbl) => `<button class="gcard${cls}" data-card="${c.id}"><div class="pic"><img alt="" data-blob="${c.thumbId}">${lbl}</div>
+    <span class="w${c.word ? '' : ' none'}">${esc(c.word || 'No word yet')}</span></button>`;
+  v.el.innerHTML = `<div class="home">${pageBar(v, `<button class="iconbtn" data-p="queue" aria-label="New cards in queue">${ICON_QUEUE}</button><button class="iconbtn" data-p="smenu" aria-label="Study options">${ICON.more}</button>`)}
+    <p class="summary num">${meta} · ${q.toLocaleString()} new in queue</p>${btn}
+    <div class="gal">${t.done.map(c => card(c, ' gdone', '')).join('')}${t.due.map(c => card(c, '', '<span class="lbl r">Review</span>')).join('')}${t.fresh.map(c => card(c, '', '<span class="lbl">New</span>')).join('')}</div>
+    ${t.total ? '' : `<p class="empty">${t.queue.length ? 'Nothing is due today.' : 'Every card here has been studied.'} ${plural(t.learning, 'card')} learning, ${t.finished} done.</p>`}</div>`;
+  pics(v.el); v.el.scrollTop = top; markScrolled(v);
+}
+function onStudyClick(b, v) {
+  const p = b.dataset.p, d = v.deck;
+  if (p === 'start') startStudy(d);
+  else if (p === 'more') learnMore(() => startStudy(d));
+  else if (p === 'queue') openQueue(d);
+  else if (p === 'smenu') studyMenu(d);
+  else if (b.dataset.card) {
+    const t = studyToday(d), id = b.dataset.card, left = [...t.due, ...t.fresh];
+    if (left.some(c => c.id === id)) startStudy(d, id);
+    else openStudy(d, id, t.done); // a card already done today: just look at it
+  }
+}
+/* a study session: today's cards in order (or starting from the one tapped); it can't be swiped through, each card needs an answer */
+function startStudy(d, firstId) {
+  const t = studyToday(d); let order = [...t.due, ...t.fresh];
+  if (!order.length) { toast('Done for today'); return; }
+  if (firstId) { const c = order.find(x => x.id === firstId); if (c) order = [c, ...order.filter(x => x !== c)]; }
+  openStudy(d, order[0].id, order, { base: t.done.length, repeats: 0 });
+}
+function learnMore(then) {
+  const day = dayNo(), n = (SD.extra && SD.extra.day === day ? SD.extra.n : 0) + 10;
+  SD.extra = { k: 'extra', day, n }; sstore.put('meta', [SD.extra]).catch(storageFail);
+  then && then();
+}
+function studyMenu(d) {
+  const t = studyToday(d), q = t.queue.length - t.fresh.length;
+  sheet(`<h2>Study</h2><p class="sub num">${t.left ? `${t.left} of ${t.total} left today` : 'Done for today'} · ${plural(t.learning, 'card')} learning · ${t.finished} done</p>
+    <div class="list">
+      ${item('queue', 'New cards in queue', `<span class="num">${q.toLocaleString()}</span>${ICON.chev}`)}
+      ${item('daily', 'New cards a day', `<span class="num">${SD.daily}</span>`, '', 'Plus every card that is due for review')}
+      ${q ? item('more', 'Learn 10 more new cards today') : ''}
+    </div>`, {
+    queue: () => closeSheet(() => openQueue(d)),
+    daily: () => askSheet({ title: 'New cards a day', value: String(SD.daily), btn: 'Save', label: 'New cards a day', attrs: 'inputmode="numeric" autocomplete="off" enterkeyhint="done"',
+      done: x => {
+        const n = Math.round(+x);
+        if (!(n >= 1 && n <= 500)) { toast('Type a number from 1 to 500'); return; }
+        SD.daily = n; SD.dailySet = true; sstore.put('meta', [{ k: 'daily', v: n }]).catch(storageFail);
+        closeSheet(() => { refreshPages(); toast(`${plural(n, 'new card')} a day`); });
+      } }),
+    more: () => closeSheet(() => learnMore(() => { refreshPages(); toast('10 more new cards today'); }))
+  });
+}
+/* the answer bar under a card: Continue for a new card; Repeat, Tomorrow and Pass for a card you've seen before */
+const gapText = n => n === 1 ? '1 day' : `${n} days`;
+function showAnswer(c) {
+  const box = S && $('.answer', S.el); if (!box) return;
+  const r = recOf(c);
+  if (!r || r.step == null) { box.innerHTML = `<button class="p" data-s="ans" data-a="continue">Continue<small>back in 1 day</small></button>`; return; }
+  const nx = r.step + 1 < GAPS.length ? gapText(GAPS[r.step + 1]) : 'done';
+  box.innerHTML = `<button data-s="ans" data-a="repeat">Repeat<small>today</small></button><button data-s="ans" data-a="tomorrow">Tomorrow<small>1 day</small></button>`
+    + `<button class="p" data-s="ans" data-a="pass">Pass<small>${nx}</small></button>`;
+}
+function answer(a) {
+  if (!S || !S.drill || S.over || performance.now() - (S.ansAt || 0) < 400) return;
+  S.ansAt = performance.now();
+  const c = S.order[S.i], day = dayNo(), r0 = recOf(c), seen = !!r0 && r0.step != null;
+  if (a === 'repeat' && seen) { S.order.push(c); S.drill.repeats++; } // back at the end of today's list; its place in the cycle doesn't change
+  else {
+    const r = seen ? { ...r0 } : { id: c.id, step: 0, first: day };
+    delete r.front; r.last = day; r.at = Date.now();
+    if (!seen) r.due = day + GAPS[0];
+    else if (a === 'tomorrow') r.due = day + 1; // keeps its step: a Pass tomorrow moves it on
+    else if (a === 'pass') { r.step++; if (r.step >= GAPS.length) { r.done = true; delete r.due; } else r.due = day + GAPS[r.step]; }
+    saveRecs([r]);
+  }
+  buzz(12); countCurrent();
+  if (S.i + 1 < S.order.length) { leaveLevels(); showSlide(S.i + 1, 'next'); }
+  else { leaveLevels(); studyOver(); }
+}
+function studyOver() {
+  const t = studyToday(S.deck), tm = dayNo() + 1;
+  if (t.left) { carryOn(t); return; } // more came in meanwhile (a new day began at 4 am): carry on with them
+  const tomorrow = deckCards(S.deck.id).filter(c => { const r = recOf(c); return r && r.step != null && !r.done && r.due <= tm; }).length + Math.min(SD.daily, t.queue.length);
+  S.over = true;
+  const el = document.createElement('div'); el.className = 'sdone';
+  el.innerHTML = `<h2>Done for today</h2><p class="num">${plural(t.done.length, 'card')}${S.drill.repeats ? ` · ${S.drill.repeats} repeated` : ''}<br>Tomorrow: ${plural(tomorrow, 'card')}</p>
+    ${t.queue.length ? '<button class="textbtn" data-s="more">Learn 10 more new cards</button>' : ''}`;
+  S.el.appendChild(el);
+}
+/* today's list starts again with what is left: the count goes on from the cards already done */
+function carryOn(t) {
+  S.drill.base = t.done.length; S.order = [...t.due, ...t.fresh]; S.over = false;
+  $('.sdone', S.el)?.remove();
+  showSlide(0, 'next');
+}
+function studyMore() {
+  if (!S || !S.over) return;
+  learnMore();
+  const t = studyToday(S.deck); if (t.left) carryOn(t);
+}
+
+/* ---------- the queue of new cards: numbered in the order Study brings them; search, select and bring to the front ---------- */
+function openQueue(d) { newPage({ kind: 'queue', deck: d, search: null }); }
+const queueGrid = () => ls.get('queue.view') === 'grid';
+const cardDesc = c => rankTags(tagsOf(c)).join(' · ');
+function queueHits(v) {
+  const all = queueOrder(v.deck), pos = new Map(all.map((c, i) => [c.id, i + 1]));
+  v.pos = pos;
+  const s = v.search; if (!s) return all;
+  const n = norm(s.q);
+  return all.filter(c => hasTags(c, s.pins) && (!n || norm(c.word).includes(n) || tagsOf(c).some(t => norm(t).includes(n)) || (n.length >= 2 && norm(cardPlain(c)).includes(n))));
+}
+function queueTop(v) {
+  if (v.sel) return `<div class="pbar"><button class="iconbtn" data-p="unsel" aria-label="Stop selecting">${ICON.close}</button>
+    <span class="selcount num">${v.sel.size} selected</span><button class="textbtn qfront" data-p="front" ${v.sel.size ? '' : 'disabled'}>Bring to front</button></div>`;
+  if (v.search) return `<div class="searchbar qsearch"><div class="qwrap"><button class="iconbtn" data-p="back" aria-label="Back">${ICON.back}</button>
+    <div class="pins">${v.search.pins.map((t, k) => `<button class="pin" data-unpin="${k}" aria-label="Remove tag ${esc(t)}"><b>${esc(t)}</b></button>`).join('')}</div>
+    <input id="qq" type="search" value="${esc(v.search.q)}" placeholder="${v.search.pins.length ? '' : 'Search new cards'}" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="search" aria-label="Search the new cards">
+    <button class="iconbtn qclear" data-p="clear" aria-label="Clear the search" ${v.search.pins.length || v.search.q ? '' : 'hidden'}>${ICON.close}</button></div></div>`;
+  const grid = queueGrid();
+  return pageBar(v, `<button class="iconbtn" data-p="view" aria-label="${grid ? 'Show as a list' : 'Show as a grid'}">${grid ? ICON_LIST : ICON_GRID}</button>
+    <button class="iconbtn" data-p="qsearch" aria-label="Search new cards">${ICON.search}</button>`);
+}
+function queueBody(v) {
+  const list = queueHits(v), grid = queueGrid(), s = v.search, on = id => v.sel && v.sel.has(id) ? ' on' : '';
+  v.list = list;
+  if (v.sel) [...v.sel].forEach(id => { if (!list.some(c => c.id === id)) v.sel.delete(id); });
+  let sugg = '';
+  if (s && !v.sel) { // tags that match what is typed, to pin
+    const n = norm(s.q);
+    const tg = n ? allTags(list).filter(x => !s.pins.some(p => norm(p) === x.k) && x.k.includes(n))
+      .sort((a, b) => (b.k.startsWith(n) - a.k.startsWith(n)) || b.n - a.n || a.k.localeCompare(b.k)).slice(0, 8) : [];
+    sugg = tg.length ? `<div class="sugg">${tg.map(x => { const i = x.k.indexOf(n);
+      return `<button data-pin="${esc(x.t)}">${esc(x.t.slice(0, i))}<mark>${esc(x.t.slice(i, i + n.length))}</mark>${esc(x.t.slice(i + n.length))}<i>${x.n}</i></button>`; }).join('')}</div>` : '';
+  }
+  const head = s || v.sel ? `<div class="rhead"><span class="num">${plural(list.length, 'new card')}</span>${list.length && !(v.sel && v.sel.size === list.length) ? '<button class="textbtn" data-p="all">Select all</button>' : ''}</div>`
+    : `<p class="summary num">${plural(list.length, 'card').replace(/^\d+/, m => (+m).toLocaleString())} · next in line first</p>`;
+  const rows = grid
+    ? `<div class="gal">${list.map(c => `<button class="gcard${on(c.id)}" data-qc="${c.id}"><div class="pic"><img alt="" data-blob="${c.thumbId}"><span class="qn num">${v.pos.get(c.id)}</span>${BOX}</div>
+        <span class="w${c.word ? '' : ' none'}">${esc(c.word || 'No word yet')}</span></button>`).join('')}</div>`
+    : `<div class="qlist">${list.map(c => `<button class="qrow${on(c.id)}" data-qc="${c.id}"><span class="i num">${v.pos.get(c.id)}</span>${BOX}<span class="pic"><img alt="" data-blob="${c.thumbId}"></span>
+        <span class="qm"><span class="w${c.word ? '' : ' none'}">${esc(c.word || 'No word yet')}</span><span class="d">${esc(cardDesc(c))}</span></span></button>`).join('')}</div>`;
+  const empty = list.length ? '' : `<p class="empty">${s ? 'No new card matches this search.' : 'No new cards left: every card here has been studied.'}</p>`;
+  return `${sugg}${head}${rows}${empty}`;
+}
+function renderQueue(v) {
+  const top = v.el.scrollTop;
+  v.title = 'New cards';
+  v.el.innerHTML = `<div class="home${v.sel ? ' selecting' : ''}${v.search && !v.sel ? ' qsearching' : ''}">${queueTop(v)}<div class="qbody">${queueBody(v)}</div></div>`;
+  filePics(v); v.el.scrollTop = top; markScrolled(v);
+  const inp = $('#qq', v.el);
+  if (inp) {
+    inp.addEventListener('input', () => { v.search.q = inp.value; drawQueueBody(v); $('.qclear', v.el).hidden = !(v.search.pins.length || inp.value); });
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { const f = $('.sugg button', v.el); if (f) f.click(); else inp.blur(); }
+      else if (e.key === 'Backspace' && !inp.value && v.search.pins.length) { v.search.pins.pop(); renderQueue(v); focusQueue(v); }
+    });
+  }
+}
+function drawQueueBody(v) { $('.qbody', v.el).innerHTML = queueBody(v); filePics(v); }
+function focusQueue(v) { const i = $('#qq', v.el); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }
+function onQueueClick(e, v) {
+  const b = e.target.closest('button'); if (!b || b.disabled) return;
+  const p = b.dataset.p;
+  if (p === 'back' || p === 'unsel') back();
+  else if (p === 'view') { ls.set('queue.view', queueGrid() ? 'list' : 'grid'); renderQueue(v); }
+  else if (p === 'qsearch') { v.search = { q: '', pins: [] }; v.el.scrollTop = 0; renderQueue(v); focusQueue(v); pushLayer(() => { v.search = null; if (v.el.isConnected) renderQueue(v); }); }
+  else if (p === 'clear') { v.search.q = ''; v.search.pins = []; renderQueue(v); focusQueue(v); }
+  else if (b.dataset.pin != null) { v.search.pins.push(b.dataset.pin); v.search.q = ''; renderQueue(v); }
+  else if (b.dataset.unpin != null) { v.search.pins.splice(+b.dataset.unpin, 1); renderQueue(v); }
+  else if (p === 'all') { if (!v.sel) startQueueSelect(v); v.list.forEach(c => v.sel.add(c.id)); renderQueue(v); }
+  else if (p === 'front') bringToFront(v);
+  else if (b.dataset.qc) {
+    const id = b.dataset.qc;
+    if (v.sel) { v.sel.has(id) ? v.sel.delete(id) : v.sel.add(id); renderQueue(v); }
+    else { const i = $('#qq', v.el); if (i) i.blur(); openStudy(v.deck, id, v.list); } // just to look: it doesn't start the card's cycle
+  }
+}
+function startQueueSelect(v, id) {
+  const i = $('#qq', v.el); if (i) i.blur();
+  v.sel = new Set(id ? [id] : []); renderQueue(v);
+  pushLayer(() => { v.sel = null; if (v.el.isConnected) renderQueue(v); });
+}
+/* the chosen cards move to the very front, in the order they were in; a later batch goes ahead of an earlier one */
+function bringToFront(v) {
+  const ids = v.list.filter(c => v.sel.has(c.id)).map(c => c.id), n = ids.length; if (!n) return;
+  let low = 0; for (const r of SD.recs.values()) if (r.step == null && r.front != null) low = Math.min(low, r.front);
+  const at = Date.now();
+  saveRecs(ids.map((id, i) => ({ id, front: low - n + i, at })));
+  back(() => { v.el.scrollTop = 0; renderQueue(v); refreshPages(); toast(`${plural(n, 'card')} moved to the front`); }, v.search ? 2 : 1);
+}
+/* backups carry the progress; an import takes a card's record only when it is newer than the one here, so it is safe to repeat */
+const cleanRec = r => {
+  if (!r || typeof r !== 'object' || !r.id) return null;
+  const out = { id: String(r.id), at: Number.isFinite(+r.at) ? +r.at : 0 };
+  if (Number.isInteger(r.step) && r.step >= 0) {
+    Object.assign(out, { step: Math.min(r.step, GAPS.length), first: +r.first || 0, last: +r.last || 0 });
+    if (r.done || out.step >= GAPS.length) out.done = true; else out.due = Number.isFinite(+r.due) ? +r.due : dayNo();
+  } else if (Number.isFinite(+r.front)) out.front = +r.front;
+  else return null;
+  return out;
+};
+async function importStudy(st) {
+  if (!st || typeof st !== 'object') return 0;
+  const take = (Array.isArray(st.cards) ? st.cards : []).map(cleanRec).filter(r => r && (!SD.recs.has(r.id) || (SD.recs.get(r.id).at || 0) < r.at));
+  if (take.length) await saveRecs(take);
+  if (!SD.dailySet && +st.daily >= 1 && +st.daily <= 500) { SD.daily = Math.round(+st.daily); SD.dailySet = true; await sstore.put('meta', [{ k: 'daily', v: SD.daily }]).catch(storageFail); }
+  return take.length;
+}
+function exportStudy() {
+  const ids = new Set(cards.map(c => c.id)), list = [...SD.recs.values()].filter(r => ids.has(r.id));
+  return list.length || SD.dailySet ? { daily: SD.daily, cards: list } : null;
 }
 
 /* ================= editing a card's screenshots ================= */
@@ -2251,7 +2581,7 @@ function renderResults(q) {
   const row = (c, title, snip) => { const d = decks.find(x => x.id === c.deckId);
     return `<button class="res" data-card="${c.id}"><img alt="" data-blob="${c.thumbId}">
       <span><span class="rw">${title}</span>
-      <span class="rd">${esc(d ? d.name : '')}${c.review ? ' · <span class="due">review</span>' : ''}</span>${snip ? `<span class="rd">${snip}</span>` : ''}</span></button>`; };
+      <span class="rd">${esc(d ? d.name : '')}</span>${snip ? `<span class="rd">${snip}</span>` : ''}</span></button>`; };
   const pics = () => $$('img[data-blob]', box).forEach(img => { thumbIds.add(img.dataset.blob); blobURL(img.dataset.blob).then(u => { if (u) img.src = u; }); });
   $('.qclear', searchView.el).hidden = !(P.length || q);
   searchView.hits = []; searchView.fhits = [];
@@ -2320,7 +2650,7 @@ async function appMenu() {
   try { const e = await navigator.storage.estimate(); used = `${Math.max(1, Math.round(e.usage / 1048576))} MB stored on this phone`; } catch {}
   sheet(`<h2>Backup</h2><p class="sub num">${used || plural(cards.length, 'card')}</p>
     <div class="list">
-      ${item('export', 'Back up everything', '', '', 'Saves one .zip with all decks, screenshots and review marks')}
+      ${item('export', 'Back up everything', '', '', 'Saves one .zip with all decks, screenshots and study progress')}
       ${item('import', 'Import a backup', '', '', 'Adds decks and cards from an Agora .zip')}
       ${textPairs().length ? item('slim', 'Remove screenshots behind text', '', '', `${plural(textPairs().length, 'definition')} also have a text version`) : ''}
     </div>`, {
@@ -2399,6 +2729,8 @@ async function exportAll() {
   }
   // the tags of files in My Files (not the files themselves); optional, so older versions simply ignore it
   if (fileTagList().length) man.files = { tags: fileTagList() };
+  // Study progress: where each card is in its cycle, and the queue's front (optional, like files)
+  const st = exportStudy(); if (st) man.study = st;
   zip.file('manifest.json', JSON.stringify(man, null, 2));
   const blob = await zip.generateAsync({ type: 'blob', compression: 'STORE' }, m => progress('Packing…', 0.6 + m.percent / 250));
   const name = `agora-backup-${new Date().toISOString().slice(0, 10)}.zip`;
@@ -2410,7 +2742,7 @@ async function exportAll() {
 $('#zipPicker').addEventListener('change', async e => {
   const files = [...e.target.files]; e.target.value = ''; if (!files.length) return;
   progressSheet('Importing', 'Reading the file…');
-  let added = 0, updated = 0, skipped = 0, mismatched = 0, absent = 0, ftagged = 0, fwait = 0; const touched = new Set();
+  let added = 0, updated = 0, skipped = 0, mismatched = 0, absent = 0, ftagged = 0, fwait = 0, studyN = 0; const touched = new Set();
   try {
     const JSZip = await loadZip();
     for (let fi = 0; fi < files.length; fi++) {
@@ -2586,10 +2918,11 @@ $('#zipPicker').addEventListener('change', async e => {
         if (changed.length) { await fstore.put('files', changed); ftagged += changed.length; tagsChanged(); }
         fwait += await addPending(wait);
       }
+      if (man.study) studyN += await importStudy(man.study);
     }
-    askPersist(); renderHome(); closeSheet();
+    askPersist(); renderHome(); refreshPages(); closeSheet();
     toast([added ? `Imported ${plural(added, 'card')}` : '', updated ? `Updated ${plural(updated, 'card')}` : '', skipped - mismatched > 0 ? `${skipped - mismatched} already up to date` : '', mismatched ? `${mismatched} skipped: definitions didn’t line up` : '', absent ? `${plural(absent, 'card')} not on this phone` : '',
-      ftagged ? `Tags for ${plural(ftagged, 'file')}` : '', fwait ? `Tags for ${plural(fwait, 'file')} kept for when My Files is connected` : ''].filter(Boolean).join(' · ') || 'Nothing to import');
+      ftagged ? `Tags for ${plural(ftagged, 'file')}` : '', studyN ? `Study progress for ${plural(studyN, 'card')}` : '', fwait ? `Tags for ${plural(fwait, 'file')} kept for when My Files is connected` : ''].filter(Boolean).join(' · ') || 'Nothing to import');
     if (ftagged) refreshFiles();
   } catch (err) {
     console.error(err);
@@ -3484,6 +3817,7 @@ async function seed() {
   catch (e) { console.error(e); $('#home').innerHTML = `<p class="empty">Agora couldn’t show your decks. Close it and open it again.</p><p class="note">${esc(e.message)}</p>`; }
   // the files index loads after the decks are on screen, so My Files can never hold them up
   loadFiles().then(renderHome, e => console.warn(e));
+  loadStudy().then(refreshPages, e => console.warn(e));
   if (!decks.length) { await seed(); renderHome(); }
   if ('serviceWorker' in navigator && document.querySelector('link[rel="manifest"]')) {
     navigator.serviceWorker.register('sw.js').catch(() => {});

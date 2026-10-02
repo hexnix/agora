@@ -25,7 +25,8 @@ Use from your own script:
         print(ph.errors)
 
 Inside the page, `T` exposes: T.cards, T.decks, T.S (study state), T.openStudy(deck, cardId),
-T.layer(L), T.extent(L), T.back(); for My Files: T.FX, T.fidx, T.FV, T.pages, T.connectFiles, T.rescan, T.openFolder,
+T.layer(L), T.extent(L), T.back(); for the Study deck: T.SD (progress), T.studyToday, T.queueOrder, T.dayNo, T.openStudyPage,
+T.openQueue, T.openDeck, T.studyDeck (see test_study.py); for My Files: T.FX, T.fidx, T.FV, T.pages, T.connectFiles, T.rescan, T.openFolder,
 T.openViewer, T.openSearch, T.setFileTags, T.saveTagsFile, T.store, T.blobURL. The phone's folder picker can't be clicked
 in a test: fill the origin private file system (navigator.storage.getDirectory()) with made-up files and hand it to the
 app as "My Files" with  window.showDirectoryPicker = async () => dir; await T.connectFiles(true)  (see test_files.py).  Fonts: Plex Mono is exact; the Merriweather test font has no true italic, so italic text shows upright
@@ -92,6 +93,9 @@ class Phone:
             html = html[:i] + ("window.T={get cards(){return cards},get decks(){return decks},openStudy,get S(){return S},layer,extent,back,"
                                # My Files: the index, the folder and its screens
                                # (getters, so an older index.html without these still loads)
+                               "get FX(){return FX},"
+                               # Study: progress records, today's cards, the queue (getters: older versions don't have them)
+                               "get SD(){return SD},get studyToday(){return studyToday},get queueOrder(){return queueOrder},get dayNo(){return dayNo},get openStudyPage(){return openStudyPage},get openQueue(){return openQueue},get openDeck(){return openDeck},get studyDeck(){return studyDeck},"
                                "get FX(){return FX},get fidx(){return fidx},get FV(){return FV},get pages(){return pages},get connectFiles(){return connectFiles},get rescan(){return rescan},get openFolder(){return openFolder},get openViewer(){return openViewer},get openSearch(){return openSearch},get setFileTags(){return setFileTags},get saveTagsFile(){return saveTagsFile},get store(){return store},get fstore(){return fstore},get blobURL(){return blobURL}};\n") + html[i:]
             await r.fulfill(body=html, content_type='text/html')
         await ctx.route(self.base, page)

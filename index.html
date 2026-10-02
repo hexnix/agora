@@ -2919,9 +2919,11 @@ function allTags(pool) { // distinct tags (any case) with how many cards in pool
   return [...m.values()];
 }
 const hasTags = (c, pins) => { const mine = tagsOf(c).map(norm); return pins.every(p => mine.includes(norm(p))); };
-const searchHint = () => searchView && searchView.deck ? `Search ${searchView.deck.name}` : 'Search anything';
-/* deck: search only that deck's cards (the search icon on a deck's first page) */
-function openSearch(pins, deck = null) {
+const searchHint = () => searchView && searchView.deck ? `Search ${searchView.deck.name}`
+  : searchView && searchView.only ? `Search ${searchView.only === 'files' ? 'My Files' : 'Notes'}` : 'Search anything';
+/* deck: search only that deck's cards (the search icon on a deck's first page);
+   only: 'files' or 'notes', the same search inside My Files or Notes */
+function openSearch(pins, deck = null, only = null) {
   if (searchView) { if (pins) { searchView.pins = [...pins]; searchView.draw(); } return; }
   const el = document.createElement('div'); el.className = 'page search';
   el.innerHTML = `<div class="searchbar"><div class="qwrap"><button class="iconbtn" data-q="back" aria-label="Back">${ICON.back}</button>
@@ -2930,7 +2932,7 @@ function openSearch(pins, deck = null) {
     <div class="home"><div class="sugg" id="sugg" hidden></div><div class="results" id="results"></div></div>`;
   document.body.appendChild(el); document.body.classList.add('locked');
   const input = $('#q', el);
-  searchView = { el, pins: pins ? [...pins] : [], deck };
+  searchView = { el, pins: pins ? [...pins] : [], deck, only };
   input.placeholder = searchHint();
   searchView.draw = () => {
     const P = searchView.pins;
@@ -2957,20 +2959,32 @@ function openSearch(pins, deck = null) {
       if (r.kind === 'dir') openFolder(r.path); else openViewer((searchView.fhits || []).filter(x => x.kind === 'file'), r.path);
     }
     else if (b.dataset.bm) { const r = BM.recs.get(b.dataset.bm); if (r) openLink(r); }
+    else if (b.dataset.note) { input.blur(); openNote(b.dataset.note); }
     else if (b.dataset.card) { const c = cards.find(x => x.id === b.dataset.card); if (c) { input.blur(); openStudy(decks.find(d => d.id === c.deckId), c.id); } }
   });
   pushLayer(() => { el.remove(); searchView = null; unlockIdle(); });
   searchView.draw();
   if (!searchView.pins.length) input.focus();
 }
+/* Notes' own search: a note's title and every line of it; rows look like the Notes page */
+function noteSearch(box, sg, q) {
+  const n = norm(q); sg.hidden = true; sg.innerHTML = '';
+  $('.qclear', searchView.el).hidden = !q;
+  if (!n) { box.innerHTML = ''; return; }
+  const hits = notesList().filter(x => norm([x.title || '', ...noteLines(x)].join(' ')).includes(n));
+  box.innerHTML = hits.length ? `<div class="rhead"><span class="num">${plural(hits.length, 'note')}</span></div><div class="nlist">${hits.map(x => noteRowHTML(x, false)).join('')}</div>`
+    : `<p class="note">Nothing matches “${esc(q.trim())}” in your notes.</p>`;
+  notePics(box);
+}
 function renderResults(q) {
   const box = $('#results'), sg = $('#sugg'); if (!box || !searchView) return;
-  const P = searchView.pins, D = searchView.deck, all = D ? deckCards(D.id) : cards;
+  const P = searchView.pins, D = searchView.deck, O = searchView.only, all = O ? [] : D ? deckCards(D.id) : cards;
   const pool = P.length ? all.filter(c => hasTags(c, P)) : all, n = norm(q);
+  if (O === 'notes') { noteSearch(box, sg, q); return; }
   // files and folders from My Files sit below the cards, in their own section (not when searching one deck)
   const fpool = D ? [] : P.length ? allFiles().filter(r => hasTags(r, P)) : [...fidx.values()];
-  // and bookmarks below those (not when searching one deck either)
-  const bpool = D ? [] : P.length ? allMarks().filter(r => hasTags(r, P)) : allMarks();
+  // and bookmarks below those (not when searching one deck, or My Files)
+  const bpool = D || O ? [] : P.length ? allMarks().filter(r => hasTags(r, P)) : allMarks();
   // tags that match what is typed, shown above the results
   const tg = n ? allTags([...pool, ...fpool, ...bpool]).filter(x => !P.some(p => norm(p) === x.k) && x.k.includes(n))
     .sort((a, b) => (b.k.startsWith(n) - a.k.startsWith(n)) || b.n - a.n || a.k.localeCompare(b.k)).slice(0, 8) : [];
@@ -2994,14 +3008,14 @@ function renderResults(q) {
       const list = [...pool].sort((a, b) => norm(nameOf(a) || '~').localeCompare(norm(nameOf(b) || '~'))), fl = [...fpool].sort(nameCmp);
       box.innerHTML = list.length || fl.length || bpool.length ? (list.length ? `${mk(list)}<div class="results">${list.map(c => row(c, nameOf(c) ? esc(nameOf(c)) : '<span class="rd">No word yet</span>')).join('')}</div>` : '')
         + fileResults(fl, r => esc(r.name)) + markResults(bpool)
-        : `<p class="note">No card${fidx.size && !D ? ' or file' : ''}${D ? ` in ${esc(D.name)}` : ''} has all of these tags.</p>`;
+        : `<p class="note">${O ? 'No file' : `No card${fidx.size && !D ? ' or file' : ''}`}${D ? ` in ${esc(D.name)}` : ''} has all of these tags.</p>`;
       pics(); return;
     }
     box.innerHTML = ''; // an empty search shows nothing: the field says what it does
     return;
   }
   const hits = findWords(q, pool), fh = findFiles(q, fpool), bh = findMarks(q, bpool);
-  if (!hits.length && !fh.length && !bh.length) { box.innerHTML = tg.length ? '' : `<p class="note">Nothing matches “${esc(q.trim())}”${P.length ? ' with these tags' : D ? ` in ${esc(D.name)}` : fidx.size ? ' in your words, definitions or files' : ' in your words or definitions'}.</p>`; return; }
+  if (!hits.length && !fh.length && !bh.length) { box.innerHTML = tg.length ? '' : `<p class="note">Nothing matches “${esc(q.trim())}”${P.length ? ' with these tags' : D ? ` in ${esc(D.name)}` : O ? ' in My Files' : fidx.size ? ' in your words, definitions or files' : ' in your words or definitions'}.</p>`; return; }
   const k = n.length;
   const markName = (w, i) => i < 0 ? esc(w) : `${esc(w.slice(0, i))}<mark>${esc(w.slice(i, i + k))}</mark>${esc(w.slice(i + k))}`;
   box.innerHTML = (hits.length ? mk(hits.map(h => h.c)) + hits.map(({ c, i, snip }) => {
@@ -3711,7 +3725,8 @@ function filesBar(v) {
   if (FX.mode) return `<div class="pbar"><button class="iconbtn" data-p="endmode" aria-label="Stop tagging">${ICON.close}</button>
     <div class="ptitle"><span class="selcount" style="flex:none">Tagging</span><span class="chip on"><span>${esc(FX.mode)}</span></span></div></div>`;
   const grid = gridView();
-  return pageBar(v, `<button class="iconbtn" data-p="view" aria-label="${grid ? 'Show as a list' : 'Show as a grid'}">${grid ? ICON_LIST : ICON_GRID}</button>`
+  return pageBar(v, `<button class="iconbtn" data-p="fsearch" aria-label="Search My Files">${ICON.search}</button>`
+    + `<button class="iconbtn" data-p="view" aria-label="${grid ? 'Show as a list' : 'Show as a grid'}">${grid ? ICON_LIST : ICON_GRID}</button>`
     + `<button class="iconbtn" data-p="fsort" aria-label="Sort: ${FSORTS[fsortOf()].label}">${ICON_SORT}</button><button class="iconbtn" data-p="fmore" aria-label="My Files options">${ICON.more}</button>`);
 }
 function filesSummary(v, dirs, files) {
@@ -3772,6 +3787,7 @@ function onFilesClick(e, v) {
   if (p === 'back' || p === 'unsel' || p === 'endmode') back();
   else if (p === 'view') { ls.set('files.view', gridView() ? 'list' : 'grid'); refreshFiles(); }
   else if (p === 'fsort') filesSortSheet();
+  else if (p === 'fsearch') openSearch(null, null, 'files');
   else if (p === 'fmore') filesMenu(v);
   else if (p === 'selmenu') fileSelMenu(v);
   else if (p === 'all') { toggleAll(v); paintFileSel(v); }
@@ -4291,7 +4307,7 @@ function openNotes() { if (NT.loaded) newPage({ kind: 'notes' }); }
 function notesBar(v) {
   if (v.sel) return `<div class="pbar"><button class="iconbtn" data-p="unsel" aria-label="Stop selecting">${ICON.close}</button>
     <span class="selcount num">${v.sel.size} selected</span>${allBtn(allOn(v))}<button class="textbtn qfront" data-p="ndel" ${v.sel.size ? '' : 'disabled'}>Delete</button></div>`;
-  return pageBar(v, `<button class="iconbtn" data-p="nnew" aria-label="New note">${svg('<path d="M12 5v14M5 12h14"/>')}</button>`);
+  return pageBar(v, `<button class="iconbtn" data-p="nsearch" aria-label="Search Notes">${ICON.search}</button><button class="iconbtn" data-p="nnew" aria-label="New note">${svg('<path d="M12 5v14M5 12h14"/>')}</button>`);
 }
 function renderNotes(v) {
   const top = v.el.scrollTop, list = notesList();
@@ -4319,6 +4335,7 @@ function onNotesClick(e, v) {
   const p = b.dataset.p;
   if (p === 'back' || p === 'unsel') back();
   else if (p === 'nnew') openNote(null);
+  else if (p === 'nsearch') openSearch(null, null, 'notes');
   else if (p === 'all') { toggleAll(v); paintNoteSel(v); }
   else if (p === 'ndel') { const ids = [...v.sel]; deleteNotesSheet(ids, () => back(() => renderNotes(v))); }
   else if (b.dataset.note) {

@@ -544,6 +544,42 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 .vfoot{position:absolute;left:0;right:0;bottom:0;height:var(--vf);display:flex;align-items:center;gap:14px;padding:0 10px env(safe-area-inset-bottom,0px) 20px;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
 .vfoot .textbtn{margin-left:auto;display:inline-flex;align-items:center;gap:8px;font-size:15px}
 
+/* ---------- Notes ---------- */
+/* the list: the title, a line of what follows, the date; a small picture when the note has one */
+.nlist{display:flex;flex-direction:column;margin-top:14px;user-select:none;-webkit-user-select:none}
+.nrow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:14px;align-items:center;width:100%;padding:14px 0;border-top:1px solid var(--line);-webkit-touch-callout:none;text-align:left}
+.nrow:first-child{border-top:0}
+.nrow .fic{grid-column:2}
+.nrow .fbox{grid-column:3}
+.nrow:active{background:rgba(255,255,255,.03)}
+.nmain{display:flex;flex-direction:column;min-width:0}
+.nrow .nt{font-size:15px;line-height:1.3;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nrow .np{font-size:13px;line-height:1.45;color:var(--muted);margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.nd{font-size:12px;color:var(--faint);margin-top:6px}
+/* writing: the title, the text, and one row of formatting above the keyboard */
+.notepage{touch-action:auto}
+.notepage .home{padding-bottom:calc(var(--kb,0px) + 120px);user-select:text;-webkit-user-select:text}
+.ntitle,.nbody{outline:none;overflow-wrap:anywhere}
+.ntitle{font-size:22px;font-weight:500;line-height:1.3;letter-spacing:-.02em;padding:14px 0 4px}
+.nbody{font:400 15px/1.65 var(--sans);color:#E4E4E4;min-height:50vh;padding-top:8px}
+.ntitle:empty::before,.nbody:empty::before{content:attr(data-ph);color:var(--faint);pointer-events:none}
+.nbody p,.nbody div{margin:0 0 .6em}
+.nbody h2{font-size:19px;font-weight:500;line-height:1.35;color:var(--text);margin:1.1em 0 .4em;letter-spacing:-.01em}
+.nbody b,.nbody strong{font-weight:600;color:var(--text)}
+.nbody ul,.nbody ol{margin:0 0 .6em;padding-left:24px}
+.nbody li{margin:.15em 0}
+.nbody blockquote{margin:0 0 .6em;padding:2px 0 2px 14px;border-left:2px solid var(--gold);color:var(--muted)}
+.nbody ul.checks{list-style:none;padding-left:0}
+.nbody ul.checks > li{position:relative;padding-left:30px}
+.nbody ul.checks > li::before{content:"";position:absolute;left:1px;top:.32em;width:16px;height:16px;border-radius:4px;border:1.5px solid var(--muted);box-sizing:border-box}
+.nbody ul.checks > li.done{color:var(--faint);text-decoration:line-through}
+.nbody ul.checks > li.done::before{background:var(--gold) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/12px no-repeat;border-color:var(--gold)}
+.nbody img{display:block;max-width:100%;height:auto;border-radius:10px;margin:10px 0;background:var(--surface)}
+.ntools{position:fixed;left:0;right:0;bottom:var(--kb,0px);z-index:6;display:flex;justify-content:space-between;padding:4px 6px calc(4px + env(safe-area-inset-bottom,0px));background:var(--ink);border-top:1px solid var(--line)}
+.ntools .iconbtn{width:42px;height:42px;color:var(--muted)}
+.ntools .iconbtn.on{color:var(--blue-text);background:var(--gold-soft)}
+.ntx{font-size:17px;line-height:1;font-family:var(--sans)}
+
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important}}
 </style>
 
@@ -603,6 +639,7 @@ function selPool(v) {
   if (v.kind === 'files') return (v.order || []).map(r => r.path);
   if (v.kind === 'queue') return v.list.map(c => c.id);
   if (v.kind === 'history') return v.list.map(x => x.c.id);
+  if (v.kind === 'notes') return v.list.map(n => n.id);
   if (v.kind === 'marks') return (v.order || []).map(r => r.id);
   return srcFor(v).cards.map(c => c.id);
 }
@@ -833,6 +870,7 @@ function renderHome() {
     <div class="grid">${tiles}
       ${marksTile()}
       ${filesTile()}
+      ${notesTile()}
       <div class="tile new"><button class="tile-open" data-new="1"><div class="cover">${ICON.plus}</div><div class="tile-name">New deck</div></button></div>
     </div>${fsOffLine()}`;
   $$('img[data-blob]', el).forEach(img => {
@@ -850,6 +888,8 @@ $('#home').addEventListener('click', e => {
   else if (t.dataset.marks) openMarks();
   else if (t.dataset.mmenu) marksMenu(null);
   else if (t.dataset.fmenu) filesMenu(null);
+  else if (t.dataset.notes) openNotes();
+  else if (t.dataset.nmenu) notesMenu();
   else if (t.id === 'appMenu') appMenu();
   else if (t.id === 'searchBtn') openSearch();
 });
@@ -1186,14 +1226,16 @@ function newPage(v) {
   document.body.appendChild(el); document.body.classList.add('locked');
   v.el = el; pages.push(v);
   el.addEventListener('click', e => onPageClick(e, v));
-  el.addEventListener('contextmenu', e => e.preventDefault());
+  if (v.kind !== 'note') el.addEventListener('contextmenu', e => e.preventDefault()); // a note keeps the phone's copy and paste
   el.addEventListener('scroll', () => markScrolled(v), { passive: true });
   if (v.kind === 'cards') holdToSelect(v);
   else if (v.kind === 'queue') holdToSelect(v, '[data-qc]', b => startQueueSelect(v, b.dataset.qc));
+  else if (v.kind === 'marks') holdToSelect(v, '[data-bm]', b => startMarkSelect(v, b.dataset.bm));
   else if (v.kind === 'files') holdToSelect(v, '[data-fp]', b => startFileSelect(v, b.dataset.fp));
   else if (v.kind === 'history') holdToSelect(v, '.hrow', b => startHistSelect(v, b.dataset.card));
-  else if (v.kind === 'marks') holdToSelect(v, '[data-bm]', b => startMarkSelect(v, b.dataset.bm));
+  else if (v.kind === 'notes') holdToSelect(v, '[data-note]', b => startNoteSelect(v, b.dataset.note));
   pushLayer(() => {
+    if (v.onClose) v.onClose(v);
     el.remove(); pages = pages.filter(p => p !== v);
     unlockIdle();
     refreshPages(); renderHome();
@@ -1229,6 +1271,8 @@ function renderPage(v) {
   if (v.kind === 'queue') { renderQueue(v); return; }
   if (v.kind === 'history') { renderHistory(v); return; }
   if (v.kind === 'marks') { renderMarks(v); return; }
+  if (v.kind === 'notes') { renderNotes(v); return; }
+  if (v.kind === 'note') { renderNote(v); return; }
   const d = v.deck, top = v.el.scrollTop;
   if (v.kind === 'sources') {
     const gs = sourcesOf(d), total = deckCards(d.id).length;
@@ -1294,9 +1338,11 @@ function startSelect(v, id) {
 }
 function onPageClick(e, v) {
   if (v.kind === 'files') { onFilesClick(e, v); return; }
+  if (v.kind === 'marks') { onMarksClick(e, v); return; }
   if (v.kind === 'queue') { onQueueClick(e, v); return; }
   if (v.kind === 'history') { onHistoryClick(e, v); return; }
-  if (v.kind === 'marks') { onMarksClick(e, v); return; }
+  if (v.kind === 'notes') { onNotesClick(e, v); return; }
+  if (v.kind === 'note') { onNoteClick(e, v); return; }
   const b = e.target.closest('button'); if (!b || b.disabled) return;
   const p = b.dataset.p;
   if (p === 'back' || p === 'unsel') back();
@@ -3002,7 +3048,7 @@ async function appMenu() {
   try { const e = await navigator.storage.estimate(); used = `${Math.max(1, Math.round(e.usage / 1048576))} MB stored on this phone`; } catch {}
   sheet(`<h2>Backup</h2><p class="sub num">${used || plural(cards.length, 'card')}</p>
     <div class="list">
-      ${item('export', 'Back up everything', '', '', 'Saves one .zip with all decks, screenshots and study progress')}
+      ${item('export', 'Back up everything', '', '', 'Saves one .zip with all decks, screenshots, study progress and notes')}
       ${item('import', 'Import a backup', '', '', 'Adds decks and cards from an Agora .zip')}
       ${textPairs().length ? item('slim', 'Remove screenshots behind text', '', '', `${plural(textPairs().length, 'definition')} also have a text version`) : ''}
     </div>`, {
@@ -3031,7 +3077,7 @@ async function slimSheet() {
   });
 }
 async function exportAll() {
-  if (!cards.length && !fileTagList().length && !BM.recs.size) { toast('Nothing to back up yet'); return; }
+  if (!cards.length && !fileTagList().length && !NT.notes.size && !BM.recs.size) { toast('Nothing to back up yet'); return; }
   progressSheet('Preparing backup', 'Loading…');
   let JSZip; try { JSZip = await loadZip(); } catch { closeSheet(); toast('Backup needs an internet connection the first time'); return; }
   const zip = new JSZip(), man = { app: 'agora', version: 1, exportedAt: new Date().toISOString(), decks: [] };
@@ -3085,6 +3131,8 @@ async function exportAll() {
   const st = exportStudy(); if (st) man.study = st;
   // bookmarks (optional, like files)
   if (BM.recs.size) man.bookmarks = exportMarks();
+  // Notes and their pictures (optional too)
+  const nt = await exportNotes(zip); if (nt) man.notes = nt;
   zip.file('manifest.json', JSON.stringify(man, null, 2));
   const blob = await zip.generateAsync({ type: 'blob', compression: 'STORE' }, m => progress('Packing…', 0.6 + m.percent / 250));
   const name = `agora-backup-${new Date().toISOString().slice(0, 10)}.zip`;
@@ -3096,7 +3144,7 @@ async function exportAll() {
 $('#zipPicker').addEventListener('change', async e => {
   const files = [...e.target.files]; e.target.value = ''; if (!files.length) return;
   progressSheet('Importing', 'Reading the file…');
-  let added = 0, updated = 0, skipped = 0, mismatched = 0, absent = 0, ftagged = 0, fwait = 0, studyN = 0, marksN = 0; const touched = new Set();
+  let added = 0, updated = 0, skipped = 0, mismatched = 0, absent = 0, ftagged = 0, fwait = 0, studyN = 0, notesN = 0, marksN = 0; const touched = new Set();
   try {
     const JSZip = await loadZip();
     for (let fi = 0; fi < files.length; fi++) {
@@ -3273,11 +3321,12 @@ $('#zipPicker').addEventListener('change', async e => {
         fwait += await addPending(wait);
       }
       if (man.study) studyN += await importStudy(man.study);
+      if (man.notes) notesN += await importNotes(man.notes, zip);
       if (man.bookmarks) marksN += await importMarks(man.bookmarks);
     }
     askPersist(); renderHome(); refreshPages(); closeSheet();
     toast([added ? `Imported ${plural(added, 'card')}` : '', updated ? `Updated ${plural(updated, 'card')}` : '', skipped - mismatched > 0 ? `${skipped - mismatched} already up to date` : '', mismatched ? `${mismatched} skipped: definitions didn’t line up` : '', absent ? `${plural(absent, 'card')} not on this phone` : '',
-      ftagged ? `Tags for ${plural(ftagged, 'file')}` : '', studyN ? `Study progress for ${plural(studyN, 'card')}` : '', marksN ? plural(marksN, 'bookmark') : '', fwait ? `Tags for ${plural(fwait, 'file')} kept for when My Files is connected` : ''].filter(Boolean).join(' · ') || 'Nothing to import');
+      ftagged ? `Tags for ${plural(ftagged, 'file')}` : '', studyN ? `Study progress for ${plural(studyN, 'card')}` : '', notesN ? `${plural(notesN, 'note')}` : '', marksN ? plural(marksN, 'bookmark') : '', fwait ? `Tags for ${plural(fwait, 'file')} kept for when My Files is connected` : ''].filter(Boolean).join(' · ') || 'Nothing to import');
     if (ftagged) refreshFiles();
     refreshTiles(); // a scene that became text or a magazine page gets a tile to match
   } catch (err) {
@@ -4138,6 +4187,357 @@ function fileResults(list, titleOf) {
       <span><span class="rw">${titleOf(r)}</span><span class="rd">${r.kind === 'dir' ? `Folder · ${plural(deepCount(r.path), 'file')}` : `${esc(kindLabel(r))} · ${esc(fname(r.dir))}`}</span></span></button>`).join('');
 }
 
+/* ================= Notes: a small notebook of its own ================= */
+/* Notes live in a database of their own, "agora-notes" (store `notes`: {id, title, html, imgs: [picture ids], createdAt, updatedAt};
+   store `images`: {id, blob}, each picture kept at its original size plus a small copy `<id>-t` for the list). It opens after the decks
+   are on screen, so the cards' database is never upgraded. A note's text is plain HTML from a short list: paragraphs, headings, bold,
+   italic, underline, lists, checklists, quotes and pictures; anything else is dropped (cleanNoteHTML), so a backup can't carry a script. */
+const NT = { notes: new Map(), loaded: false };
+let nstore = memStore(['notes', 'images']);
+const LOGO_NOTES = '<span class="logo"><svg width="72" height="72" viewBox="0 0 48 48" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">'
+  + '<rect x="12" y="7" width="24" height="34" rx="2" stroke="currentColor"/>'
+  + '<path d="M17 15h14" style="stroke:var(--gold);stroke-width:2.6"/><path d="M17 22h14M17 27.5h14M17 33h8" stroke="currentColor"/></svg></span>';
+const ICON_NOTE = {
+  h: '<span class="ntx">H</span>',
+  b: '<span class="ntx" style="font-weight:600">B</span>',
+  i: '<span class="ntx" style="font-style:italic">I</span>',
+  u: '<span class="ntx" style="text-decoration:underline;text-underline-offset:3px">U</span>',
+  ul: svg('<path d="M9.5 6.5h10M9.5 12h10M9.5 17.5h10"/><circle cx="5" cy="6.5" r=".9" fill="currentColor"/><circle cx="5" cy="12" r=".9" fill="currentColor"/><circle cx="5" cy="17.5" r=".9" fill="currentColor"/>'),
+  ol: svg('<path d="M10 6.5h9.5M10 12h9.5M10 17.5h9.5"/><path d="M4.2 5l1.3-.8v4.3M3.8 13.6c.1-1.2 2.6-1.4 2.4.1-.1.7-2.4 1.8-2.4 2.6h2.6"/>'),
+  check: svg('<rect x="3.5" y="4.5" width="6" height="6" rx="1.2"/><path d="M4.8 7.5l1.3 1.3 2.3-2.5"/><rect x="3.5" y="13.5" width="6" height="6" rx="1.2"/><path d="M13 7.5h7M13 16.5h7"/>'),
+  quote: svg('<path d="M5 5v14"/><path d="M9.5 8h10M9.5 12h10M9.5 16h6"/>'),
+  pic: ICON.image
+};
+const NOTE_TOOLS = [['h', 'Heading'], ['b', 'Bold'], ['i', 'Italic'], ['u', 'Underline'], ['ul', 'Bulleted list'], ['ol', 'Numbered list'], ['check', 'Checklist'], ['quote', 'Quote'], ['pic', 'Add a picture']];
+function openNotesDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('agora-notes', 1);
+    r.onupgradeneeded = () => { r.result.createObjectStore('notes', { keyPath: 'id' }); r.result.createObjectStore('images', { keyPath: 'id' }); };
+    r.onsuccess = () => { const db = r.result; db.onversionchange = () => db.close(); res(db); };
+    r.onerror = () => rej(r.error);
+    r.onblocked = () => rej(new Error('blocked'));
+  });
+}
+async function loadNotes() {
+  try { nstore = idbStore(await openNotesDB()); } catch (e) { console.warn('notes storage unavailable, using memory', e); }
+  try { (await nstore.all('notes')).forEach(n => { if (!NT.notes.has(n.id)) NT.notes.set(n.id, n); }); } catch (e) { console.warn('notes', e); }
+  NT.loaded = true;
+}
+const nurls = new Map();
+async function noteImgURL(id) {
+  if (nurls.has(id)) return nurls.get(id);
+  const rec = await nstore.get('images', id).catch(() => null);
+  if (!rec) return '';
+  const u = URL.createObjectURL(rec.blob); nurls.set(id, u); return u;
+}
+function notePics(root) {
+  $$('img[data-img], img[data-nimg]', root).forEach(img => {
+    const id = img.dataset.img || img.dataset.nimg;
+    if (nurls.has(id)) { img.src = nurls.get(id); img.classList.add('in'); return; }
+    noteImgURL(id).then(u => { if (u) { img.onload = () => img.classList.add('in'); img.src = u; } });
+  });
+}
+const NOTE_TAGS = new Set(['P', 'DIV', 'BR', 'B', 'STRONG', 'I', 'EM', 'U', 'S', 'H2', 'H3', 'UL', 'OL', 'LI', 'BLOCKQUOTE', 'IMG', 'SPAN']);
+function cleanNoteHTML(html) {
+  const t = document.createElement('template'); t.innerHTML = String(html || '');
+  const walk = el => [...el.childNodes].forEach(n => {
+    if (n.nodeType === 3) return;
+    if (n.nodeType !== 1 || /^(SCRIPT|STYLE|IFRAME|OBJECT|EMBED|svg|math)$/i.test(n.tagName)) { n.remove(); return; }
+    if (!NOTE_TAGS.has(n.tagName)) { walk(n); n.replaceWith(...n.childNodes); return; } // unknown wrappers go, their text stays
+    const cls = n.tagName === 'UL' ? (n.classList.contains('checks') ? 'checks' : '') : n.tagName === 'LI' ? (n.classList.contains('done') ? 'done' : '') : '';
+    const img = n.tagName === 'IMG' ? n.getAttribute('data-img') || '' : '';
+    [...n.attributes].forEach(a => n.removeAttribute(a.name));
+    if (cls) n.className = cls;
+    if (n.tagName === 'IMG') { if (/^ni-[\w-]+$/.test(img)) { n.setAttribute('data-img', img); n.setAttribute('alt', ''); } else { n.remove(); return; } }
+    walk(n);
+  });
+  walk(t.content);
+  return t.innerHTML;
+}
+/* a note's text, one line per paragraph, for the list */
+function noteLines(n) {
+  const t = document.createElement('template'); t.innerHTML = n.html || '';
+  t.content.querySelectorAll('p,div,h2,h3,li,blockquote,br').forEach(e => e.after('\n'));
+  return t.content.textContent.split('\n').map(s => s.replace(/\s+/g, ' ').trim()).filter(Boolean);
+}
+const noteEmpty = n => !n.title && !(n.imgs || []).length && !noteLines(n).length;
+const notesList = () => [...NT.notes.values()].sort((a, b) => b.updatedAt - a.updatedAt);
+function noteDate(t) {
+  const d = new Date(t), now = new Date();
+  if (dayStart(t) === dayStart(Date.now())) return clock(t);
+  const o = { day: 'numeric', month: 'short' }; if (d.getFullYear() !== now.getFullYear()) o.year = 'numeric';
+  return d.toLocaleDateString('en-GB', o);
+}
+/* a note without a title is named by its first line, like a message */
+function noteHead(n) {
+  const lines = noteLines(n);
+  return n.title ? { t: n.title, p: lines.join(' · ') } : { t: lines[0] || (n.imgs && n.imgs.length ? 'Picture' : 'New note'), p: lines.slice(1).join(' · ') };
+}
+function noteRowHTML(n, on) {
+  const h = noteHead(n), pic = n.imgs && n.imgs[0];
+  return `<button class="nrow${on ? ' on' : ''}" data-note="${n.id}"><span class="nmain"><span class="nt">${esc(h.t)}</span>
+    ${h.p ? `<span class="np">${esc(h.p)}</span>` : ''}<span class="nd num">${noteDate(n.updatedAt)}</span></span>
+    ${pic ? `<span class="fic"><img alt="" data-nimg="${pic}-t"></span>` : ''}${CHECK_BOX}</button>`;
+}
+/* the home tile, after My Files */
+function notesTile() {
+  return `<div class="tile">
+      <button class="tile-open" data-notes="1" aria-label="Open Notes"><div class="cover">${LOGO_NOTES}</div>
+        <div><div class="tile-name">Notes</div><div class="tile-meta num">${NT.loaded ? plural(NT.notes.size, 'note') : '&nbsp;'}</div></div></button>
+      <button class="more" data-nmenu="1" aria-label="Options for Notes">${ICON.more}</button>
+    </div>`;
+}
+function openNotes() { if (NT.loaded) newPage({ kind: 'notes' }); }
+function notesBar(v) {
+  if (v.sel) return `<div class="pbar"><button class="iconbtn" data-p="unsel" aria-label="Stop selecting">${ICON.close}</button>
+    <span class="selcount num">${v.sel.size} selected</span>${allBtn(allOn(v))}<button class="textbtn qfront" data-p="ndel" ${v.sel.size ? '' : 'disabled'}>Delete</button></div>`;
+  return pageBar(v, `<button class="iconbtn" data-p="nnew" aria-label="New note">${svg('<path d="M12 5v14M5 12h14"/>')}</button>`);
+}
+function renderNotes(v) {
+  const top = v.el.scrollTop, list = notesList();
+  v.title = 'Notes'; v.list = list;
+  if (v.sel) [...v.sel].forEach(id => { if (!NT.notes.has(id)) v.sel.delete(id); });
+  v.el.innerHTML = `<div class="home${v.sel ? ' selecting' : ''}">${notesBar(v)}
+    <p class="summary num">${list.length ? `${plural(list.length, 'note')} · last edited first` : 'Nothing written yet'}</p>
+    ${list.length ? `<div class="nlist">${list.map(n => noteRowHTML(n, !!(v.sel && v.sel.has(n.id)))).join('')}</div>`
+      : '<p class="empty">Tap + to write your first note.</p>'}</div>`;
+  notePics(v.el); v.el.scrollTop = top; markScrolled(v);
+}
+function paintNoteSel(v) {
+  const home = $('.home', v.el); if (!home) return;
+  home.classList.toggle('selecting', !!v.sel);
+  $$('[data-note]', home).forEach(b => b.classList.toggle('on', !!(v.sel && v.sel.has(b.dataset.note))));
+  $('.pbar', home).outerHTML = notesBar(v);
+  markScrolled(v);
+}
+function startNoteSelect(v, id) {
+  v.sel = new Set(id ? [id] : []); paintNoteSel(v);
+  pushLayer(() => { v.sel = null; if (v.el.isConnected) paintNoteSel(v); });
+}
+function onNotesClick(e, v) {
+  const b = e.target.closest('button'); if (!b || b.disabled) return;
+  const p = b.dataset.p;
+  if (p === 'back' || p === 'unsel') back();
+  else if (p === 'nnew') openNote(null);
+  else if (p === 'all') { toggleAll(v); paintNoteSel(v); }
+  else if (p === 'ndel') { const ids = [...v.sel]; deleteNotesSheet(ids, () => back(() => renderNotes(v))); }
+  else if (b.dataset.note) {
+    const id = b.dataset.note;
+    if (v.sel) { v.sel.has(id) ? v.sel.delete(id) : v.sel.add(id); paintNoteSel(v); }
+    else openNote(id);
+  }
+}
+function deleteNotesSheet(ids, after) {
+  const n = ids.length; if (!n) return;
+  sheet(`<h2>Delete ${n === 1 ? 'this note' : plural(n, 'note')}?</h2><p class="note">${n === 1 ? 'It goes' : 'They go'} for good, pictures too.</p>
+    <div class="btns"><button class="btn" data-act="keep">Keep</button><button class="btn danger" data-act="yes">Delete</button></div>`, {
+    keep: () => closeSheet(),
+    yes: () => { dropNotes(ids); closeSheet(() => { after && after(); renderHome(); toast(`Deleted ${plural(n, 'note')}`); }); }
+  });
+}
+function dropNotes(ids) {
+  const pics = ids.flatMap(id => ((NT.notes.get(id) || {}).imgs || []).flatMap(p => [p, p + '-t']));
+  ids.forEach(id => NT.notes.delete(id));
+  nstore.del('notes', ids).catch(storageFail);
+  dropNotePics(pics);
+}
+function dropNotePics(ids) {
+  if (!ids.length) return;
+  ids.forEach(id => { if (nurls.has(id)) { URL.revokeObjectURL(nurls.get(id)); nurls.delete(id); } });
+  nstore.del('images', ids).catch(() => {});
+}
+
+/* ---------- writing a note ---------- */
+function openNote(id) {
+  const old = id && NT.notes.get(id), now = Date.now();
+  // a new note is saved only once something is written in it
+  const n = old || { id: 'n-' + uid(), title: '', html: '', imgs: [], createdAt: now, updatedAt: now };
+  newPage({ kind: 'note', note: n, fresh: !old, had: [...(n.imgs || [])], added: new Set(), onClose: closeNote });
+}
+function renderNote(v) {
+  if (v.built) return; // the page is never redrawn under the cursor
+  v.built = true; v.title = '';
+  const n = v.note;
+  v.el.classList.add('notepage');
+  v.el.innerHTML = `<div class="home">${pageBar(v, `<button class="iconbtn" data-p="nmore" aria-label="Note options">${ICON.more}</button>`)}
+    <div class="ntitle" contenteditable="plaintext-only" spellcheck="true" autocapitalize="sentences" enterkeyhint="next" data-ph="Title" role="textbox" aria-label="Title">${esc(n.title)}</div>
+    <div class="nbody" contenteditable="true" spellcheck="true" autocapitalize="sentences" data-ph="Start writing" role="textbox" aria-multiline="true" aria-label="Note">${cleanNoteHTML(n.html)}</div></div>
+    <div class="ntools" role="toolbar" aria-label="Formatting">${NOTE_TOOLS.map(([k, l]) => `<button class="iconbtn" data-fmt="${k}" aria-label="${l}">${ICON_NOTE[k]}</button>`).join('')}</div>
+    <input class="npick" type="file" accept="image/*" multiple hidden>`;
+  const title = $('.ntitle', v.el), body = $('.nbody', v.el), tools = $('.ntools', v.el), pick = $('.npick', v.el);
+  notePics(body);
+  const later = () => { clearTimeout(v.timer); v.timer = setTimeout(() => saveNote(v), 500); };
+  // every line is a paragraph, so headings, lists and quotes always have a line to work on
+  const para = () => { if (!body.firstElementChild && !body.textContent.trim()) { body.innerHTML = '<p><br></p>'; caretTo(body.firstChild, true); } };
+  body.addEventListener('focus', () => { document.execCommand('defaultParagraphSeparator', false, 'p'); para(); });
+  title.addEventListener('input', later); body.addEventListener('input', () => { later(); paintTools(v); });
+  title.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); caretTo(body, true); } });
+  // pasted text comes in plain, so a web page's colours and fonts never land in a note; a pasted picture is added like one picked
+  body.addEventListener('paste', e => {
+    const cd = e.clipboardData; if (!cd) return;
+    const files = [...cd.files].filter(f => /^image\//.test(f.type));
+    e.preventDefault();
+    if (files.length) addNotePics(v, files); else document.execCommand('insertText', false, cd.getData('text/plain'));
+  });
+  title.addEventListener('paste', e => { e.preventDefault(); document.execCommand('insertText', false, ((e.clipboardData && e.clipboardData.getData('text/plain')) || '').replace(/\s+/g, ' ')); });
+  // the box in front of a checklist line ticks it
+  body.addEventListener('click', e => {
+    const li = e.target.closest('ul.checks > li'); if (!li) return;
+    if (e.clientX - li.getBoundingClientRect().left > 30) return;
+    li.classList.toggle('done'); buzz(10); later();
+  });
+  // the toolbar keeps the cursor where it is
+  tools.addEventListener('pointerdown', e => { if (e.target.closest('button')) e.preventDefault(); });
+  tools.addEventListener('click', e => { const b = e.target.closest('[data-fmt]'); if (b) noteFormat(v, b.dataset.fmt); });
+  pick.addEventListener('change', () => { const fs = [...pick.files]; pick.value = ''; if (fs.length) addNotePics(v, fs); });
+  v.onSel = () => { if (v.el.isConnected) paintTools(v); };
+  document.addEventListener('selectionchange', v.onSel);
+  if (v.fresh) requestAnimationFrame(() => title.focus());
+}
+function caretTo(el, start) {
+  el.focus();
+  // into the first or last line itself, not just inside the box around them
+  let t = el; for (let k; (k = start ? t.firstElementChild : t.lastElementChild) && !/^(IMG|BR)$/.test(k.tagName);) t = k;
+  const r = document.createRange(); r.selectNodeContents(t); r.collapse(!!start);
+  const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+}
+/* the block the cursor is in, and the list around it */
+function noteAt(v) {
+  const body = $('.nbody', v.el), s = getSelection();
+  if (!s.rangeCount || !body.contains(s.anchorNode)) return null;
+  let n = s.anchorNode.nodeType === 1 ? s.anchorNode : s.anchorNode.parentNode;
+  const up = sel => { const x = n.closest(sel); return x && body.contains(x) ? x : null; };
+  return { body, block: up('h2,h3,blockquote,p,div:not(.nbody)'), ul: up('ul'), ol: up('ol'), head: up('h2,h3'), quote: up('blockquote') };
+}
+function paintTools(v) {
+  const at = noteAt(v), on = {};
+  if (at) {
+    try { on.b = document.queryCommandState('bold'); on.i = document.queryCommandState('italic'); on.u = document.queryCommandState('underline'); } catch {}
+    on.h = !!at.head; on.quote = !!at.quote; on.ol = !!at.ol;
+    on.check = !!(at.ul && at.ul.classList.contains('checks')); on.ul = !!at.ul && !on.check;
+  }
+  $$('[data-fmt]', v.el).forEach(b => b.classList.toggle('on', !!on[b.dataset.fmt]));
+}
+function noteFormat(v, k) {
+  const body = $('.nbody', v.el);
+  if (k === 'pic') { const s = getSelection(); v.range = s.rangeCount && body.contains(s.anchorNode) ? s.getRangeAt(0).cloneRange() : null; $('.npick', v.el).click(); return; }
+  let at = noteAt(v);
+  if (!at) { caretTo(body, false); at = noteAt(v); if (!at) return; }
+  document.execCommand('defaultParagraphSeparator', false, 'p');
+  if (k === 'b') document.execCommand('bold');
+  else if (k === 'i') document.execCommand('italic');
+  else if (k === 'u') document.execCommand('underline');
+  else if (k === 'h') document.execCommand('formatBlock', false, at.head ? 'p' : 'h2');
+  else if (k === 'quote') document.execCommand('formatBlock', false, at.quote ? 'p' : 'blockquote');
+  else if (k === 'ol') document.execCommand('insertOrderedList');
+  else if (k === 'ul') { if (at.ul && at.ul.classList.contains('checks')) at.ul.classList.remove('checks'); else document.execCommand('insertUnorderedList'); }
+  else if (k === 'check') {
+    if (at.ul && at.ul.classList.contains('checks')) document.execCommand('insertUnorderedList');
+    else if (at.ul) at.ul.classList.add('checks');
+    else { document.execCommand('insertUnorderedList'); const a = noteAt(v); if (a && a.ul) a.ul.classList.add('checks'); }
+  }
+  if (/^(ul|ol|check)$/.test(k)) unnestLists(body);
+  paintTools(v); clearTimeout(v.timer); v.timer = setTimeout(() => saveNote(v), 500);
+}
+/* Chrome sometimes puts a new list inside the paragraph it came from; lift it out, keeping the cursor where it is */
+function unnestLists(body) {
+  const s = getSelection(), a = s.rangeCount ? [s.anchorNode, s.anchorOffset] : null;
+  let moved = false;
+  $$('p > ul, p > ol', body).forEach(list => {
+    const p = list.parentNode; if (!p.isConnected) return;
+    const rest = [...p.childNodes].filter(n => n !== list && !(n.nodeType === 3 && !n.textContent.trim()) && n.nodeName !== 'BR');
+    if (!rest.length) p.replaceWith(list); else p.after(list);
+    moved = true;
+  });
+  if (moved && a && a[0] && a[0].isConnected) { try { s.collapse(a[0], a[1]); } catch {} }
+}
+async function addNotePics(v, files) {
+  const body = $('.nbody', v.el);
+  for (const f of files) {
+    if (!/^image\//.test(f.type)) continue;
+    const id = 'ni-' + uid();
+    try { await nstore.put('images', [{ id, blob: f }, { id: id + '-t', blob: await makeThumb(f, 480) }]); } catch (e) { storageFail(e); return; }
+    v.added.add(id);
+    body.focus();
+    const s = getSelection();
+    if (v.range) { s.removeAllRanges(); s.addRange(v.range); v.range = null; }
+    else if (!s.rangeCount || !body.contains(s.anchorNode)) caretTo(body, false);
+    document.execCommand('insertHTML', false, `<img data-img="${id}" alt=""><br>`);
+  }
+  notePics(body); saveNote(v);
+}
+function saveNote(v) {
+  clearTimeout(v.timer);
+  const n = v.note, body = $('.nbody', v.el), title = $('.ntitle', v.el); if (!body) return;
+  const c = body.cloneNode(true);
+  const html = cleanNoteHTML(c.innerHTML), t = title.textContent.replace(/\s+/g, ' ').trim();
+  const imgs = [...new Set($$('img[data-img]', c).map(i => i.dataset.img))];
+  if (t === n.title && html === n.html && NT.notes.has(n.id) === !noteEmpty({ title: t, html, imgs })) return;
+  Object.assign(n, { title: t, html, imgs, updatedAt: Date.now() });
+  if (noteEmpty(n)) { if (NT.notes.has(n.id)) { NT.notes.delete(n.id); nstore.del('notes', [n.id]).catch(() => {}); } return; }
+  NT.notes.set(n.id, n); nstore.put('notes', [n]).catch(storageFail);
+}
+/* leaving a note saves it, and lets go of pictures taken out of it */
+function closeNote(v) {
+  saveNote(v);
+  document.removeEventListener('selectionchange', v.onSel);
+  const keep = new Set(NT.notes.has(v.note.id) ? v.note.imgs : []);
+  dropNotePics([...v.had, ...v.added].filter(id => !keep.has(id)).flatMap(id => [id, id + '-t']));
+}
+function onNoteClick(e, v) {
+  const b = e.target.closest('button'); if (!b || b.disabled || b.dataset.fmt) return;
+  const p = b.dataset.p;
+  if (p === 'back') back();
+  else if (p === 'nmore') {
+    saveNote(v);
+    const n = v.note, w = NT.notes.has(n.id);
+    sheet(`<h2>${esc(noteHead(n).t)}</h2><p class="sub num">${w ? `Edited ${noteDate(n.updatedAt)} · created ${noteDate(n.createdAt)}` : 'Not saved yet: nothing written'}</p>
+      <div class="list">${item('pic', 'Add a picture')}${w ? item('del', 'Delete note') : ''}</div>`, {
+      pic: () => closeSheet(() => noteFormat(v, 'pic')),
+      del: () => deleteNotesSheet([n.id], () => { v.deleted = true; back(); })
+    });
+  }
+}
+function notesMenu() {
+  sheet(`<h2>Notes</h2><p class="sub num">${plural(NT.notes.size, 'note')}</p><div class="list">${item('new', 'New note')}</div>`,
+    { new: () => closeSheet(() => { openNotes(); openNote(null); }) });
+}
+
+/* backups carry the notes and their pictures; an import takes a note only when it is newer than the one here, so it is safe to repeat */
+async function exportNotes(zip) {
+  const items = [];
+  for (const n of notesList()) {
+    const out = { id: n.id, title: n.title, html: n.html, createdAt: n.createdAt, updatedAt: n.updatedAt, images: [] };
+    for (const id of n.imgs || []) {
+      const r = await nstore.get('images', id).catch(() => null); if (!r) continue;
+      const f = `notes/${id}.${EXT[r.blob.type] || 'jpg'}`; zip.file(f, r.blob); out.images.push(f);
+    }
+    items.push(out);
+  }
+  return items.length ? { items } : null;
+}
+async function importNotes(mn, zip) {
+  let n = 0;
+  for (const x of Array.isArray(mn.items) ? mn.items : []) {
+    if (!x || !x.id || !/^n-[\w-]+$/.test(String(x.id))) continue;
+    const id = String(x.id), at = +x.updatedAt || 0, old = NT.notes.get(id);
+    if (old && old.updatedAt >= at) continue;
+    const html = cleanNoteHTML(x.html), imgs = [];
+    for (const f of Array.isArray(x.images) ? x.images : []) {
+      const pid = String(f).split('/').pop().replace(/\.\w+$/, ''), zf = /^ni-[\w-]+$/.test(pid) && zip.file(String(f));
+      if (!zf) continue;
+      if (!(await nstore.get('images', pid).catch(() => null))) {
+        const blob = new Blob([await zf.async('arraybuffer')], { type: MIME[String(f).split('.').pop().toLowerCase()] || 'image/jpeg' });
+        await nstore.put('images', [{ id: pid, blob }, { id: pid + '-t', blob: await makeThumb(blob, 480) }]);
+      }
+      imgs.push(pid);
+    }
+    const note = { id, title: String(x.title || '').trim(), html, imgs, createdAt: +x.createdAt || at || Date.now(), updatedAt: at || Date.now() };
+    NT.notes.set(id, note); await nstore.put('notes', [note]); n++;
+  }
+  return n;
+}
+
 /* ================= Bookmarks: links shared into Agora ================= */
 /* Share a link to Agora from any app (Android's share menu: the manifest's share_target opens Agora at ./?url=…&title=…&text=…).
    A sheet suggests tags (the site, the tags its earlier links got, and tags in use that the title mentions); one tap saves it,
@@ -4528,6 +4928,7 @@ async function seed() {
   loadHistory().catch(e => console.warn(e));
   // bookmarks too; a link shared into Agora opens its save sheet once they are in
   loadMarks().then(() => { renderHome(); takeShared(); }, e => console.warn(e));
+  loadNotes().then(renderHome, e => console.warn(e));
   // tiles whose scene changed since their picture was made are redrawn once the app has settled
   setTimeout(refreshTiles, 1500);
   if (!decks.length) { await seed(); renderHome(); }

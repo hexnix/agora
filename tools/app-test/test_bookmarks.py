@@ -1,4 +1,4 @@
-"""v29 test: Bookmarks, links shared into Agora.
+"""v30 test: Bookmarks, links shared into Agora.
 
     python3 tools/app-test/test_bookmarks.py . --out shots/bookmarks/
 

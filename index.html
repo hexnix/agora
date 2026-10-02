@@ -42,6 +42,8 @@ svg{display:block}
 .home{max-width:820px;margin:0 auto;padding-inline:20px;padding-block:10px 56px}
 .bar h1{margin:0;font-size:var(--fs-title);line-height:1.1}
 .bar.title{min-height:56px;margin-right:-8px}
+/* "Your decks": 24px, medium, so it sits with the page titles instead of shouting (v27, the owner's pick 1C) */
+.bar.title h1{font-size:24px;font-weight:500;letter-spacing:-.02em}
 .bar.title + .summary{margin-top:2px}
 .bar{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px}
 .iconbtn{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;color:var(--text);flex:none}
@@ -157,12 +159,16 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 .page:not(.search) > .home{min-height:calc(100% + 1px)}
 .nsep{color:var(--faint)}
 /* the bar: Back, the title and its count, locked at the top while the page scrolls */
-.pbar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:4px;min-height:60px;margin:-10px -20px 0;padding:8px 10px 8px 6px;background:var(--ink);transition:box-shadow .2s}
+.pbar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:4px;min-height:48px;margin:-10px -20px 0;padding:8px 10px 0 6px;background:var(--ink);transition:box-shadow .2s}
 .pbar.scrolled{box-shadow:0 1px 0 var(--line)}
 .ptitle{flex:1;min-width:0;display:flex;align-items:center;gap:12px}
 .pbar .pt{margin:0;font-size:20px;font-weight:500;line-height:1.25;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .ptag{flex:none;display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:999px;border:1px solid rgba(0,134,255,.55);color:var(--blue-text);font-size:12px;white-space:nowrap}
 .deckpage .summary{margin-top:6px}
+/* the line under a page title sits right under it and starts where the title's text does (v27, the owner's pick 2A) */
+.pbar + .summary,.pbar + .crumbs + .summary{margin-top:0}
+.pbar + .summary,.pbar + .crumbs,.pbar ~ .summary + .connect,.pbar + .cline,.pbar + .qbody > .cline{padding-left:32px}
+.pbar + .crumbs{padding-left:30px;margin-top:0}
 .srcs{margin-top:22px}
 .src{position:relative;min-width:0}
 .src-open{display:grid;width:100%;min-width:0;text-align:left}
@@ -219,10 +225,26 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 .selecting .qrow .i{display:none}
 .selecting .qrow .box{display:grid}
 .selecting .qrow.on .box{background:var(--gold);border-color:var(--gold);color:#fff}
-.qfront{margin-right:6px;font-size:15px}
+.qfront{margin-right:6px;font-size:15px;padding-block:8px} /* no taller than the icons, so the bar keeps its height */
 .qfront:disabled{color:var(--faint)}
 .qsearch{margin:-10px -20px 0;padding:8px 12px 10px}
 .qsearching .sugg{padding-top:2px}
+/* the count under the bar in New cards and History: one line of the same height whether or not you are selecting,
+   so holding a card never pushes the list down (v27) */
+.cline{display:flex;align-items:center;justify-content:space-between;gap:12px;height:20px;margin:0;color:var(--muted);font-size:13.5px;white-space:nowrap}
+.cline > span{overflow:hidden;text-overflow:ellipsis}
+.cline .textbtn{position:relative;padding:0 6px;margin-right:-6px;font-size:14px;line-height:20px}
+.cline .textbtn::after{content:"";position:absolute;inset:-12px -8px}
+.qsearch + .qbody > .cline{margin-top:4px}
+/* History: cards grouped by day, the time on the right, a studied card's answer in blue */
+.hday{margin:24px 0 2px;font-size:14px;font-weight:500;line-height:1.4;letter-spacing:0;font-family:var(--sans)}
+.hlist{margin-top:4px}
+.hrow{grid-template-columns:76px minmax(0,1fr)}
+.selecting .hrow{grid-template-columns:28px 76px minmax(0,1fr)}
+.hrow .hw{display:flex;align-items:baseline;gap:10px;min-width:0}
+.hrow .hw .w{flex:1;min-width:0}
+.hrow .tm{flex:none;color:var(--muted);font-size:12.5px}
+.hrow .d b{font-weight:400;color:var(--blue-text)}
 
 /* ---------- study ---------- */
 .study{position:fixed;inset:0;z-index:40;background:#000;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;
@@ -569,7 +591,7 @@ const ico = (name, label) => `<span class="ico">${ICON[name]}<span>${label}</spa
 
 /* ================= storage ================= */
 const STORES = ['decks', 'cards', 'blobs', 'meta'];
-const KEYS = { decks: 'id', cards: 'id', blobs: 'id', meta: 'k', files: 'path' };
+const KEYS = { decks: 'id', cards: 'id', blobs: 'id', meta: 'k', files: 'path', visits: 'id' };
 function idbStore(db) {
   const done = t => new Promise((res, rej) => { t.oncomplete = () => res(); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error); });
   const req = r => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
@@ -816,7 +838,7 @@ function coverOf(d, cs = deckCards(d.id)) {
 function coverSheet(d) {
   const cs = defaultOrder(deckCards(d.id)), cur = d.coverId ? '' : (d.coverCard && cs.some(c => c.id === d.coverCard) ? d.coverCard : (cs[0] && cs[0].id));
   sheet(`<h2>Cover image</h2><p class="sub">${esc(d.name)}</p>
-    <div class="cgrid">${cs.map(c => `<button class="cpick${c.id === cur ? ' on' : ''}" data-act="card" data-id="${c.id}" aria-label="Use ${esc(c.word || 'this card')} as cover"><img alt="" data-blob="${c.thumbId}"></button>`).join('')}</div>
+    <div class="cgrid">${cs.map(c => `<button class="cpick${c.id === cur ? ' on' : ''}" data-act="card" data-id="${c.id}" aria-label="Use ${esc(nameOf(c) || 'this card')} as cover"><img alt="" data-blob="${c.thumbId}"></button>`).join('')}</div>
     <div class="list">
       ${item('photo', ico('image', 'Choose a photo'), d.coverId ? `<span class="tick">${ICON.check}</span>` : '', '', 'From your gallery, cropped to fit')}
       ${d.coverId || d.coverCard ? item('reset', ico('back', 'Use the first card'), '', '', 'Follows the deck’s order') : ''}
@@ -980,7 +1002,7 @@ function renderCards() {
     <div class="thumbs">${cs.map(c => `<button class="thumb${select && select.has(c.id) ? ' on' : ''}" data-id="${c.id}">
       <div class="pic"><img alt="" data-blob="${c.thumbId}">
       <div class="sel"><span>${ICON.check}</span></div></div>
-      ${c.word ? `<span class="w">${esc(c.word)}</span>` : ''}</button>`).join('')}</div>
+      ${nameOf(c) ? `<span class="w">${esc(nameOf(c))}</span>` : ''}</button>`).join('')}</div>
     ${cs.length ? '' : '<p class="empty">No cards left in this deck.</p>'}
   </div>
   ${select ? `<div class="selbar"><span class="count num">${select.size} selected</span>
@@ -1001,10 +1023,10 @@ function onCardsClick(e) {
   }
 }
 async function cardSheet(c) {
-  sheet(`${c.word ? `<h2>${esc(c.word)}</h2>` : '<h2 class="muted">No word yet</h2>'}
+  sheet(`${nameOf(c) ? `<h2>${esc(nameOf(c))}</h2>` : '<h2 class="muted">No word yet</h2>'}
     <div class="peek"><img id="pf" alt="Scene">${textOf(c, 0) ? `<div class="ptext">${textHTML(textOf(c, 0))}</div>` : '<img id="pd" alt="Definition">'}</div>
     <div class="list">
-      ${item('word', c.word ? 'Edit word' : 'Add word', '', '', c.word ? '' : 'So you can find it in search')}
+      ${item('word', nameOf(c) ? 'Edit word' : 'Add word', '', '', nameOf(c) ? '' : 'So you can find it in search')}
       ${item('edit', 'Change screenshots', defIdsOf(c).length > 1 ? `${defIdsOf(c).length} definitions` : '', '', 'Replace the scene or a definition, or add another definition')}
       ${item('move', 'Move to another deck')}
       ${item('del', 'Delete card', '', 'danger')}
@@ -1018,9 +1040,9 @@ async function cardSheet(c) {
   const pf = $('#pf'), pd = $('#pd'); if (pf) pf.src = f; if (pd) pd.src = d;
 }
 function wordSheet(c, then) {
-  askSheet({ title: c.word ? 'Edit word' : 'Add word', value: c.word, placeholder: 'e.g. squaddie', label: 'Word', empty: true,
+  askSheet({ title: nameOf(c) ? 'Edit word' : 'Add word', value: nameOf(c), placeholder: 'e.g. squaddie', label: 'Word', empty: true,
     attrs: 'autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="done"',
-    done: v => { c.word = v; saveCards([c]); refreshCards(); then ? then() : cardSheet(c); } });
+    done: v => { if (v !== nameOf(c)) { c.word = v; c.named = !!v; saveCards([c]); refreshCards(); } then ? then() : cardSheet(c); } });
 }
 function moveSheet(list) {
   const from = list[0] && list[0].deckId;
@@ -1100,7 +1122,7 @@ const SORTS = {
   story: { label: 'Order of appearance' },
   newest: { label: 'Newest first', fn: (a, b) => (shotOf(b) - shotOf(a)) || (b.seq - a.seq) },
   oldest: { label: 'Oldest first', fn: (a, b) => (shotOf(a) - shotOf(b)) || (a.seq - b.seq) },
-  az: { label: 'A to Z', fn: (a, b) => norm(a.word || '~').localeCompare(norm(b.word || '~')) || (a.seq - b.seq) }
+  az: { label: 'A to Z', fn: (a, b) => norm(nameOf(a) || '~').localeCompare(norm(nameOf(b) || '~')) || (a.seq - b.seq) }
 };
 /* a choice made once sticks for that source; until then the default follows the cards */
 const sortKey = (d, g) => `sort.${d.id}.${g.key}`;
@@ -1138,6 +1160,7 @@ function newPage(v) {
   if (v.kind === 'cards') holdToSelect(v);
   else if (v.kind === 'queue') holdToSelect(v, '[data-qc]', b => startQueueSelect(v, b.dataset.qc));
   else if (v.kind === 'files') holdToSelect(v, '[data-fp]', b => startFileSelect(v, b.dataset.fp));
+  else if (v.kind === 'history') holdToSelect(v, '.hrow', b => startHistSelect(v, b.dataset.card));
   pushLayer(() => {
     el.remove(); pages = pages.filter(p => p !== v);
     unlockIdle();
@@ -1172,12 +1195,13 @@ function renderPage(v) {
   if (v.kind === 'files') { renderFiles(v); return; }
   if (v.kind === 'study') { renderStudyPage(v); return; }
   if (v.kind === 'queue') { renderQueue(v); return; }
+  if (v.kind === 'history') { renderHistory(v); return; }
   const d = v.deck, top = v.el.scrollTop;
   if (v.kind === 'sources') {
     const gs = sourcesOf(d), total = deckCards(d.id).length;
     const meta = `${plural(gs.length, 'deck')} · ${plural(total, 'card')}`;
     v.title = d.name;
-    v.el.innerHTML = `<div class="home">${pageBar(v)}
+    v.el.innerHTML = `<div class="home">${pageBar(v, d === studyDeck() ? `<button class="iconbtn" data-p="history" aria-label="History">${ICON_HISTORY}</button>` : '')}
       <p class="summary">${meta}</p>${d === studyDeck() ? studyBanner(d) : ''}
       <div class="srcs">${gs.map(g => {
         const c0 = orderOf(d, g)[0];
@@ -1196,7 +1220,7 @@ function renderPage(v) {
     v.el.innerHTML = `<div class="home${sel ? ' selecting' : ''}">${pageBar(v, sortTool(sortLbl))}
       <p class="summary">${meta}</p>
       <div class="gal">${list.map(c => `<button class="gcard${sel && sel.has(c.id) ? ' on' : ''}" data-card="${c.id}"><div class="pic"><img alt="" data-blob="${c.thumbId}">${BOX}</div>
-          <span class="w${c.word ? '' : ' none'}">${esc(c.word || 'No word yet')}</span></button>`).join('')}</div>
+          <span class="w${nameOf(c) ? '' : ' none'}">${esc(nameOf(c) || 'No word yet')}</span></button>`).join('')}</div>
       ${list.length ? '' : '<p class="empty">No cards left here.</p>'}</div>`;
   }
   pics(v.el); v.el.scrollTop = top; markScrolled(v);
@@ -1235,11 +1259,13 @@ function startSelect(v, id) {
 function onPageClick(e, v) {
   if (v.kind === 'files') { onFilesClick(e, v); return; }
   if (v.kind === 'queue') { onQueueClick(e, v); return; }
+  if (v.kind === 'history') { onHistoryClick(e, v); return; }
   const b = e.target.closest('button'); if (!b || b.disabled) return;
   const p = b.dataset.p;
   if (p === 'back' || p === 'unsel') back();
   else if (v.kind === 'study') onStudyClick(b, v);
   else if (p === 'study') { if (SD.loaded) openStudyPage(v.deck); }
+  else if (p === 'history') openHistory();
   else if (b.dataset.src) { const g = sourcesOf(v.deck).find(x => x.key === b.dataset.src); if (g) openSource(v.deck, g); }
   else if (b.dataset.srcmenu) { const g = sourcesOf(v.deck).find(x => x.key === b.dataset.srcmenu); if (g) srcMenu(v.deck, g); }
   else if (p === 'sort') sortSheet(v);
@@ -1352,6 +1378,13 @@ function textHTML(t) {
   }).join('')}</div>`;
 }
 const plainOf = t => (t && t.video) ? String(t.video.title || '') : t ? t.blocks.map(b => [b.lead, b.text, ...(b.items || []).flat()].filter(Boolean).join(' ')).join(' ').replace(/\*/g, '') : '';
+/* a card's name is the headword of its first dictionary definition ("bail on somebody" shows as "bail"), so a card has one name everywhere;
+   a word typed in the app (hold the title, or Edit word) wins, and search still finds the card by its stored word too */
+function headOf(c) {
+  const t = textOf(c, 0), b = t && t.blocks.find(x => x && x.t === 'headword');
+  return b ? String(b.text || '').replace(/\*/g, '').replace(/\s+/g, ' ').trim() : '';
+}
+const nameOf = c => (c.named && c.word) || headOf(c) || c.word || '';
 /* keep defText the same length as defIds */
 function alignText(c) {
   const n = defIdsOf(c).length, t = Array.isArray(c.defText) ? c.defText.slice(0, n) : [];
@@ -1506,6 +1539,7 @@ function showSlide(i, dir) {
   const old = S.cur;
   const c = S.order[i];
   S.i = i; S.level = 0; S.view++; S.z = { s: 1, x: 0, y: 0 }; S.tr = null; S.tagsOpen = false;
+  noteVisit(c);
   showWord(c); if (S.drill) showAnswer(c); // first, so the band between header and footer has its final size
   const s = makeSlide(c);
   if (dir !== 'none') {
@@ -2045,7 +2079,7 @@ const CHEVRON_RIGHT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor
 const CHEVRON_LEFT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>';
 function showWord(c) {
   const b = S && $('.wordbtn', S.el); if (!b) return;
-  b.textContent = c.word || 'Add word'; b.classList.toggle('empty', !c.word);
+  b.textContent = nameOf(c) || 'Add word'; b.classList.toggle('empty', !nameOf(c));
   const tg = $('.tags', S.el), all = rankTags(tagsOf(c)), hidden = Math.max(0, all.length - 3);
   if (!hidden) S.tagsOpen = false;
   const shown = S.tagsOpen ? all : all.slice(0, 3);
@@ -2066,7 +2100,7 @@ function tagSheet(c) {
   const pool = allTags(cards).filter(e => !mine.has(e.k)).sort((a, b) => b.n - a.n || a.t.localeCompare(b.t));
   const chips = q => pool.filter(e => !q || e.k.includes(norm(q))).slice(0, 18)
     .map(e => `<button type="button" data-act="pick" data-tag="${esc(e.t)}">${esc(e.t)}<i>${e.n}</i></button>`).join('');
-  sheet(`<h2>Add tag</h2><p class="sub">${c.word ? esc(c.word) : 'This card'}</p>
+  sheet(`<h2>Add tag</h2><p class="sub">${nameOf(c) ? esc(nameOf(c)) : 'This card'}</p>
     <form><div class="field"><input id="tagName" type="text" maxlength="60" autocomplete="off" autocapitalize="words" enterkeyhint="done"
       placeholder="New tag, or pick one below" aria-label="Tag"></div>
     <div class="sugg tagpick">${chips('')}</div>
@@ -2101,13 +2135,13 @@ function startRename(c) {
   if (!S || modalOpen) return;
   const b = $('.wordbtn', S.el);
   const inp = document.createElement('input');
-  Object.assign(inp, { type: 'text', className: 'wordedit', value: c.word || '', placeholder: 'Type the word', maxLength: 80, spellcheck: false, enterKeyHint: 'done' });
+  Object.assign(inp, { type: 'text', className: 'wordedit', value: nameOf(c), placeholder: 'Type the word', maxLength: 80, spellcheck: false, enterKeyHint: 'done' });
   inp.setAttribute('autocapitalize', 'none'); inp.setAttribute('autocomplete', 'off'); inp.setAttribute('aria-label', 'Word');
   b.hidden = true; b.after(inp); modalOpen = true; S.el.classList.add('renaming'); buzz(20); fitBands();
   let finished = false, cancel = false;
   const finish = (save, fromBack) => {
     if (finished) return; finished = true;
-    if (save) { const v = inp.value.trim(); if (v !== (c.word || '')) { c.word = v; saveCards([c]); refreshCards(); } }
+    if (save) { const v = inp.value.trim(); if (v !== nameOf(c)) { c.word = v; c.named = !!v; saveCards([c]); refreshCards(); } }
     inp.remove(); b.hidden = false; modalOpen = false;
     if (S) { S.el.classList.remove('renaming'); if (S.order[S.i].id === c.id) showWord(c); }
     if (!fromBack) back();
@@ -2120,7 +2154,7 @@ function startRename(c) {
 function studyEditSheet(c) {
   const L = S.level, defs = defIdsOf(c);
   const where = L === 0 ? 'Scene' : L < 0 ? 'Source' : defs.length > 1 ? `Definition ${L} of ${defs.length}` : 'Definition';
-  sheet(`<h2>${c.word ? esc(c.word) : 'Untitled card'}</h2><p class="sub">${where}</p>
+  sheet(`<h2>${nameOf(c) ? esc(nameOf(c)) : 'Untitled card'}</h2><p class="sub">${where}</p>
     <div class="list">
       ${L >= 0 ? item('replace', ico('image', L === 0 ? 'Replace scene image' : 'Replace definition image')) : ''}
       ${item('tag', ico('tag', 'Add tag'), '', '', 'Or hold a tag and tap +')}
@@ -2131,7 +2165,7 @@ function studyEditSheet(c) {
       if (L === 0) await replaceScene(c, f); else await replaceDef(c, L - 1, f);
       closeSheet(); toast('Image replaced');
     }),
-    del: () => sheet(`<h2>Delete this card?</h2><p class="note">${c.word ? `“${esc(c.word)}” and its screenshots` : 'The card and its screenshots'} will be removed from Agora. Your gallery keeps its copies.</p>
+    del: () => sheet(`<h2>Delete this card?</h2><p class="note">${nameOf(c) ? `“${esc(nameOf(c))}” and its screenshots` : 'The card and its screenshots'} will be removed from Agora. Your gallery keeps its copies.</p>
       <div class="btns"><button class="btn" data-act="keep">Keep it</button><button class="btn danger" data-act="yes">Delete</button></div>`, {
       keep: () => studyEditSheet(c),
       yes: () => closeSheet(() => deleteCurrent(c))
@@ -2233,7 +2267,7 @@ function renderStudyPage(v) {
   const btn = t.left ? `<button class="sstart" data-p="start">${t.done.length ? 'Continue' : `Start · ${plural(t.left, 'card')}`}</button>`
     : q ? `<button class="sstart" data-p="more">Learn 10 more new cards</button>` : '';
   const card = (c, cls, lbl) => `<button class="gcard${cls}" data-card="${c.id}"><div class="pic"><img alt="" data-blob="${c.thumbId}">${lbl}</div>
-    <span class="w${c.word ? '' : ' none'}">${esc(c.word || 'No word yet')}</span></button>`;
+    <span class="w${nameOf(c) ? '' : ' none'}">${esc(nameOf(c) || 'No word yet')}</span></button>`;
   v.el.innerHTML = `<div class="home">${pageBar(v, `<button class="iconbtn" data-p="queue" aria-label="New cards in queue">${ICON_QUEUE}</button><button class="iconbtn" data-p="smenu" aria-label="Study options">${ICON.more}</button>`)}
     <p class="summary num">${meta} · ${q.toLocaleString()} new in queue</p>${btn}
     <div class="gal">${t.done.map(c => card(c, ' gdone', '')).join('')}${t.due.map(c => card(c, '', '<span class="lbl r">Review</span>')).join('')}${t.fresh.map(c => card(c, '', '<span class="lbl">New</span>')).join('')}</div>
@@ -2297,6 +2331,7 @@ function answer(a) {
   if (!S || !S.drill || S.over || performance.now() - (S.ansAt || 0) < 400) return;
   S.ansAt = performance.now();
   const c = S.order[S.i], day = dayNo(), r0 = recOf(c), seen = !!r0 && r0.step != null;
+  noteAnswer(c, seen ? a : 'continue');
   if (a === 'repeat' && seen) { S.order.push(c); S.drill.repeats++; } // back at the end of today's list; its place in the cycle doesn't change
   else {
     const r = seen ? { ...r0 } : { id: c.id, step: 0, first: day };
@@ -2341,7 +2376,7 @@ function queueHits(v) {
   v.pos = pos;
   const s = v.search; if (!s) return all;
   const n = norm(s.q);
-  return all.filter(c => hasTags(c, s.pins) && (!n || norm(c.word).includes(n) || tagsOf(c).some(t => norm(t).includes(n)) || (n.length >= 2 && norm(cardPlain(c)).includes(n))));
+  return all.filter(c => hasTags(c, s.pins) && (!n || norm(c.word).includes(n) || norm(nameOf(c)).includes(n) || tagsOf(c).some(t => norm(t).includes(n)) || (n.length >= 2 && norm(cardPlain(c)).includes(n))));
 }
 function queueTop(v) {
   if (v.sel) return `<div class="pbar"><button class="iconbtn" data-p="unsel" aria-label="Stop selecting">${ICON.close}</button>
@@ -2366,15 +2401,30 @@ function queueBody(v) {
     sugg = tg.length ? `<div class="sugg">${tg.map(x => { const i = x.k.indexOf(n);
       return `<button data-pin="${esc(x.t)}">${esc(x.t.slice(0, i))}<mark>${esc(x.t.slice(i, i + n.length))}</mark>${esc(x.t.slice(i + n.length))}<i>${x.n}</i></button>`; }).join('')}</div>` : '';
   }
-  const head = s || v.sel ? `<div class="rhead"><span class="num">${plural(list.length, 'new card')}</span>${list.length && !(v.sel && v.sel.size === list.length) ? '<button class="textbtn" data-p="all">Select all</button>' : ''}</div>`
-    : `<p class="summary num">${plural(list.length, 'card').replace(/^\d+/, m => (+m).toLocaleString())} · next in line first</p>`;
+  const head = queueLine(v);
   const rows = grid
     ? `<div class="gal">${list.map(c => `<button class="gcard${on(c.id)}" data-qc="${c.id}"><div class="pic"><img alt="" data-blob="${c.thumbId}"><span class="qn num">${v.pos.get(c.id)}</span>${BOX}</div>
-        <span class="w${c.word ? '' : ' none'}">${esc(c.word || 'No word yet')}</span></button>`).join('')}</div>`
+        <span class="w${nameOf(c) ? '' : ' none'}">${esc(nameOf(c) || 'No word yet')}</span></button>`).join('')}</div>`
     : `<div class="qlist">${list.map(c => `<button class="qrow${on(c.id)}" data-qc="${c.id}"><span class="i num">${v.pos.get(c.id)}</span>${BOX}<span class="pic"><img alt="" data-blob="${c.thumbId}"></span>
-        <span class="qm"><span class="w${c.word ? '' : ' none'}">${esc(c.word || 'No word yet')}</span><span class="d">${esc(cardDesc(c))}</span></span></button>`).join('')}</div>`;
+        <span class="qm"><span class="w${nameOf(c) ? '' : ' none'}">${esc(nameOf(c) || 'No word yet')}</span><span class="d">${esc(cardDesc(c))}</span></span></button>`).join('')}</div>`;
   const empty = list.length ? '' : `<p class="empty">${s ? 'No new card matches this search.' : 'No new cards left: every card here has been studied.'}</p>`;
   return `${sugg}${head}${rows}${empty}`;
+}
+/* the count under the bar: one line of the same height while selecting, so the list never moves */
+function queueLine(v) {
+  const list = v.list, n = list.length.toLocaleString();
+  return v.search || v.sel ? `<div class="cline num"><span>${n} new card${list.length === 1 ? '' : 's'}</span>${list.length && !(v.sel && v.sel.size === list.length) ? '<button class="textbtn" data-p="all">Select all</button>' : ''}</div>`
+    : `<div class="cline num"><span>${n} card${list.length === 1 ? '' : 's'} · next in line first</span></div>`;
+}
+/* selecting only repaints the boxes, the bar and the count line (with a search open, the whole page is redrawn) */
+function paintQueueSel(v) {
+  const home = $('.home', v.el); if (!home) return;
+  if (v.search) { renderQueue(v); return; }
+  home.classList.toggle('selecting', !!v.sel);
+  $$('[data-qc]', home).forEach(b => b.classList.toggle('on', !!(v.sel && v.sel.has(b.dataset.qc))));
+  home.firstElementChild.outerHTML = queueTop(v);
+  $('.cline', home).outerHTML = queueLine(v);
+  markScrolled(v);
 }
 function renderQueue(v) {
   const top = v.el.scrollTop;
@@ -2401,18 +2451,18 @@ function onQueueClick(e, v) {
   else if (p === 'clear') { v.search.q = ''; v.search.pins = []; renderQueue(v); focusQueue(v); }
   else if (b.dataset.pin != null) { v.search.pins.push(b.dataset.pin); v.search.q = ''; renderQueue(v); }
   else if (b.dataset.unpin != null) { v.search.pins.splice(+b.dataset.unpin, 1); renderQueue(v); }
-  else if (p === 'all') { if (!v.sel) startQueueSelect(v); v.list.forEach(c => v.sel.add(c.id)); renderQueue(v); }
+  else if (p === 'all') { if (!v.sel) startQueueSelect(v); v.list.forEach(c => v.sel.add(c.id)); paintQueueSel(v); }
   else if (p === 'front') bringToFront(v);
   else if (b.dataset.qc) {
     const id = b.dataset.qc;
-    if (v.sel) { v.sel.has(id) ? v.sel.delete(id) : v.sel.add(id); renderQueue(v); }
+    if (v.sel) { v.sel.has(id) ? v.sel.delete(id) : v.sel.add(id); paintQueueSel(v); }
     else { const i = $('#qq', v.el); if (i) i.blur(); openStudy(v.deck, id, v.list); } // just to look: it doesn't start the card's cycle
   }
 }
 function startQueueSelect(v, id) {
   const i = $('#qq', v.el); if (i) i.blur();
-  v.sel = new Set(id ? [id] : []); renderQueue(v);
-  pushLayer(() => { v.sel = null; if (v.el.isConnected) renderQueue(v); });
+  v.sel = new Set(id ? [id] : []); paintQueueSel(v);
+  pushLayer(() => { v.sel = null; if (v.el.isConnected) paintQueueSel(v); });
 }
 /* the chosen cards move to the very front, in the order they were in; a later batch goes ahead of an earlier one */
 function bringToFront(v) {
@@ -2422,6 +2472,136 @@ function bringToFront(v) {
   saveRecs(ids.map((id, i) => ({ id, front: low - n + i, at })));
   back(() => { v.el.scrollTop = 0; renderQueue(v); refreshPages(); toast(`${plural(n, 'card')} moved to the front`); }, v.search ? 2 : 1);
 }
+/* ---------- History: every card opened in the study view, from anywhere, newest first ----------
+   It lives in a database of its own, "agora-history" (store `visits`: {id (the card's id), at, ans?, ansAt?}), opened after the decks
+   are on screen, so the cards' database is never upgraded. One entry per card: opening it again moves it to the top.
+   Clearing history only removes entries here; the cards and their Study progress stay. */
+const HI = { recs: new Map(), loaded: false };
+let hstore = memStore(['visits']);
+const ICON_HISTORY = svg('<path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3.5 4.5v4h4"/><path d="M12 7.5V12l3 2"/>');
+const ANS = { continue: 'New', repeat: 'Repeat', tomorrow: 'Tomorrow', pass: 'Pass' };
+function openHistoryDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('agora-history', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('visits', { keyPath: 'id' });
+    r.onsuccess = () => { const db = r.result; db.onversionchange = () => db.close(); res(db); };
+    r.onerror = () => rej(r.error);
+    r.onblocked = () => rej(new Error('blocked'));
+  });
+}
+async function loadHistory() {
+  try { hstore = idbStore(await openHistoryDB()); } catch (e) { console.warn('history storage unavailable, using memory', e); }
+  try { (await hstore.all('visits')).forEach(r => { if (!HI.recs.has(r.id)) HI.recs.set(r.id, r); }); } catch (e) { console.warn('history', e); }
+  HI.loaded = true;
+}
+function noteVisit(c) {
+  if (!c || !c.id) return;
+  const now = Date.now(), o = HI.recs.get(c.id), r = { id: c.id, at: now };
+  if (o && o.ans && dayNo(o.ansAt) === dayNo(now)) { r.ans = o.ans; r.ansAt = o.ansAt; } // studied today: it still says so
+  HI.recs.set(c.id, r); hstore.put('visits', [r]).catch(() => {});
+}
+function noteAnswer(c, a) {
+  const now = Date.now(), r = { id: c.id, at: now, ans: ANS[a] || a, ansAt: now };
+  HI.recs.set(c.id, r); hstore.put('visits', [r]).catch(() => {});
+}
+function dropHistory(ids) { ids.forEach(id => HI.recs.delete(id)); return hstore.del('visits', ids).catch(() => {}); }
+function historyList() {
+  const byId = new Map(cards.map(c => [c.id, c]));
+  return [...HI.recs.values()].filter(r => byId.has(r.id)).sort((a, b) => b.at - a.at).map(r => ({ r, c: byId.get(r.id) }));
+}
+function openHistory() { if (HI.loaded) newPage({ kind: 'history' }); }
+const dayStart = t => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
+function dayLabel(t) {
+  const d0 = dayStart(Date.now()), d = dayStart(t);
+  if (d === d0) return 'Today';
+  if (d0 - d < 1.5 * 864e5) return 'Yesterday';
+  const dt = new Date(t), o = { weekday: 'long', day: 'numeric', month: 'short' };
+  if (dt.getFullYear() !== new Date().getFullYear()) o.year = 'numeric';
+  return dt.toLocaleDateString('en-GB', o);
+}
+const clock = t => { const d = new Date(t); return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`; };
+function historyTop(v) {
+  if (v.sel) return `<div class="pbar"><button class="iconbtn" data-p="unsel" aria-label="Stop selecting">${ICON.close}</button>
+    <span class="selcount num">${v.sel.size} selected</span><button class="textbtn qfront" data-p="hremove" ${v.sel.size ? '' : 'disabled'}>Remove</button></div>`;
+  return pageBar(v, `<button class="iconbtn" data-p="hmenu" aria-label="History options">${ICON.more}</button>`);
+}
+/* one line under the bar, the same height whether or not you are selecting, so nothing below it moves */
+function historyLine(v) {
+  const n = v.list.length;
+  return v.sel ? `<div class="cline num"><span>${plural(n, 'card')}</span>${n && v.sel.size < n ? '<button class="textbtn" data-p="all">Select all</button>' : ''}</div>`
+    : `<div class="cline num"><span>${n ? `${plural(n, 'card')} · last visited first` : 'Nothing yet'}</span></div>`;
+}
+function renderHistory(v) {
+  const top = v.el.scrollTop;
+  v.title = 'History';
+  v.list = historyList();
+  if (v.sel) [...v.sel].forEach(id => { if (!v.list.some(x => x.c.id === id)) v.sel.delete(id); });
+  let html = '', day = null;
+  for (const { r, c } of v.list) {
+    const d = dayStart(r.at);
+    if (d !== day) { if (day !== null) html += '</div>'; html += `<h3 class="hday">${dayLabel(r.at)}</h3><div class="qlist hlist">`; day = d; }
+    const desc = esc(cardDesc(c)), st = r.ans ? `<b>Studied · ${esc(r.ans)}</b>` : '';
+    html += `<button class="qrow hrow${v.sel && v.sel.has(c.id) ? ' on' : ''}" data-card="${c.id}">${BOX}<span class="pic"><img alt="" data-blob="${c.thumbId}"></span>
+      <span class="qm"><span class="hw"><span class="w${nameOf(c) ? '' : ' none'}">${esc(nameOf(c) || 'No word yet')}</span><span class="tm num">${clock(r.at)}</span></span>
+      <span class="d">${st}${st && desc ? ' · ' : ''}${desc}</span></span></button>`;
+  }
+  if (day !== null) html += '</div>';
+  v.el.innerHTML = `<div class="home${v.sel ? ' selecting' : ''}">${historyTop(v)}${historyLine(v)}${html}
+    ${v.list.length ? '' : '<p class="empty">Cards you open show up here, newest first.</p>'}</div>`;
+  filePics(v); v.el.scrollTop = top; markScrolled(v);
+}
+/* selecting only changes the boxes, the bar and the line under it */
+function paintHistSel(v) {
+  const home = $('.home', v.el); if (!home) return;
+  home.classList.toggle('selecting', !!v.sel);
+  $$('.hrow', home).forEach(b => b.classList.toggle('on', !!(v.sel && v.sel.has(b.dataset.card))));
+  $('.pbar', home).outerHTML = historyTop(v);
+  $('.cline', home).outerHTML = historyLine(v);
+  markScrolled(v);
+}
+function startHistSelect(v, id) {
+  v.sel = new Set(id ? [id] : []); paintHistSel(v);
+  pushLayer(() => { v.sel = null; if (v.el.isConnected) paintHistSel(v); });
+}
+function onHistoryClick(e, v) {
+  const b = e.target.closest('button'); if (!b || b.disabled) return;
+  const p = b.dataset.p;
+  if (p === 'back' || p === 'unsel') back();
+  else if (p === 'hmenu') historyMenu(v);
+  else if (p === 'all') { v.list.forEach(x => v.sel.add(x.c.id)); paintHistSel(v); }
+  else if (p === 'hremove') {
+    const ids = [...v.sel], n = ids.length; if (!n) return;
+    dropHistory(ids);
+    back(() => { renderHistory(v); toast(`Removed ${plural(n, 'card')} from History`); });
+  }
+  else if (b.dataset.card) {
+    const id = b.dataset.card;
+    if (v.sel) { v.sel.has(id) ? v.sel.delete(id) : v.sel.add(id); paintHistSel(v); }
+    else { const c = cards.find(x => x.id === id); if (c) openStudy(decks.find(d => d.id === c.deckId), id, v.list.map(x => x.c)); } // just to look, in History's order
+  }
+}
+function historyMenu(v) {
+  const clear = (ms, what) => () => {
+    const since = Date.now() - ms, ids = [...HI.recs.values()].filter(r => ms === Infinity || r.at >= since).map(r => r.id);
+    dropHistory(ids);
+    closeSheet(() => { renderHistory(v); toast(ids.length ? `Cleared ${what}` : 'Nothing to clear'); });
+  };
+  sheet(`<h2>History</h2><p class="sub">Clearing history leaves the cards and your Study progress as they are.</p>
+    <div class="list">
+      ${v.list.length ? item('sel', 'Select cards') : ''}
+      ${item('hour', 'Clear the last hour')}
+      ${item('day', 'Clear the last day')}
+      ${item('month', 'Clear the last month')}
+      ${item('all', 'Clear all history')}
+    </div>`, {
+    sel: () => closeSheet(() => startHistSelect(v)),
+    hour: clear(3600e3, 'the last hour'),
+    day: clear(864e5, 'the last day'),
+    month: clear(30 * 864e5, 'the last month'),
+    all: clear(Infinity, 'all history')
+  });
+}
+
 /* backups carry the progress; an import takes a card's record only when it is newer than the one here, so it is safe to repeat */
 const cleanRec = r => {
   if (!r || typeof r !== 'object' || !r.id) return null;
@@ -2459,7 +2639,7 @@ async function replaceScene(c, file) {
   const old = [c.frameId, c.thumbId], oldPdf = c.pdf && c.pdf.id;
   delete c.pdf; delete c.sceneText; // the new screenshot is the scene now
   if (oldPdf) setTimeout(() => dropPdf(oldPdf));
-  c.frameId = await putImage(file); c.thumbId = await putImage(await makeThumb(file)); thumbIds.add(c.thumbId);
+  c.frameId = await putImage(file); c.thumbId = await putImage(await makeThumb(file)); thumbIds.add(c.thumbId); delete c.thumbKey;
   await afterEdit(c); forget(old);
 }
 async function replaceDef(c, i, file) {
@@ -2481,9 +2661,9 @@ async function removeDef(c, i) {
 function editSheet(c) {
   const defs = defIdsOf(c), many = defs.length > 1;
   const withI = (html, act, i) => html.replace(`data-act="${act}"`, `data-act="${act}" data-i="${i}"`);
-  sheet(`<h2>Edit card</h2><p class="sub">${c.word ? esc(c.word) : 'No word yet'}</p>
+  sheet(`<h2>Edit card</h2><p class="sub">${nameOf(c) ? esc(nameOf(c)) : 'No word yet'}</p>
     <div class="list">
-      ${item('word', c.word ? 'Edit word' : 'Add word')}
+      ${item('word', nameOf(c) ? 'Edit word' : 'Add word')}
       ${item('scene', 'Replace scene')}
       ${defs.map((_, i) => withI(item('def', many ? `Replace definition ${i + 1}` : 'Replace definition'), 'def', i)).join('')}
       ${item('adddef', 'Add another definition', '', '', 'Shown by swiping up again from the definition')}
@@ -2497,6 +2677,117 @@ function editSheet(c) {
   });
 }
 $('#onePicker').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f && oneCb) oneCb(f).catch(storageFail); });
+
+/* ================= card tiles show what the card shows ================= */
+/* A card's tile picture (thumbId) was made from its first screenshot. When an import later turns the scene into article text or a
+   magazine page, the tile kept that old screenshot. So each tile remembers what it was drawn from (c.thumbKey), and any tile that
+   no longer matches its scene is redrawn quietly in the background: article text as text, a magazine page around its pink box,
+   a screenshot from the screenshot. The cards and their scenes are never changed, only the small tile picture. */
+const TW = 560, TH = 350; // tiles are 16:10
+function hashStr(t) { let h = 2166136261; for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); }
+function thumbKeyOf(c) {
+  const k = sceneKind(c);
+  if (k === 'art') return 'art:' + hashStr(JSON.stringify(c.sceneText.paras));
+  if (k === 'pdf') return 'pdf:' + hashStr(JSON.stringify([c.pdf.id, c.pdf.page || 1, c.pdf.marks || []]));
+  return ''; // a screenshot scene: its tile is made from it whenever it changes
+}
+const tileStale = c => (thumbKeyOf(c) || '') !== (c.thumbKey || '') && (thumbKeyOf(c) || c.frameId);
+const toJpeg = cv => new Promise(r => cv.toBlob(r, 'image/jpeg', 0.82));
+async function artThumb(c) {
+  await serifReady();
+  const cv = document.createElement('canvas'); cv.width = TW; cv.height = TH;
+  const x = cv.getContext('2d'); x.fillStyle = '#000'; x.fillRect(0, 0, TW, TH);
+  const units = articleUnits(c.sceneText.paras), solo = !units.some(u => !u.head);
+  // start at the sentence with the word, one sentence earlier when it is in the same paragraph, like the scene page
+  let k = Math.max(0, units.findIndex(u => u.m));
+  if (k > 0 && units[k - 1].p === units[k].p && !units[k - 1].head) k--;
+  const fs = solo ? 40 : 30, lh = Math.round(fs * 1.6), pad = 34, maxW = TW - pad * 2;
+  const font = (r, head) => `${r.i ? 'italic ' : ''}${head || r.b ? 700 : 300} ${head && !solo ? Math.round(fs * 1.06) : fs}px Merriweather, Georgia, serif`;
+  const lines = []; let line = [], w = 0, lastP = null;
+  const flush = () => { if (line.length) lines.push(line); line = []; w = 0; };
+  for (const u of units.slice(k)) {
+    if (lastP !== null && (u.p !== lastP || u.head)) { flush(); lines.push(null); } // a gap between paragraphs
+    else if (line.length) { x.font = font(u.runs[0], u.head); const sw = x.measureText(' ').width; line.push({ t: ' ', w: sw, r: u.runs[0], head: u.head }); w += sw; } // the next sentence
+    lastP = u.p;
+    for (const r of u.runs) for (const word of r.t.split(/(\s+)/)) {
+      if (!word) continue;
+      x.font = font(r, u.head); const ww = x.measureText(word).width;
+      if (/^\s+$/.test(word)) { if (line.length) { line.push({ t: ' ', w: ww, r, head: u.head }); w += ww; } continue; }
+      if (w + ww > maxW && line.length) { while (line.length && line[line.length - 1].t === ' ') w -= line.pop().w; flush(); }
+      line.push({ t: word, w: ww, r, head: u.head }); w += ww;
+    }
+    if (lines.filter(l => l !== null).length * lh > TH) break;
+  }
+  flush();
+  let y = pad + fs * 0.9;
+  for (const l of lines) {
+    if (l === null) { y += lh * 0.45; continue; }
+    if (y + fs * 0.3 > TH - 56) break; // only whole lines, with the bottom left clear for a tile's label
+    let lx = pad;
+    for (const p of l) {
+      x.font = font(p.r, p.head);
+      if (p.r.m) { x.fillStyle = '#84024C'; x.fillRect(lx, y - fs * 0.95, p.w, fs * 1.32); }
+      x.fillStyle = p.r.m || p.head || p.r.b ? '#fff' : '#E4E4E4';
+      x.fillText(p.t, lx, y); lx += p.w;
+    }
+    y += lh;
+  }
+  return toJpeg(cv);
+}
+async function pdfTileThumb(c) {
+  // drawn at twice the tile's width, so the words around the pink box can be read on the tile
+  const Z = 2, page = await pdfPage(c.pdf), base = page.getViewport({ scale: 1 }), vp = page.getViewport({ scale: TW * Z / base.width });
+  const full = document.createElement('canvas'); full.width = TW * Z; full.height = Math.round(vp.height);
+  const fx = full.getContext('2d'); fx.fillStyle = '#fff'; fx.fillRect(0, 0, full.width, full.height);
+  await page.render({ canvasContext: fx, viewport: vp }).promise;
+  const marks = Array.isArray(c.pdf.marks) ? c.pdf.marks : [];
+  fx.fillStyle = 'rgba(214,18,122,.3)'; fx.strokeStyle = '#E0187F'; fx.lineWidth = 2;
+  marks.forEach(m => { const r = [m[0] * full.width, m[1] * full.height, (m[2] - m[0]) * full.width, (m[3] - m[1]) * full.height]; fx.fillRect(...r); fx.strokeRect(...r); });
+  // the part of the page around the word (the top left of the page when nothing is marked)
+  const mx = marks.length ? (marks[0][0] + marks[0][2]) / 2 * full.width : TW / 2, my = marks.length ? (marks[0][1] + marks[0][3]) / 2 * full.height : TH / 2;
+  const left = Math.max(0, Math.min(full.width - TW, mx - TW / 2)), top = Math.max(0, Math.min(full.height - TH, my - TH / 2));
+  const cv = document.createElement('canvas'); cv.width = TW; cv.height = TH;
+  const x = cv.getContext('2d'); x.fillStyle = '#000'; x.fillRect(0, 0, TW, TH);
+  const h = Math.min(TH, full.height);
+  x.drawImage(full, left, top, TW, h, 0, (TH - h) / 2, TW, h);
+  full.width = full.height = 0;
+  return toJpeg(cv);
+}
+let tilesRun = null;
+function refreshTiles() {
+  if (tilesRun) { tilesRun.again = true; return; }
+  tilesRun = { again: false };
+  (async () => {
+    let done = 0;
+    for (;;) {
+      const todo = cards.filter(tileStale);
+      for (const c of todo) {
+        if (!cards.includes(c) || !tileStale(c)) continue;
+        try {
+          const kind = sceneKind(c), key = thumbKeyOf(c);
+          let blob = null;
+          if (kind === 'art') blob = await artThumb(c);
+          else if (kind === 'pdf') blob = await pdfTileThumb(c);
+          else { const rec = await store.get('blobs', c.frameId); if (rec) blob = await makeThumb(rec.blob); }
+          if (!blob || !cards.includes(c) || thumbKeyOf(c) !== key) continue;
+          const old = c.thumbId;
+          c.thumbId = await putImage(blob); thumbIds.add(c.thumbId);
+          if (key) c.thumbKey = key; else delete c.thumbKey;
+          await saveCards([c]);
+          if (old && old !== c.thumbId && !cards.some(o => o !== c && o.thumbId === old)) forget([old]);
+          done++;
+          if (done % 25 === 0) repaintTiles();
+        } catch (e) { console.warn('tile', c.id, e); } // offline for a magazine page: it tries again next time
+        await sleep(20);
+      }
+      if (!tilesRun.again) break;
+      tilesRun.again = false;
+    }
+    tilesRun = null;
+    if (done) repaintTiles();
+  })();
+}
+function repaintTiles() { renderHome(); refreshPages(); refreshCards(); }
 
 /* ================= search ================= */
 let searchView = null;
@@ -2513,10 +2804,12 @@ function findWords(q, pool = cards) {
   const n = norm(q); if (!n) return [];
   const out = [], seen = new Set();
   for (const c of pool) {
-    if (!c.word) continue;
-    const w = norm(c.word), i = w.indexOf(n);
-    if (i < 0) continue;
-    out.push({ c, i, w, rank: i === 0 ? 0 : (/[\s\-']/.test(w[i - 1]) ? 1 : 2) }); seen.add(c.id);
+    const nm = nameOf(c); if (!nm) continue;
+    const w = norm(nm), i = w.indexOf(n), alt = norm(c.word), j = i < 0 && alt ? alt.indexOf(n) : -1;
+    if (i < 0 && j < 0) continue;
+    // found by the stored word when it differs from the name: listed under the name, without a highlight
+    const at = i >= 0 ? i : j, s = i >= 0 ? w : alt;
+    out.push({ c, i, w, rank: at === 0 ? 0 : (/[\s\-']/.test(s[at - 1]) ? 1 : 2) }); seen.add(c.id);
   }
   // then cards whose definition text mentions it
   if (n.length >= 2) for (const c of pool) {
@@ -2524,7 +2817,7 @@ function findWords(q, pool = cards) {
     const p = cardPlain(c); if (!p) continue;
     const at = norm(p).indexOf(n);
     if (at < 0) continue;
-    out.push({ c, i: -1, w: norm(c.word || '~'), rank: 3, snip: snippet(p, q) });
+    out.push({ c, i: -1, w: norm(nameOf(c) || '~'), rank: 3, snip: snippet(p, q) });
   }
   return out.sort((a, b) => a.rank - b.rank || a.w.localeCompare(b.w)).slice(0, 60);
 }
@@ -2542,7 +2835,7 @@ function allTags(pool) { // distinct tags (any case) with how many cards in pool
   return [...m.values()];
 }
 const hasTags = (c, pins) => { const mine = tagsOf(c).map(norm); return pins.every(p => mine.includes(norm(p))); };
-const searchHint = () => fidx.size ? 'Search words, meanings and files' : 'Search words and meanings';
+const searchHint = () => 'Search anything';
 function openSearch(pins) {
   if (searchView) { if (pins) { searchView.pins = [...pins]; searchView.draw(); } return; }
   const el = document.createElement('div'); el.className = 'page search';
@@ -2608,14 +2901,13 @@ function renderResults(q) {
   };
   if (!n) {
     if (P.length) {
-      const list = [...pool].sort((a, b) => norm(a.word || '~').localeCompare(norm(b.word || '~'))), fl = [...fpool].sort(nameCmp);
-      box.innerHTML = list.length || fl.length ? (list.length ? `${mk(list)}<div class="results">${list.map(c => row(c, c.word ? esc(c.word) : '<span class="rd">No word yet</span>')).join('')}</div>` : '')
+      const list = [...pool].sort((a, b) => norm(nameOf(a) || '~').localeCompare(norm(nameOf(b) || '~'))), fl = [...fpool].sort(nameCmp);
+      box.innerHTML = list.length || fl.length ? (list.length ? `${mk(list)}<div class="results">${list.map(c => row(c, nameOf(c) ? esc(nameOf(c)) : '<span class="rd">No word yet</span>')).join('')}</div>` : '')
         + fileResults(fl, r => esc(r.name))
         : `<p class="note">No card${fidx.size ? ' or file' : ''} has all of these tags.</p>`;
       pics(); return;
     }
-    const named = cards.filter(c => c.word).length, unnamed = cards.length - named, nf = allFiles().length;
-    box.innerHTML = `<p class="note">${plural(named, 'word')} saved${nf ? `, and ${plural(nf, 'file')} in My Files` : ''}.${unnamed ? ` ${plural(unnamed, 'card')} ${unnamed === 1 ? 'has' : 'have'} no word yet, so search can’t find ${unnamed === 1 ? 'it' : 'them'}. Add words from a deck’s Browse cards.` : ''}</p>`;
+    box.innerHTML = ''; // an empty search shows nothing: the field says what it does
     return;
   }
   const hits = findWords(q, pool), fh = findFiles(q, fpool);
@@ -2623,7 +2915,7 @@ function renderResults(q) {
   const k = n.length;
   const markName = (w, i) => i < 0 ? esc(w) : `${esc(w.slice(0, i))}<mark>${esc(w.slice(i, i + k))}</mark>${esc(w.slice(i + k))}`;
   box.innerHTML = (hits.length ? mk(hits.map(h => h.c)) + hits.map(({ c, i, snip }) => {
-    const w = c.word || '';
+    const w = nameOf(c);
     return row(c, i < 0 ? (w ? esc(w) : '<span class="rd">No word yet</span>') : markName(w, i), snip);
   }).join('') : '') + fileResults(fh.map(h => h.r), r => markName(r.name, norm(r.name).indexOf(n)));
   pics();
@@ -2837,7 +3129,7 @@ $('#zipPicker').addEventListener('change', async e => {
               const scene = await read(sp), cur = await store.get('blobs', have.frameId).catch(() => null);
               if (scene && !(cur && cur.blob && cur.blob.size === scene.size)) {
                 const old = [have.frameId, have.thumbId];
-                have.frameId = await putImage(scene); have.thumbId = await putImage(await makeThumb(scene)); thumbIds.add(have.thumbId);
+                have.frameId = await putImage(scene); have.thumbId = await putImage(await makeThumb(scene)); thumbIds.add(have.thumbId); delete have.thumbKey;
                 forget(old); changed = true;
               }
             } else if (mc.update) {
@@ -2850,7 +3142,7 @@ $('#zipPicker').addEventListener('change', async e => {
                 && JSON.stringify(keep.map(i => texts[i] || null)) === JSON.stringify(have.defText);
               if (scene && keep.length && !same) {
                 const oldText = have.defText, old = [have.frameId, have.thumbId, ...defIdsOf(have)];
-                have.frameId = await putImage(scene); have.thumbId = await putImage(await makeThumb(scene)); thumbIds.add(have.thumbId);
+                have.frameId = await putImage(scene); have.thumbId = await putImage(await makeThumb(scene)); thumbIds.add(have.thumbId); delete have.thumbKey;
                 have.defIds = []; for (const i of keep) have.defIds.push(imgs[i] ? await putImage(imgs[i]) : '');
                 have.defText = hasText ? keep.map(i => texts[i] || null) : (oldText.length === keep.length ? oldText : keep.map(() => null));
                 have.defId = have.defIds[0]; forget(old); changed = true;
@@ -2940,6 +3232,7 @@ $('#zipPicker').addEventListener('change', async e => {
     toast([added ? `Imported ${plural(added, 'card')}` : '', updated ? `Updated ${plural(updated, 'card')}` : '', skipped - mismatched > 0 ? `${skipped - mismatched} already up to date` : '', mismatched ? `${mismatched} skipped: definitions didn’t line up` : '', absent ? `${plural(absent, 'card')} not on this phone` : '',
       ftagged ? `Tags for ${plural(ftagged, 'file')}` : '', studyN ? `Study progress for ${plural(studyN, 'card')}` : '', fwait ? `Tags for ${plural(fwait, 'file')} kept for when My Files is connected` : ''].filter(Boolean).join(' · ') || 'Nothing to import');
     if (ftagged) refreshFiles();
+    refreshTiles(); // a scene that became text or a magazine page gets a tile to match
   } catch (err) {
     console.error(err);
     askPersist(); renderHome(); closeSheet();
@@ -3831,6 +4124,9 @@ async function seed() {
   // the files index loads after the decks are on screen, so My Files can never hold them up
   loadFiles().then(renderHome, e => console.warn(e));
   loadStudy().then(refreshPages, e => console.warn(e));
+  loadHistory().catch(e => console.warn(e));
+  // tiles whose scene changed since their picture was made are redrawn once the app has settled
+  setTimeout(refreshTiles, 1500);
   if (!decks.length) { await seed(); renderHome(); }
   if ('serviceWorker' in navigator && document.querySelector('link[rel="manifest"]')) {
     navigator.serviceWorker.register('sw.js').catch(() => {});

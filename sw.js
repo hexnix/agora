@@ -1,5 +1,5 @@
 // Agora service worker: keeps the app usable offline and picks up updates in the background.
-const VERSION = 'agora-v26';
+const VERSION = 'agora-v27';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './maskable-512.png'];
 
 self.addEventListener('install', e => {

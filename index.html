@@ -470,6 +470,12 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 .crumbs i{font-style:normal;color:var(--faint);padding:0 2px}
 .crumbs + .summary{margin-top:0}
 /* the one quiet line that asks for the folder */
+.mvbar{position:fixed;left:0;right:0;bottom:0;z-index:5;display:flex;align-items:center;gap:10px;padding:12px 20px calc(14px + env(safe-area-inset-bottom));background:var(--ink);border-top:1px solid var(--line)}
+.mvbar .to{flex:1;min-width:0;color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mvbar .btn{flex:none;min-height:46px}
+.mvbar .btn:disabled{opacity:.4}
+.home.moving{padding-bottom:110px}
+.fedit{display:block;width:100%;min-height:calc(100vh - 150px);background:transparent;color:var(--text);border:0;outline:0;resize:none;font:15px/1.65 var(--sans);padding:6px 0 calc(60px + var(--kb, 0px))}
 .agline{margin:10px 0 0;padding:6px 0;color:var(--muted);font-size:13px}
 .vgly{display:grid;place-items:center;width:100%;height:100%;color:var(--muted)}
 .vnote{color:var(--muted);font-size:13px;line-height:1.5;margin:22px 0 0}
@@ -977,9 +983,9 @@ function nameSheet(d, then) {
     } });
 }
 /* a sheet that asks for one line of text (a deck's name, a card's word): a card floating just above the keyboard */
-function askSheet({ title, sub = '', value = '', placeholder = '', btn = 'Save', label = '', empty = false, attrs = 'autocomplete="off" enterkeyhint="done"', done }) {
+function askSheet({ title, sub = '', value = '', placeholder = '', btn = 'Save', label = '', empty = false, max = 80, attrs = 'autocomplete="off" enterkeyhint="done"', done }) {
   sheet(`<form class="ask"><h2>${title}</h2>${sub ? `<p class="sub">${sub}</p>` : ''}
-    <div class="field"><input id="askIn" type="text" maxlength="80" ${attrs} value="${esc(value)}" placeholder="${esc(placeholder)}" aria-label="${esc(label || title)}"></div>
+    <div class="field"><input id="askIn" type="text" maxlength="${max}" ${attrs} value="${esc(value)}" placeholder="${esc(placeholder)}" aria-label="${esc(label || title)}"></div>
     <div class="askbtns"><button type="button" class="textbtn quiet" data-act="cancel">Cancel</button><button type="submit" class="textbtn">${btn}</button></div></form>`, {
     cancel: () => closeSheet(),
     submit: f => { const i = $('#askIn', f), x = i.value.trim(); if (!x && !empty) { i.focus(); return; } done(x); }
@@ -1232,7 +1238,7 @@ function newPage(v) {
   document.body.appendChild(el); document.body.classList.add('locked');
   v.el = el; pages.push(v);
   el.addEventListener('click', e => onPageClick(e, v));
-  if (v.kind !== 'note') el.addEventListener('contextmenu', e => e.preventDefault()); // a note keeps the phone's copy and paste
+  if (v.kind !== 'note' && v.kind !== 'ftext') el.addEventListener('contextmenu', e => e.preventDefault()); // a note keeps the phone's copy and paste
   el.addEventListener('scroll', () => markScrolled(v), { passive: true });
   if (v.kind === 'cards') holdToSelect(v);
   else if (v.kind === 'queue') holdToSelect(v, '[data-qc]', b => startQueueSelect(v, b.dataset.qc));
@@ -1265,6 +1271,7 @@ const BOX = '<span class="box">' + svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 14)
 function pageBar(v, tools = '') {
   if (v.sel) return `<div class="pbar"><button class="iconbtn" data-p="unsel" aria-label="Stop selecting">${ICON.close}</button>
     <span class="selcount num">${v.sel.size} selected</span>${allBtn(allOn(v))}
+    ${v.kind === 'files' ? `<button class="iconbtn" data-p="fmove" aria-label="Move" ${v.sel.size ? '' : 'disabled'}>${ICON.move}</button><button class="iconbtn" data-p="fdel" aria-label="Delete" ${v.sel.size ? '' : 'disabled'}>${ICON.trash}</button>` : ''}
     <button class="iconbtn" data-p="selmenu" aria-label="Options for the selected ${v.kind === 'files' ? 'files' : v.kind === 'marks' ? 'bookmarks' : 'cards'}" ${v.sel.size ? '' : 'disabled'}>${ICON.more}</button></div>`;
   const [t, ...rest] = nameParts(v.title);
   return `<div class="pbar"><button class="iconbtn" data-p="back" aria-label="Back">${ICON.back}</button>
@@ -1280,6 +1287,7 @@ function renderPage(v) {
   if (v.kind === 'notes') { renderNotes(v); return; }
   if (v.kind === 'note') { renderNote(v); return; }
   if (v.kind === 'versions') { renderVersions(v); return; }
+  if (v.kind === 'ftext') { renderTextEdit(v); return; }
   const d = v.deck, top = v.el.scrollTop;
   if (v.kind === 'sources') {
     const gs = sourcesOf(d), total = deckCards(d.id).length;
@@ -1351,6 +1359,7 @@ function onPageClick(e, v) {
   if (v.kind === 'notes') { onNotesClick(e, v); return; }
   if (v.kind === 'note') { onNoteClick(e, v); return; }
   if (v.kind === 'versions') { onVersionsClick(e, v); return; }
+  if (v.kind === 'ftext') { onTextClick(e, v); return; }
   const b = e.target.closest('button'); if (!b || b.disabled) return;
   const p = b.dataset.p;
   if (p === 'back' || p === 'unsel') back();
@@ -3755,19 +3764,22 @@ function filesSummary(v, dirs, files) {
   return parts.join(' · ') || (fidx.size ? 'Empty' : 'Not connected yet');
 }
 function renderFiles(v) {
-  const top = v.el.scrollTop, list = kidsOf(v.dir), grid = gridView();
+  const top = v.el.scrollTop, grid = gridView() && !v.moving;
+  // while moving, only folders show (not the ones being moved)
+  const list = v.moving ? kidsOf(v.dir).filter(r => r.kind === 'dir' && !v.moving.paths.includes(r.path)) : kidsOf(v.dir);
   const dirs = list.filter(r => r.kind === 'dir').sort(nameCmp), files = list.filter(r => r.kind === 'file').sort(FSORTS[fsortOf()].fn);
   v.order = files; v.title = fname(v.dir);
   if (v.sel) [...v.sel].forEach(p => { if (!files.some(r => r.path === p)) v.sel.delete(p); });
   const segs = v.dir ? v.dir.split('/') : [];
-  const crumbs = segs.length ? `<p class="crumbs"><button data-crumb="">My Files</button>${segs.map((s, i) => '<i>›</i>' + (i === segs.length - 1 ? `<b>${esc(s)}</b>`
+  const crumbs = segs.length && v.moving ? `<p class="crumbs"><span>My Files</span>${segs.map((s, i) => '<i>›</i>' + (i === segs.length - 1 ? `<b>${esc(s)}</b>` : `<span>${esc(s)}</span>`)).join('')}</p>`
+    : segs.length ? `<p class="crumbs"><button data-crumb="">My Files</button>${segs.map((s, i) => '<i>›</i>' + (i === segs.length - 1 ? `<b>${esc(s)}</b>`
     : `<button data-crumb="${esc(segs.slice(0, i + 1).join('/'))}">${esc(s)}</button>`)).join('')}</p>` : '';
   const connect = FX.ready || !hasFS ? '' : `<button class="connect" data-f="connect"><span class="dot"></span><b>Connect My Files</b><span>· ${FX.root ? 'to refresh and open' : 'to choose the folder'}</span></button>`;
   const item = grid ? fileCardHTML : fileRowHTML;
-  const empty = !fidx.size ? (hasFS ? '<p class="empty">Tap Connect My Files and choose the My Files folder in your phone’s storage. Agora reads it and never moves, renames or deletes your files.</p>' : fsOffLine())
-    : list.length ? '' : '<p class="empty">This folder is empty.</p>';
-  v.el.innerHTML = `<div class="home${v.sel ? ' selecting' : ''}${FX.mode ? ' tagging' : ''}">${filesBar(v)}${crumbs}
-    <p class="summary fsum num">${filesSummary(v, dirs, files)}</p>${connect}
+  const empty = !fidx.size ? (hasFS ? '<p class="empty">Tap Connect My Files and choose the My Files folder in your phone’s storage. Agora only changes a file when you ask, and keeps the earlier copy for 30 days.</p>' : fsOffLine())
+    : list.length || v.moving ? '' : '<p class="empty">This folder is empty.</p>';
+  v.el.innerHTML = `<div class="home${v.sel ? ' selecting' : ''}${FX.mode ? ' tagging' : ''}${v.moving ? ' moving' : ''}">${v.moving ? movingBar(v) : filesBar(v)}${crumbs}
+    <p class="summary fsum num">${v.moving ? (dirs.length ? plural(dirs.length, 'folder') : 'No folders here') : filesSummary(v, dirs, files)}</p>${v.moving ? '' : connect}
     ${list.length ? `<div class="${grid ? 'fgrid' : 'flist'}">${dirs.map(r => item(r)).join('')}${files.map(r => item(r, onOf(v, r))).join('')}</div>` : ''}${empty}</div>`;
   filePics(v); v.el.scrollTop = top; markScrolled(v);
 }
@@ -3802,6 +3814,9 @@ function goCrumb(dir) {
 function onFilesClick(e, v) {
   const b = e.target.closest('button'); if (!b || b.disabled) return;
   const p = b.dataset.p;
+  if (v.moving) { onMovingClick(b, v); return; }
+  if (p === 'fmove') { const paths = [...v.sel]; back(() => startMove(paths)); return; }
+  if (p === 'fdel') { fileDeleteSheet([...v.sel], () => { if (v.sel) back(); }); return; }
   if (p === 'back' || p === 'unsel' || p === 'endmode') back();
   else if (p === 'view') { ls.set('files.view', gridView() ? 'list' : 'grid'); refreshFiles(); }
   else if (p === 'fsort') filesSortSheet();
@@ -3845,8 +3860,20 @@ function filesMenu(v) {
       ${FX.root ? item('refresh', 'Refresh the list', '', '', 'Finds new, renamed and removed files') : item('connect', 'Connect My Files', '', '', 'Choose the My Files folder in your phone’s storage')}
       ${v && n ? item('quick', 'Quick tagging', '', '', 'Pick a tag, then tap files to add or remove it') : ''}
       ${v && v.order && v.order.length ? item('select', 'Select files', '', '', 'Or hold a file') : ''}
+      ${v && FX.root ? item('newf', ico('newfolder', 'New folder')) : ''}
+      ${v && v.dir ? item('renf', ico('rename', 'Rename this folder')) : ''}
+      ${v && v.dir && !kidsOf(v.dir).length ? item('delf', ico('trash', 'Delete this folder'), '', 'danger') : ''}
       ${FX.root ? item('pick', 'Choose a different folder') : ''}
     </div>`, {
+    newf: () => newFolderSheet(v.dir, path => openFolder(path)),
+    renf: () => fileRenameSheet(v.dir, to => { v.dir = to; refreshFiles(); }),
+    delf: async () => {
+      if (!(await fsNeed())) return;
+      const name = fname(v.dir), r = fidx.get(v.dir);
+      try { await (await fsDir(parentOf(v.dir))).removeEntry(name); fidx.delete(v.dir); fchanged(); await fstore.del('files', [v.dir]); }
+      catch { closeSheet(() => toast('That folder isn’t empty on the phone')); return; }
+      back(() => toast(`Deleted ${r ? r.name : name}`), 2);
+    },
     // the tap itself asks for the folder, so these start before the sheet closes
     refresh: () => { if (FX.ready) { FX.scanned = false; rescan(); } else connectFiles(); closeSheet(); },
     connect: () => { connectFiles(); closeSheet(); },
@@ -3856,9 +3883,11 @@ function filesMenu(v) {
   });
 }
 function fileSelMenu(v) {
-  const paths = [...v.sel], n = paths.length;
+  const paths = [...v.sel], n = paths.length, one = n === 1 && fidx.get(paths[0]);
   sheet(`<h2>${plural(n, 'file')} selected</h2>
-    <div class="list">${item('tag', ico('tag', 'Add tags'))}${item('share', ico('share', 'Share / Open with…'))}</div>`, {
+    <div class="list">${item('tag', ico('tag', 'Add tags'))}${n === 1 ? item('ren', ico('rename', 'Rename')) : ''}${one && fkind(one) === 'txt' ? item('edit', ico('text', 'Edit text')) : ''}${item('share', ico('share', 'Share / Open with…'))}</div>`, {
+    ren: () => fileRenameSheet(paths[0], () => { if (v.sel) back(); }),
+    edit: () => back(() => openTextEdit(paths[0]), 2),
     tag: () => fileTagSheet(paths),
     share: () => { shareFiles(paths); closeSheet(); }
   });
@@ -4190,7 +4219,13 @@ function viewerMenu(r) {
       ${item('tag', ico('tag', 'Tags'), '', '', 'Or hold a tag and tap +')}
       ${item('share', ico('share', 'Share / Open with…'))}
       ${item('folder', ico('folder', 'Show in folder'), '', '', esc(['My Files', ...(r.dir ? r.dir.split('/') : [])].join(' › ')))}
+      ${FX.root ? `${item('ren', ico('rename', 'Rename'))}${fkind(r) === 'txt' ? item('edit', ico('text', 'Edit text')) : ''}${item('move', ico('move', 'Move to…'))}${item('vers', ico('history', 'Previous versions'))}${item('del', ico('trash', 'Delete file'), '', 'danger')}` : ''}
     </div>`, {
+    ren: () => fileRenameSheet(r.path, to => { if (FV) { FV.order[FV.i] = fidx.get(to); showFileHead(); } }),
+    edit: () => closeSheet(() => openTextEdit(r.path)),
+    move: () => back(() => startMove([r.path]), 2),
+    vers: () => itemVersions('file:' + r.path, r.name),
+    del: () => fileDeleteSheet([r.path], () => back()),
     tag: () => fileTagSheet([r.path]),
     share: () => { shareFiles([r.path]); closeSheet(); },
     folder: () => {
@@ -5235,18 +5270,21 @@ function agFlush() {
       }
     }
     for (const dir of AG.empty) await agRemove(dir); // a deck folder left empty (only removed when nothing is in it)
-    if (AG.log.length) {
-      const p = `${VERS}/${stamp}/changes.json`, have = (await agJSON(p)) || { changes: [] };
-      // one line per item and hour: the copy kept is the first of the hour, so its first line stays
-      const seen = new Set(have.changes.map(x => x.k));
-      for (const x of AG.log) if (!seen.has(x.k)) { have.changes.push(x); seen.add(x.k); } else { const o = have.changes.find(y => y.k === x.k); o.what = x.what === 'deleted' ? x.what : o.what; o.label = x.label; }
-      await agPut(p, JSON.stringify(have, null, 1));
-    }
+    await agWriteLog(stamp, AG.log);
     AG.why = '';
     await agPrune();
     if (AG.failed.size) toast(`Couldn’t save ${plural(AG.failed.size, 'change')} to My Files`);
   })().catch(e => console.warn('Agora folder', e)).finally(() => { AG.run = null; AG.phase = ''; agPaint(); if (AG.dirty.size > AG.failed.size && agOn()) agSoon(); });
   return AG.run;
+}
+/* the list of what changed this hour, for the Previous versions page */
+async function agWriteLog(stamp, log, every) {
+  if (!log.length) return;
+  const p = `${VERS}/${stamp}/changes.json`, have = (await agJSON(p)) || { changes: [] };
+  // one line per item and hour: the copy kept is the first of the hour, so its first line stays (a file's moves are each their own line)
+  const seen = new Set(have.changes.map(x => x.k));
+  for (const x of log) if (every || !seen.has(x.k)) { have.changes.push(x); seen.add(x.k); } else { const o = have.changes.find(y => y.k === x.k); o.what = x.what === 'deleted' ? x.what : o.what; o.label = x.label; }
+  await agPut(p, JSON.stringify(have, null, 1));
 }
 /* earlier copies older than 30 days go, once a day */
 async function agPrune() {
@@ -5414,10 +5452,14 @@ async function openVersions() {
 }
 const ICON_CLOCK = svg('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>', 24);
 const ICON_STACK = svg('<rect x="4" y="9" width="16" height="11" rx="1.5"/><path d="M6.5 6h11M9 3h6"/>', 20);
-const KIND_NAME = { card: 'Card', note: 'Note', deck: 'Deck', study: 'Study progress', history: 'History', marks: 'Bookmarks' };
+const KIND_NAME = { card: 'Card', note: 'Note', deck: 'Deck', file: 'File', study: 'Study progress', history: 'History', marks: 'Bookmarks' };
 /* the changes of one save, in a few words: "Deleted 3 cards", "Changed 42 cards", "Edited a note" */
 function momentName(xs) {
   if (xs[0].why) return xs[0].why;
+  if (xs.every(x => x.kind === 'file')) {
+    const op = xs[0].op, same = xs.every(x => x.op === op), one = xs.length === 1 ? xs[0].label : plural(xs.length, 'file');
+    return !same ? `Changed ${plural(xs.length, 'file')}` : op === 'delete' ? `Deleted ${one}` : op === 'edit' ? `Edited ${one}` : xs[0].what.startsWith('renamed') ? `Renamed ${one}` : `Moved ${one}`;
+  }
   const by = k => xs.filter(x => x.kind === k), del = xs.every(x => x.what === 'deleted');
   const parts = [['card', 'card'], ['note', 'note'], ['deck', 'deck']].map(([k, w]) => by(k).length ? plural(by(k).length, w) : '').filter(Boolean);
   const rest = xs.filter(x => !['card', 'note', 'deck'].includes(x.kind)).map(x => (KIND_NAME[x.k] || 'a file').toLowerCase());
@@ -5434,6 +5476,7 @@ const versionsByMoment = () => ls.get('versions.view') === 'moments';
 function verPic(x) {
   const c = x.kind === 'card' && cards.find(y => 'card:' + y.id === x.k);
   if (c) return `<img alt="" data-blob="${c.thumbId}">`;
+  if (x.kind === 'file') { const f = fidx.get(x.to || x.path); return f && f.thumbId ? `<img alt="" data-blob="${f.thumbId}">` : `<span class="vgly">${ICON_DOC(24)}</span>`; }
   if (x.kind === 'card') return `<img alt="" data-vtile="${esc(`${VERS}/${x.stamp}/${x.dir}`)}">`; // a deleted card: its tile from the kept copy
   return `<span class="vgly">${x.kind === 'note' ? ICON_DOC(24) : x.kind === 'deck' ? ICON_FOLDER(24) : ICON_CLOCK}</span>`;
 }
@@ -5501,7 +5544,7 @@ async function itemVersions(k, title, markId, after) {
       if (r && JSON.stringify(r) !== now && !out.some(o => JSON.stringify(o.rec) === JSON.stringify(r))) out.push({ ...x, label: r.title || r.site, what: r.title !== (BM.recs.get(markId) || {}).title ? `was “${r.title}”` : 'tags were ' + ((r.tags || []).join(', ') || 'none'), rec: r });
     }
     list = out;
-  } else list = list.filter(x => x.k === k);
+  } else list = list.filter(x => x.k === k || (k.startsWith('file:') && (x.path === k.slice(5) || x.to === k.slice(5))));
   sheet(`<h2>Previous versions</h2><p class="sub">${esc(title)}</p>
     <div class="list">${list.length ? list.map((x, i) => item('v' + i, `${esc(dayLabel(x.at))}, ${clock(x.at)}`, '', '', esc(x.what[0].toUpperCase() + x.what.slice(1)))).join('')
       : `<p class="note">No earlier copies in the last ${KEEP_DAYS} days.</p>`}</div>`,
@@ -5509,6 +5552,7 @@ async function itemVersions(k, title, markId, after) {
 }
 /* bring back the copy kept in Previous versions/<stamp>/; it goes through the usual saving, so what it replaces is kept in turn */
 async function agRestore(x) {
+  if (x.kind === 'file') return fileRestore(x);
   const vdir = `${VERS}/${x.stamp}`;
   if (x.kind === 'card') {
     const j = await agJSON(`${vdir}/${x.dir}/card.json`); if (!j || !j.card) return false;
@@ -5567,6 +5611,234 @@ async function agRestore(x) {
     return true;
   }
   return false;
+}
+
+/* ================= My Files: moving, renaming, editing and deleting files ================= */
+/* Only when you ask (the owner's picks A2 and B2: Move and Delete beside ⋯ while selecting, moving on full folder pages).
+   Every change can be undone from Previous versions: a deleted or edited file's earlier copy goes to
+   Agora/Previous versions/<hour>/My Files/<its path> first, and a move or rename is noted so the file can go back.
+   Each change is one line in that hour's changes.json: {k: 'file:<path>', kind: 'file', op: 'delete' | 'edit' | 'move', path, to?, tags?, dir (the kept copy)}. */
+ICON.move = svg('<path d="M3.5 7.5V18a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5V9.5A1.5 1.5 0 0 0 19 8h-7.2L9.6 5.5H5A1.5 1.5 0 0 0 3.5 7v.5z"/><path d="M10 13.5h6M13.5 11l2.5 2.5-2.5 2.5"/>');
+ICON.rename = svg('<path d="M4 17.5V20h2.5L17 9.5 14.5 7z"/><path d="M13 20h7"/>');
+ICON.text = svg('<path d="M6.5 3.5h7.5l4.5 4.5v12.5h-12z"/><path d="M9 13h6M9 16.5h4"/>');
+ICON.newfolder = svg('<path d="M3.5 7.5V18a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5V9.5A1.5 1.5 0 0 0 19 8h-7.2L9.6 5.5H5A1.5 1.5 0 0 0 3.5 7v.5z"/><path d="M12 11v5M9.5 13.5h5"/>');
+const fsJoin = (dir, name) => dir ? `${dir}/${name}` : name;
+const parentOf = p => p.includes('/') ? p.slice(0, p.lastIndexOf('/')) : '';
+async function fsDir(dir, create) { let d = FX.root; for (const p of dir.split('/').filter(Boolean)) d = await d.getDirectoryHandle(p, { create: !!create }); return d; }
+async function fsExists(dir, name) {
+  let d; try { d = await fsDir(dir); } catch { return false; }
+  try { await d.getFileHandle(name); return true; } catch {}
+  try { await d.getDirectoryHandle(name); return true; } catch { return false; }
+}
+/* a name not used in that folder yet: "receipt.jpg", then "receipt 2.jpg" */
+async function freeName(dir, name, skip) {
+  const dot = name.lastIndexOf('.'), stem = dot > 0 ? name.slice(0, dot) : name, ext = dot > 0 ? name.slice(dot) : '';
+  let n = name, i = 2;
+  while (n !== skip && await fsExists(dir, n)) n = `${stem} ${i++}${ext}`;
+  return n;
+}
+const badName = n => !n || /[\\/:*?"<>|]/.test(n) || /^\.+$/.test(n);
+/* the folder has to be allowed again after Android forgot it: the tap that asked for the change does it */
+const fsNeed = () => FX.ready ? Promise.resolve(true) : connectFiles();
+/* the earlier copy of one of your files, before Agora changes or deletes it; returns where it was kept */
+async function fsKeepFile(path, stamp) {
+  const f = await fileOf(path);
+  let vp = `My Files/${path}`;
+  if (await agRead(`${VERS}/${stamp}/${vp}`)) { const d = new Date(), t = [d.getHours(), d.getMinutes(), d.getSeconds()].map(x => String(x).padStart(2, '0')).join('.'), dot = vp.lastIndexOf('.');
+    vp = dot > vp.lastIndexOf('/') ? `${vp.slice(0, dot)} (${t})${vp.slice(dot)}` : `${vp} (${t})`; }
+  await agPut(`${VERS}/${stamp}/${vp}`, f);
+  return vp;
+}
+const fileLog = (stamp, log) => agWriteLog(stamp, log.map(x => ({ kind: 'file', at: Date.now(), run: AG.fileRun || Date.now(), why: '', ...x })), true);
+/* the index follows a file or a folder (and everything in it) to its new place, keeping tags and pictures */
+async function idxMove(from, to) {
+  const moved = [], gone = [];
+  for (const r of [...fidx.values()]) {
+    if (r.path !== from && !r.path.startsWith(from + '/')) continue;
+    const np = to + r.path.slice(from.length), nr = { ...r, path: np, dir: parentOf(np), name: np.slice(np.lastIndexOf('/') + 1) };
+    if (nr.kind === 'file') nr.ext = fext(nr.name);
+    fidx.delete(r.path); gone.push(r.path); fidx.set(np, nr); moved.push(nr);
+    if (FX.handles) FX.handles.delete(r.path);
+  }
+  fchanged();
+  await fstore.del('files', gone).catch(() => {}); await fstore.put('files', moved).catch(storageFail);
+  tagsChanged();
+}
+async function copyInto(src, target, name) {
+  if (src.kind === 'file') {
+    const f = await src.getFile(), fh = await target.getFileHandle(name, { create: true }), w = await fh.createWritable();
+    await w.write(f); await w.close();
+    if ((await fh.getFile()).size !== f.size) throw new Error('copy incomplete');
+    return;
+  }
+  const d = await target.getDirectoryHandle(name, { create: true });
+  for await (const [n, h] of src.entries()) await copyInto(h, d, n);
+}
+/* move (or rename) one file or folder; returns its new path */
+async function fsMoveOne(from, toDir, newName) {
+  const r = fidx.get(from), dir = parentOf(from), name = from.slice(from.lastIndexOf('/') + 1), nm = newName || name;
+  if (toDir === dir && nm === name) return from;
+  if (r && r.kind === 'dir' && (toDir === from || toDir.startsWith(from + '/'))) throw new Error('into itself');
+  const src = r && r.kind === 'dir' ? await (await fsDir(dir)).getDirectoryHandle(name) : await handleOf(from);
+  const target = await fsDir(toDir, true), free = await freeName(toDir, nm, toDir === dir && nm.toLowerCase() === name.toLowerCase() ? nm : null);
+  let done = false;
+  // the phone's own move keeps the file's date; where it isn't there, copy then remove
+  if (src.move) { try { await src.move(target, free); done = true; } catch (e) { console.warn('move', e); } }
+  if (!done) { await copyInto(src, target, free); await (await fsDir(dir)).removeEntry(name, { recursive: true }); }
+  const to = fsJoin(toDir, free);
+  await idxMove(from, to);
+  return to;
+}
+async function fsMove(paths, toDir, stamp = agStamp()) {
+  const log = [], out = [];
+  for (const p of paths) {
+    const to = await fsMoveOne(p, toDir); if (to === p) continue;
+    const r = fidx.get(to), same = parentOf(p) === parentOf(to);
+    log.push({ k: 'file:' + p, op: 'move', path: p, to, label: r ? r.name : to, what: same ? `renamed from “${p.slice(p.lastIndexOf('/') + 1)}”` : `moved from ${fname(parentOf(p))}` });
+    out.push(to);
+  }
+  await fileLog(stamp, log);
+  return out;
+}
+async function fsDelete(paths) {
+  const stamp = agStamp(), log = [], gone = [];
+  for (const p of paths) {
+    const r = fidx.get(p); if (!r || r.kind !== 'file') continue;
+    const vp = await fsKeepFile(p, stamp);
+    await (await fsDir(r.dir)).removeEntry(r.name);
+    log.push({ k: 'file:' + p, op: 'delete', path: p, dir: vp, label: r.name, what: 'deleted', tags: fileTags(r) });
+    fidx.delete(p); gone.push(p); if (FX.handles) FX.handles.delete(p); if (r.thumbId) forget([r.thumbId]);
+  }
+  fchanged(); await fstore.del('files', gone).catch(() => {}); tagsChanged();
+  await fileLog(stamp, log);
+  return gone.length;
+}
+async function fsWriteText(path, text, what = 'edited') {
+  const stamp = agStamp(), r = fidx.get(path), vp = await fsKeepFile(path, stamp);
+  const h = await handleOf(path), w = await h.createWritable(); await w.write(text); await w.close();
+  const f = await h.getFile();
+  if (r) { Object.assign(r, { size: f.size, mtime: f.lastModified }); fstore.put('files', [r]).catch(storageFail); }
+  await fileLog(stamp, [{ k: 'file:' + path, op: 'edit', path, dir: vp, label: r ? r.name : path, what }]);
+}
+/* Previous versions: a deleted file comes back (beside one that took its name), an edited one gets its old text, a moved one goes back */
+async function fileRestore(x) {
+  if (!(await fsNeed())) return false;
+  if (x.op === 'move') {
+    if (!fidx.get(x.to)) return false;
+    const stamp = agStamp(), name = x.path.slice(x.path.lastIndexOf('/') + 1), to = await fsMoveOne(x.to, parentOf(x.path), name);
+    await fileLog(stamp, [{ k: 'file:' + x.to, op: 'move', path: x.to, to, label: fidx.get(to) ? fidx.get(to).name : name, what: 'moved back' }]);
+    return true;
+  }
+  const f = await agRead(`${VERS}/${x.stamp}/${x.dir}`); if (!f) return false;
+  const dir = parentOf(x.path), name = x.path.slice(x.path.lastIndexOf('/') + 1);
+  if (x.op === 'edit' && fidx.get(x.path)) { await fsWriteText(x.path, f, 'brought back an earlier copy'); return true; }
+  const free = await freeName(dir, name), d = await fsDir(dir, true), fh = await d.getFileHandle(free, { create: true }), w = await fh.createWritable();
+  await w.write(f); await w.close();
+  const got = await fh.getFile(), path = fsJoin(dir, free), now = Date.now();
+  // its folders, if they had gone from the list, and the file with its tags
+  const add = [];
+  for (let p = dir; p && !fidx.get(p); p = parentOf(p)) add.push({ path: p, kind: 'dir', name: p.slice(p.lastIndexOf('/') + 1), dir: parentOf(p) });
+  const r = { path, kind: 'file', name: free, dir, size: got.size, mtime: got.lastModified, ext: fext(free) };
+  if (x.tags && x.tags.length) { r.tags = x.tags; r.tagsAt = now; }
+  add.push(r); add.forEach(a => fidx.set(a.path, a)); fchanged();
+  await fstore.put('files', add).catch(storageFail); tagsChanged(); thumbsLater();
+  return true;
+}
+
+/* ---- the screens ---- */
+function fileDeleteSheet(paths, after) {
+  const rs = paths.map(p => fidx.get(p)).filter(Boolean), n = rs.length; if (!n) return;
+  const names = rs.slice(0, 2).map(r => esc(r.name)).join(' and ') + (n > 2 ? ` and ${n - 2} more` : '');
+  sheet(`<h2>Delete ${n === 1 ? esc(rs[0].name) : plural(n, 'file')}?</h2>
+    <p class="note">${n === 1 ? 'It goes' : `${names} go`} to Previous versions in the Agora folder for ${KEEP_DAYS} days, so you can bring ${n === 1 ? 'it' : 'them'} back.</p>
+    <div class="btns"><button class="btn" data-act="keep">Keep</button><button class="btn danger" data-act="yes">Delete</button></div>`, {
+    keep: () => closeSheet(),
+    yes: async () => {
+      if (!(await fsNeed())) return;
+      let k = 0; try { k = await fsDelete(paths); } catch (e) { console.warn(e); }
+      closeSheet(() => { if (after) after(); refreshFiles(); renderHome(); toast(k ? (k === 1 ? `Deleted ${rs[0].name}` : `Deleted ${plural(k, 'file')}`) : 'Couldn’t delete that'); });
+    }
+  });
+}
+function fileRenameSheet(path, after) {
+  const r = fidx.get(path); if (!r) return;
+  askSheet({ title: r.kind === 'dir' ? 'Rename folder' : 'Rename', value: r.name, btn: 'Rename', label: 'New name', max: 255, done: async x => {
+    if (x === r.name) { closeSheet(); return; }
+    if (badName(x)) { toast('A name can’t have / \\ : * ? " < > |'); return; }
+    if (!(await fsNeed())) return;
+    let to = null; try { to = await renameTo(path, x); } catch (e) { console.warn(e); }
+    closeSheet(() => { if (to) { if (after) after(to); refreshFiles(); toast(`Renamed to ${fidx.get(to) ? fidx.get(to).name : x}`); } else toast('Couldn’t rename that'); });
+  } });
+  // only the name is picked out, so typing keeps the extension
+  setTimeout(() => { const i = $('#askIn'); if (!i) return; const dot = r.kind === 'file' ? r.name.lastIndexOf('.') : -1; i.focus(); i.setSelectionRange(0, dot > 0 ? dot : r.name.length); }, 420); // after the sheet's own select-all
+}
+async function renameTo(path, name) {
+  const stamp = agStamp(), to = await fsMoveOne(path, parentOf(path), name), r = fidx.get(to);
+  if (to !== path) await fileLog(stamp, [{ k: 'file:' + path, op: 'move', path, to, label: r ? r.name : name, what: `renamed from “${path.slice(path.lastIndexOf('/') + 1)}”` }]);
+  return to;
+}
+function newFolderSheet(dir, after) {
+  askSheet({ title: 'New folder', max: 255, sub: esc(['My Files', ...(dir ? dir.split('/') : [])].join(' › ')), placeholder: 'Folder name', btn: 'Create', done: async x => {
+    if (badName(x)) { toast('A name can’t have / \\ : * ? " < > |'); return; }
+    if (!(await fsNeed())) return;
+    let path = null;
+    try {
+      const name = await freeName(dir, x); await (await fsDir(dir)).getDirectoryHandle(name, { create: true });
+      path = fsJoin(dir, name); const r = { path, kind: 'dir', name, dir }; fidx.set(path, r); fchanged(); await fstore.put('files', [r]).catch(storageFail);
+    } catch (e) { console.warn(e); }
+    closeSheet(() => { if (!path) { toast('Couldn’t make that folder'); return; } refreshFiles(); if (after) after(path); });
+  } });
+}
+/* moving: full folder pages (pick B2), only folders shown, "Move here" at the bottom */
+function startMove(paths) {
+  if (!paths.length) return;
+  const M = { paths, from: parentOf(paths[0]) };
+  newPage({ kind: 'files', dir: '', moving: M });
+}
+const movingPages = M => pages.filter(p => p.moving === M);
+function movingBar(v) {
+  const M = v.moving, n = M.paths.length, here = M.paths.every(p => parentOf(p) === v.dir);
+  return `<div class="pbar"><button class="iconbtn" data-p="mcancel" aria-label="Stop moving">${ICON.close}</button>
+    <div class="ptitle"><span class="selcount" style="flex:none">Moving ${n === 1 ? esc(fidx.get(M.paths[0]) ? fidx.get(M.paths[0]).name : '1 file') : plural(n, 'file')}</span></div></div>`
+    + `<div class="mvbar"><span class="to">To: ${esc(fname(v.dir))}</span><button class="btn" data-p="mnew">New folder</button><button class="btn primary" data-p="mhere" ${here ? 'disabled' : ''}>Move here</button></div>`;
+}
+async function onMovingClick(b, v) {
+  const M = v.moving, p = b.dataset.p;
+  if (p === 'mcancel') back(null, movingPages(M).length);
+  else if (p === 'mnew') newFolderSheet(v.dir, path => newPage({ kind: 'files', dir: path, moving: M }));
+  else if (b.dataset.fd != null) { if (!M.paths.includes(b.dataset.fd)) newPage({ kind: 'files', dir: b.dataset.fd, moving: M }); }
+  else if (p === 'mhere') {
+    if (!(await fsNeed())) return;
+    progressSheet('Moving', plural(M.paths.length, 'file'));
+    let out = []; try { out = await fsMove(M.paths, v.dir); } catch (e) { console.warn(e); }
+    const to = fname(v.dir);
+    closeSheet(() => back(() => { refreshFiles(); toast(out.length ? `Moved ${out.length === 1 ? fidx.get(out[0]).name : plural(out.length, 'file')} to ${to}` : 'Couldn’t move that'); }, movingPages(M).length));
+  }
+}
+/* editing a text file: Plex Mono like Notes, saved with Save and when you leave */
+function openTextEdit(path) {
+  const r = fidx.get(path); if (!r) return;
+  newPage({ kind: 'ftext', path, title: r.name, onClose: v => { if (v.text != null && v.box && v.box.value !== v.text) saveText(v, true); } });
+}
+function renderTextEdit(v) {
+  if (v.box) return;
+  v.el.innerHTML = `<div class="home">${pageBar(v, '<button class="textbtn" data-p="tsave">Save</button>')}<textarea class="fedit" spellcheck="false" aria-label="Text" placeholder="Opening…" disabled></textarea></div>`;
+  v.box = $('.fedit', v.el);
+  fsNeed().then(async ok => {
+    if (!ok) { v.box.placeholder = 'Agora needs My Files to open this'; return; }
+    try { v.text = await (await fileOf(v.path)).text(); v.box.value = v.text; v.box.disabled = false; v.box.placeholder = ''; }
+    catch { v.box.placeholder = 'Couldn’t open this file'; }
+  });
+}
+async function saveText(v, leaving) {
+  const t = v.box.value; if (t === v.text) { if (!leaving) toast('No changes'); return; }
+  try { await fsWriteText(v.path, t); v.text = t; toast('Saved · the earlier copy is in Previous versions'); if (FV) showFile(FV.i, 0); }
+  catch (e) { console.warn(e); toast('Couldn’t save the file'); }
+}
+function onTextClick(e, v) {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.p === 'back') back();
+  else if (b.dataset.p === 'tsave') saveText(v);
 }
 
 /* ================= start ================= */

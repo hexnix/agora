@@ -43,18 +43,21 @@ This repo is the app. `main` is published by GitHub Pages at https://hexnix.gith
 
 ## Storage
 
-IndexedDB database `subtext`, version 2 (v23; version 1 had the first four stores), with five stores. The database keeps the app's old name on purpose: renaming it would leave every saved card behind. The upgrade step only adds `files`; it never touches the other stores.
+IndexedDB database `subtext` holds the cards. It keeps the app's old name on purpose: renaming it would leave every saved card behind. **It is opened without a version number and is never upgraded** (v24): an upgrade waits until every other copy of Agora lets go of the database, and an older copy left in a background Chrome tab never does, so v23 (which upgraded it to version 2) opened to a black screen. On the phone it may be at version 1 or 2; both open the same way. New kinds of data get **their own database** instead.
 
 | Store | Key | Holds |
 |---|---|---|
 | `decks` | `id` | `{id, name, sort, createdAt, coverId?, coverCard?, subs?, srcNames?, srcHidden?}` |
 | `cards` | `id`, index `deckId` | see the card fields below |
-| `blobs` | `id` | `{id, blob}`: every image, thumbnail and PDF (file thumbnails are `ft-…`) |
-| `meta` | `k` | flags: `seeded`, `reviewRules2`; `filesRoot` (`{h}`: the My Files folder handle); `fileTagsPending` (`{v: [entries]}`: tags of files not found right now) |
-| `files` | `path` | the index of My Files, one record per file or folder (see "My Files") |
+| `blobs` | `id` | `{id, blob}`: every image, thumbnail and PDF (My Files thumbnails are `ft-…`) |
+| `meta` | `k` | flags: `seeded`, `reviewRules2` |
+| (`files`) | `path` | only in a database v23 upgraded: its My Files index, copied once into `agora-files` and no longer used |
+
+IndexedDB database `agora-files` (v24), version 1, holds My Files: store `files` (key `path`, the index, see "My Files") and store `meta` (key `k`: `filesRoot` `{h}` the folder handle, `fileTagsPending` `{v: [entries]}` tags of files not found right now, `moved` the v23 index has been copied over). It loads after the decks are on screen, so My Files can never hold them up.
 
 - `localStorage` only remembers small things under `agora.` keys (older `subtext.` keys are still read), such as `hinted2` (the first-run gesture hint has been seen), `files.view` (`list` / `grid`) and `files.sort`.
-- Adding a store means a database version bump plus an upgrade step. **Never drop or rewrite the owner's data.** They have hundreds of cards on the phone and only a backup zip.
+- **Never upgrade `subtext`** (no version bump, no new stores there). A new kind of data gets a new database of its own, opened after the decks are on screen. **Never drop or rewrite the owner's data.** They have over a thousand cards on the phone and only a backup zip.
+- If the cards' database takes more than 2.5 s to open, the home screen says "Opening your cards… If Agora is also open in a Chrome tab, close that tab and Agora will carry on." instead of staying black.
 
 **Card fields:**
 - `id` (`imp-<timestamp of the first definition screenshot>` for imported cards), `deckId`, `seq`, `word`, `addedAt`.
@@ -121,11 +124,11 @@ The owner keeps important files (documents, PDFs, photos, anything) in a folder 
 - **No pop-up on launch.** The app opens without touching the folder. Android asks for the folder again every time the app is reopened (`queryPermission()` says "prompt"), so only an action that needs the folder asks, with one tap: the first connect, Refresh, opening or sharing a file. The tap that opens a file is also the tap that reconnects. When Agora becomes a real Android app, that tap is the only thing that goes away.
 - The **File System Access API** (`showDirectoryPicker`) is in Chrome on Android, not in Brave. Without it the file features hide and the home screen shows one line: "My Files needs Chrome: this browser doesn't let Agora open folders."
 
-**The index** (store `files`, in memory `fidx`): `{path, kind: 'dir' | 'file', name, dir, size, mtime, ext, tags, tagsAt, thumbId, thumbKey, noThumb}`. `path` is inside the folder ("Documents/Bank/x.pdf"), `dir` the folder's path ('' for the top). Browsing and search work from the index alone, before the folder is connected.
+**The index** (database `agora-files`, store `files`, in memory `fidx`, written through `fstore`): `{path, kind: 'dir' | 'file', name, dir, size, mtime, ext, tags, tagsAt, thumbId, thumbKey, noThumb}`. `path` is inside the folder ("Documents/Bank/x.pdf"), `dir` the folder's path ('' for the top). Browsing and search work from the index alone, before the folder is connected.
 - **Refresh** (`rescan`): walks the whole folder in the background (the count updates on the page; Chrome froze on huge folders, so nothing blocks the screen), skips hidden names (starting with "."), then `reconcile`: new, removed and changed files. A renamed or moved file keeps its tags and picture: same name + size + date, else same name + size, else same size + date (only when exactly one file matches). A tagged file that has gone is kept aside in `fileTagsPending`, so its tags come back if it does.
 - **Thumbnails** (`makeFileThumbs`): 400-px JPEGs of images and of a PDF's first page, made one at a time after a refresh, the folder on screen first; originals are read only when opened or shared.
 - **Tags are saved twice:** in the index at once, and in `.agora/file-tags.json` (`{app: 'agora', kind: 'file-tags', version: 1, files: [{path, name, size, mtime, tags, at, missing?}]}`), written whenever tags change while connected (`tagsChanged` → `saveTagsFile`, one small write) and read back on every connect (`readTagsFile`). In every merge (`mergeTagEntries`: the folder's copy, a backup, the set-aside list) the newer change (`at` / `tagsAt`) wins.
-- **Connecting** (`connectFiles`): must run straight from a tap. The folder handle is kept in `meta.filesRoot`; "Choose a different folder" picks again.
+- **Connecting** (`connectFiles`): must run straight from a tap. The folder handle is kept in `agora-files` `meta.filesRoot`; "Choose a different folder" picks again.
 
 **Screens:**
 - **Home tile** "My Files" after the decks: a mosaic of the four newest pictures (or a folder), "N files · N folders", or "Tap to connect" before the first connect. Its ⋯ (`filesMenu`): Refresh the list / Connect My Files, Choose a different folder.
@@ -210,12 +213,13 @@ python3 tools/app-test/harness.py . --zips tools/app-test/fixtures/test-library.
 - Always check: the Back behaviour, re-importing the zip reports "already up to date", and there are no JavaScript errors.
 - Merriweather italics look upright in test screenshots (the test font has no true italic); the phone shows real italics.
 - Don't commit `shots/`.
-- **My Files:** `python3 tools/app-test/test_files.py . --out shots/files/`. The folder picker can't be clicked in a test, so it fills the origin private file system (`navigator.storage.getDirectory()`) with made-up folders and files and hands it to the app as My Files (`window.showDirectoryPicker = async () => dir`). It checks the index, list and grid, the path, tagging (sheet and quick tagging), `.agora/file-tags.json`, search, the viewer, Share (stubbed), a moved file keeping its tags, Back, the backup, re-imports and the database upgrade from version 1. Never put real files in the repo.
+- **My Files:** `python3 tools/app-test/test_files.py . --out shots/files/`. The folder picker can't be clicked in a test, so it fills the origin private file system (`navigator.storage.getDirectory()`) with made-up folders and files and hands it to the app as My Files (`window.showDirectoryPicker = async () => dir`). It checks the index, list and grid, the path, tagging (sheet and quick tagging), `.agora/file-tags.json`, search, the viewer, Share (stubbed), a moved file keeping its tags, Back, the backup, re-imports, and updating from older versions: the new version must open the cards while v22 is still open in another tab (the v23 black screen), and must carry over a My Files index v23 saved. Never put real files in the repo.
 - **When the app learns a new card field,** add a card using it to `tools/app-test/make_test_library.py` and rebuild the zip (`python3 tools/app-test/make_test_library.py`).
 
 ## Things that bite
 
 - **The script is one closure**, so its functions aren't reachable from the page console. The harness patches in `window.T` for tests; never ship that patch.
+- **IndexedDB upgrades can hang forever** on the phone: an older copy of Agora in a frozen background Chrome tab never closes its connection. Never call `indexedDB.open('subtext', N)`; see Storage.
 - **Tests run with service workers blocked.** For a change to `sw.js` itself, reason carefully about how an update rolls out: phones keep the old cache until they get the new VERSION.
 - **Replacing an image:** store the new blob, point the card at it, then `forget(oldIds)`. PDFs are shared, so use `dropPdf(id)`, which only deletes a PDF no card uses.
 - **Anything slow belongs in the background.** Keep the study view smooth: preload the next card (`preload`), render PDFs lazily.
@@ -232,6 +236,7 @@ python3 tools/app-test/harness.py . --zips tools/app-test/fixtures/test-library.
 - **v21:** page titles sit beside "<" in a bar locked at the top; selecting cards no longer flickers (loaded pictures show at once on any redraw).
 - **v22:** the app is renamed from Subtext to Agora (home-screen name, page title, messages, backup file name `agora-backup-…zip`, manifest `app: 'agora'`). The database keeps its old name so every card stays; older Subtext backups and import zips still import.
 
-- **v23:** My Files: a tile after the decks opens the phone's My Files folder (list or grid, path, sort); tag files one at a time, many at once, or with Quick tagging; search finds files and folders under the cards; images, PDFs, text, video and audio open inside Agora, and Share / Open with… sends any file to another app. Database version 2 adds the `files` store; file tags are also kept in `.agora/file-tags.json` and in backups. Backups keep a video definition's `src`.
+- **v23:** My Files: a tile after the decks opens the phone's My Files folder (list or grid, path, sort); tag files one at a time, many at once, or with Quick tagging; search finds files and folders under the cards; images, PDFs, text, video and audio open inside Agora, and Share / Open with… sends any file to another app. Database version 2 adds the `files` store; file tags are also kept in `.agora/file-tags.json` and in backups. Backups keep a video definition's `src`. (Opened to a black screen when an older copy was open in a Chrome tab: the database upgrade waited for it.)
+- **v24:** fix for the v23 black screen: the cards' database is opened as it is and never upgraded; My Files moves to its own database `agora-files` (a v23 index is copied over) and loads after the decks show; a plain message replaces a black screen if the cards ever take long to open.
 
 Add a line here with every version you ship.

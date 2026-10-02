@@ -4972,7 +4972,8 @@ async function importMarks(list) {
    The folder:
      Read me.txt
      Cards/<deck>/deck.json (+ cover), Cards/<deck>/cards.json (every card of the deck), Cards/<deck>/Pictures/<word> scene.jpg,
-       <word> tile.jpg, <word> definition.jpg, <word> definition 2.jpg…, <word> source.jpg
+       <word> definition.jpg, <word> definition 2.jpg…, <word> source.jpg (no tiles since v36: they are redrawn from the scene)
+     .nomedia                     keeps these pictures out of the phone's Gallery
      Magazines/<key>.pdf          the magazine pages' PDFs, one per magazine, shared by its cards
      Notes/<title>.html            each note as a page any browser opens; its pictures in Notes/pictures/
      Bookmarks.json, Study progress.json, History.json
@@ -5235,7 +5236,8 @@ async function agCard(k, id, stamp, at) {
 }
 async function agCardTo(k, c, rec, base, nm, dir, stamp, at) {
   const flatWas = !!rec && !!rec.flat, moved = !!rec && rec.dir !== dir, name = lastPart(dir), pdir = picDir(base);
-  const slots = [['scene', c.frameId], ['tile', c.thumbId], ...defIdsOf(c).map((b, i) => [i ? `definition ${i + 1}` : 'definition', b]), ['source', c.ref && c.ref.thumbId]]
+  // no tile picture: on Android every file is a slow trip, and a tile is redrawn from the scene (agCardIn)
+  const slots = [['scene', c.frameId], ...defIdsOf(c).map((b, i) => [i ? `definition ${i + 1}` : 'definition', b]), ['source', c.ref && c.ref.thumbId]]
     .map(([stem, b]) => [`${name} ${stem}`, b]);
   // nothing changed since it was last written
   if (flatWas && !moved && hashOf(JSON.stringify(agEntry(c, rec.files, name))) === rec.sum) {
@@ -5363,6 +5365,8 @@ function agFlush() {
     const stamp = agStamp(); AG.log = []; AG.done = 0; AG.phase = 'write'; AG.empty = []; AG.runAt = Date.now(); AG.stamp = stamp; AG.decks = new Map(); AG.claim.clear();
     if (AG.why && Date.now() - AG.whyAt > 120000) AG.why = ''; // a reason only holds for the changes right after it
     agBusy(true);
+    // .nomedia keeps the cards' pictures out of the phone's Gallery (and spares Android indexing each one)
+    if (!AG.nomedia) { if (!(await agRead('.nomedia'))) await agPut('.nomedia', '').catch(() => {}); AG.nomedia = true; }
     let lastPaint = 0;
     const one = async ([k, at]) => {
       if (!agOn()) return;
@@ -5525,6 +5529,8 @@ async function agCardIn(card, files, dirs, home) {
   }
   if (!blobs.some(b => b.id === card.frameId) && !(await store.get('blobs', card.frameId).catch(() => null))) return null; // no scene: not a card
   if (blobs.length) await store.put('blobs', blobs);
+  // the folder keeps no tiles (v36): a card whose tile isn't on the phone gets one drawn from its scene
+  if (!card.thumbId || !(await store.get('blobs', card.thumbId).catch(() => null))) { card.thumbKey = 'redraw'; clearTimeout(AG.retile); AG.retile = setTimeout(refreshTiles, 800); }
   card.deckId = home.id; if (!card.defIds || !card.defIds.length) card.defIds = [card.defId];
   const i = cards.findIndex(c => c.id === card.id);
   if (i >= 0) cards[i] = card; else cards.push(card);
@@ -5616,7 +5622,7 @@ function verPic(x) {
   const c = x.kind === 'card' && cards.find(y => 'card:' + y.id === x.k);
   if (c) return `<img alt="" data-blob="${c.thumbId}">`;
   if (x.kind === 'file') { const f = fidx.get(x.to || x.path); return f && f.thumbId ? `<img alt="" data-blob="${f.thumbId}">` : `<span class="vgly">${ICON_DOC(24)}</span>`; }
-  if (x.kind === 'card' && x.files) { const t = Object.keys(x.files).find(isTile); if (t) return `<img alt="" data-vpic="${esc(`${VERS}/${x.stamp}/${parentOf(x.dir)}/${t}`)}">`; }
+  if (x.kind === 'card' && x.files) { const t = Object.keys(x.files).find(isTile) || Object.keys(x.files).find(n => / scene\.[^.]+$/.test(n)); if (t) return `<img alt="" data-vpic="${esc(`${VERS}/${x.stamp}/${parentOf(x.dir)}/${t}`)}">`; }
   if (x.kind === 'card') return `<img alt="" data-vtile="${esc(`${VERS}/${x.stamp}/${x.dir}`)}">`; // a deleted card: its tile from the kept copy
   return `<span class="vgly">${x.kind === 'note' ? ICON_DOC(24) : x.kind === 'deck' ? ICON_FOLDER(24) : ICON_CLOCK}</span>`;
 }

@@ -83,11 +83,12 @@ async def main(app, out):
         check(await pg.evaluate(IDLE), 'first copy finished')
         files = await pg.evaluate(LIST)
         want = ['Agora/Read me.txt', 'Agora/Cards/Example Show/cards.json', 'Agora/Cards/Example Show/Pictures/candor scene.jpg',
-                'Agora/Cards/Example Show/Pictures/candor tile.jpg', 'Agora/Cards/Example Show/Pictures/brusque definition 2.jpg', 'Agora/Cards/Example Show/deck.json',
+                'Agora/Cards/Example Show/Pictures/brusque definition 2.jpg', 'Agora/Cards/Example Show/deck.json',
                 'Agora/Cards/Example Reading/Pictures/heuristic source.jpg', 'Agora/Notes/Weekend plan.html', 'Agora/Notes/pictures/ni-test1.jpg',
                 'Agora/Bookmarks.json', 'Agora/Study progress.json', 'Agora/History.json']
         for w in want: check(w in files, f'folder has {w}')
         check(any(p.startswith('Agora/Magazines/') and p.endswith('.pdf') for p in files), 'folder has the magazine PDF')
+        check('Agora/.nomedia' in files and not any(' tile.' in p for p in files), '.nomedia keeps the pictures out of the Gallery; no tiles kept')
         check(not any(k.startswith('Previous versions') for k in files), 'no previous versions after the first copy')
         # one folder per deck (the owner's pick): no folder for each card
         dirs = await pg.evaluate("""async () => { const out = []; const walk = async (d, p) => { for await (const [n, h] of d.entries()) if (h.kind === 'directory') { out.push(p + n); await walk(h, p + n + '/'); } };
@@ -208,6 +209,9 @@ async def main(app, out):
         files_b = await pg.evaluate(LIST)
         new = [k for k in files_b if k.startswith('Agora/Previous versions') and k not in dump]
         check(not new, f'bringing everything back changes nothing in the folder: {new}')
+        await pg.wait_for_timeout(2500)
+        tiles = await pg.evaluate("Promise.all(T.cards.map(async c => c.thumbKey !== 'redraw' && !!(await T.store.get('blobs', c.thumbId))))")
+        check(all(tiles), f'the new phone draws every tile from its scene (the folder keeps none): {tiles}')
         await ph.shot(f'{out}/8-new-phone-home.png')
         await ph.open_card('test-heuristic'); await ph.swipe(-300); await ph.shot(f'{out}/9-new-phone-meaning.png'); await ph.back(); await ph.back()
         await pg.evaluate("T.openNote('n-test1')"); await pg.wait_for_timeout(1200)

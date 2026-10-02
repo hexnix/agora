@@ -30,10 +30,16 @@ async def main(app, out):
         await pg.evaluate("""async () => { const src = T.cards.filter(c => !c.pdf); const out = [];
           for (let i = 0; i < 60; i++) { const c = src[i % src.length]; out.push({...c, id: c.id + '-copy' + i, word: i % 2 ? c.word : c.word + ' ' + i, named: true}); }
           T.cards.push(...out); await T.saveCards(out); }""")
-        await pg.evaluate("""ms => { const slow = (P, m) => { const f = P[m]; P[m] = async function (...a) { await new Promise(r => setTimeout(r, ms)); return f.apply(this, a); }; };
-          slow(FileSystemDirectoryHandle.prototype, 'getDirectoryHandle'); slow(FileSystemDirectoryHandle.prototype, 'getFileHandle');
-          slow(FileSystemDirectoryHandle.prototype, 'removeEntry'); slow(FileSystemFileHandle.prototype, 'createWritable');
-          slow(FileSystemFileHandle.prototype, 'getFile'); slow(FileSystemWritableFileStream.prototype, 'close'); }""", 40)
+        # Android's folder access, as Chrome uses it: one step at a time, each a trip through the system, and finding a name
+        # in a folder reads the whole folder (so a big folder costs more per lookup)
+        await pg.evaluate("""([ms, perEntry]) => { let q = Promise.resolve(); window._ops = 0;
+          const one = f => { const r = q.then(f); q = r.catch(() => {}); return r; };
+          const count = async d => { let n = 0; for await (const _ of d.keys()) n++; return n; };
+          const slow = (P, m, lookup) => { const f = P[m]; P[m] = function (...a) { return one(async () => { window._ops++;
+            const wait = ms + (lookup ? perEntry * await count(this) : 0); await new Promise(r => setTimeout(r, wait)); return f.apply(this, a); }); }; };
+          slow(FileSystemDirectoryHandle.prototype, 'getDirectoryHandle', true); slow(FileSystemDirectoryHandle.prototype, 'getFileHandle', true);
+          slow(FileSystemDirectoryHandle.prototype, 'removeEntry', true); slow(FileSystemFileHandle.prototype, 'createWritable');
+          slow(FileSystemFileHandle.prototype, 'getFile'); slow(FileSystemWritableFileStream.prototype, 'close'); }""", [8, 0.05])
         t = time.time()
         await pg.evaluate("async () => { const root = await navigator.storage.getDirectory(); window.showDirectoryPicker = async () => root; await T.connectFiles(true); }")
         done = await pg.evaluate("""async () => { for (let i = 0; i < 3000; i++) { await new Promise(r => setTimeout(r, 100));
@@ -50,7 +56,12 @@ async def main(app, out):
         check(len(names) == n and len({x.lower() for x in names}) == n, f'each of the {n} cards is in cards.json under its own name: {len(names)}')
         check('Cards/Example Show/Pictures/candor 2 scene.jpg' in dirs, 'a card sharing a name gets "candor 2"')
         per_min = n / dt * 60
-        check(per_min > 300, f'{per_min:.0f} cards a minute with slow folder steps (one at a time managed 46)')
+        pics = [p for p in dirs if '/Pictures/' in p]
+        ops = await pg.evaluate("window._ops")
+        print(f'{per_min:.0f} cards a minute, {len(pics)} pictures, {ops} folder steps ({ops / n:.1f} a card)')
+        check(not any(' tile.' in p for p in pics), 'no tile pictures in the folder (they are redrawn from the scene)')
+        check(ops / n < 9, f'few folder steps a card: {ops / n:.1f} (v35 took 8.7: it also wrote tiles)')
+        check(await pg.evaluate("T.AG.dirty.size") == 0, 'nothing left waiting')
         await ph.shot(f'{out}/home.png')
         errs = [e for e in ph.errors if 'favicon' not in e]
         check(not errs, f'no JavaScript errors: {errs}')

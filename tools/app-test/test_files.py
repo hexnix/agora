@@ -5,7 +5,7 @@
 Checks the folder index (hidden files skipped), the list and grid views, the path, hold-to-select and the tag sheet,
 quick tagging, the tags copy in .agora/file-tags.json, search mixing cards and files, the file viewer (picture, PDF, text),
 a moved file keeping its tags, Back stepping out one layer at a time, the backup carrying file tags, re-imports reporting
-"already up to date", the database upgrade from version 1, and JavaScript errors. Screenshots go to --out.
+"already up to date", updating from older versions (even with one still open in another tab), and JavaScript errors. Screenshots go to --out.
 Everything here is made up: never put real files in the repo.
 """
 import argparse, asyncio, base64, json, os, shutil, subprocess, sys, tempfile, zipfile
@@ -273,24 +273,46 @@ async def main(app, out):
 
 
 async def upgrade_test(app, fails):
-    """Cards saved by the last version (database version 1) are all still there after the update."""
+    """Updating from an older version: the cards open even while the older version is still open in another tab
+    (v23 opened to a black screen then), and a My Files index saved by v23 is carried over."""
     tmp = tempfile.mkdtemp()
+    def ok(cond, what):
+        print(('ok   ' if cond else 'FAIL ') + what)
+        if not cond: fails.append(what)
+    async def start(ph, html):
+        open(os.path.join(tmp, 'index.html'), 'w').write(html)
+        p = await ph.ctx.new_page(); errs = []
+        p.on('pageerror', lambda e: errs.append(str(e)))
+        await p.goto(ph.base); await p.wait_for_timeout(1500)
+        return p, errs
     try:
-        old = subprocess.run(['git', '-C', app, 'show', 'origin/main:index.html'], capture_output=True, text=True)
-        if old.returncode or 'indexedDB.open(\'subtext\', 1)' not in old.stdout:
-            print('skip upgrade test: no version-1 index.html on origin/main'); return
-        open(os.path.join(tmp, 'index.html'), 'w').write(old.stdout)
+        git = lambda rev: subprocess.run(['git', '-C', app, 'show', f'{rev}:index.html'], capture_output=True, text=True).stdout
+        v22, v23, new = git('e6e50da'), git('ef39d35'), open(os.path.join(app, 'index.html')).read()
+        if not v22 or not v23:
+            print('skip upgrade test: older versions not in this checkout'); return
+        # v22 (database version 1) stays open, like a forgotten Chrome tab, while the new version starts
+        open(os.path.join(tmp, 'index.html'), 'w').write(v22)
         async with Phone(tmp) as ph:
             await ph.imp([LIB_ZIP])
-            await ph.pg.evaluate("T.cards[0].review = true")
-            shutil.copy(os.path.join(app, 'index.html'), os.path.join(tmp, 'index.html'))
-            await ph.pg.reload(); await ph.pg.wait_for_timeout(1200)
-            n = await ph.pg.evaluate("T.cards.length"); decks = await ph.pg.evaluate("T.decks.length")
-            stores = await ph.pg.evaluate("""() => new Promise(r => { const q = indexedDB.open('subtext'); q.onsuccess = () => { r([q.result.version, [...q.result.objectStoreNames]]); q.result.close(); }; })""")
-            ok = n == 6 and decks == 2 and stores[0] == 2 and 'files' in stores[1] and 'blobs' in stores[1]
-            print(('ok   ' if ok else 'FAIL ') + f'database upgrade 1 → 2 keeps every card ({n} cards, {decks} decks, stores {stores})')
-            if not ok: fails.append('database upgrade')
-            if ph.errors: fails.append('errors after upgrade'); print('errors:', ph.errors)
+            p, errs = await start(ph, new)
+            n = await p.evaluate("T.cards.length")
+            ok(n == 6 and 'Your decks' in await p.inner_text('#home'), f'with an older Agora still open in another tab, the new one opens its cards ({n})')
+            ok(not errs, 'no JavaScript errors after the update')
+            ok(await p.evaluate("""() => new Promise(r => { const q = indexedDB.open('subtext'); q.onsuccess = () => { r(q.result.version); q.result.close(); }; })""") == 1, 'the cards\' database is left at its version')
+        # a phone where v23 upgraded the database (version 2) and saved a My Files index there
+        open(os.path.join(tmp, 'index.html'), 'w').write(v23)
+        async with Phone(tmp) as ph:
+            await ph.imp([LIB_ZIP])
+            await ph.pg.evaluate("""() => new Promise(r => { const q = indexedDB.open('subtext'); q.onsuccess = () => { const db = q.result; const t = db.transaction(['files', 'meta'], 'readwrite');
+              t.objectStore('files').put({ path: 'a.pdf', kind: 'file', name: 'a.pdf', dir: '', size: 10, mtime: 1, ext: 'pdf', tags: ['Home'], tagsAt: 5 });
+              t.objectStore('meta').put({ k: 'fileTagsPending', v: [{ path: 'gone.jpg', name: 'gone.jpg', size: 3, mtime: 2, tags: ['Goa'], at: 4 }] });
+              t.oncomplete = () => { db.close(); r(); }; }; })""")
+            await ph.pg.close()
+            p, errs = await start(ph, new)
+            n = await p.evaluate("T.cards.length")
+            ok(n == 6 and await p.evaluate("(T.fidx.get('a.pdf') || {}).tags?.join()") == 'Home' and await p.evaluate("T.FX.pending.length") == 1,
+               'a database upgraded by v23 still opens, and its My Files index and tags are carried over')
+            ok(not errs, 'no JavaScript errors after the v23 update')
     finally:
         shutil.rmtree(tmp)
 

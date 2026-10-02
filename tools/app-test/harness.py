@@ -92,7 +92,7 @@ class Phone:
             html = html[:i] + ("window.T={get cards(){return cards},get decks(){return decks},openStudy,get S(){return S},layer,extent,back,"
                                # My Files: the index, the folder and its screens
                                # (getters, so an older index.html without these still loads)
-                               "get FX(){return FX},get fidx(){return fidx},get FV(){return FV},get pages(){return pages},get connectFiles(){return connectFiles},get rescan(){return rescan},get openFolder(){return openFolder},get openViewer(){return openViewer},get openSearch(){return openSearch},get setFileTags(){return setFileTags},get saveTagsFile(){return saveTagsFile},get store(){return store},get blobURL(){return blobURL}};\n") + html[i:]
+                               "get FX(){return FX},get fidx(){return fidx},get FV(){return FV},get pages(){return pages},get connectFiles(){return connectFiles},get rescan(){return rescan},get openFolder(){return openFolder},get openViewer(){return openViewer},get openSearch(){return openSearch},get setFileTags(){return setFileTags},get saveTagsFile(){return saveTagsFile},get store(){return store},get fstore(){return fstore},get blobURL(){return blobURL}};\n") + html[i:]
             await r.fulfill(body=html, content_type='text/html')
         await ctx.route(self.base, page)
         await ctx.route(self.base + 'index.html', page)

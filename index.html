@@ -511,7 +511,7 @@ const ICON = {
 const ico = (name, label) => `<span class="ico">${ICON[name]}<span>${label}</span></span>`;
 
 /* ================= storage ================= */
-const STORES = ['decks', 'cards', 'blobs', 'meta', 'files'];
+const STORES = ['decks', 'cards', 'blobs', 'meta'];
 const KEYS = { decks: 'id', cards: 'id', blobs: 'id', meta: 'k', files: 'path' };
 function idbStore(db) {
   const done = t => new Promise((res, rej) => { t.oncomplete = () => res(); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error); });
@@ -523,8 +523,8 @@ function idbStore(db) {
     del(name, keys) { const t = db.transaction(name, 'readwrite'); const s = t.objectStore(name); keys.forEach(k => s.delete(k)); return done(t); }
   };
 }
-function memStore() {
-  const m = Object.fromEntries(STORES.map(s => [s, new Map()]));
+function memStore(names = STORES) {
+  const m = Object.fromEntries(names.map(s => [s, new Map()]));
   return {
     all: async n => [...m[n].values()],
     get: async (n, k) => m[n].get(k),
@@ -535,17 +535,17 @@ function memStore() {
 function openDB() {
   return new Promise((res, rej) => {
     // the database keeps its first name from when the app was called Subtext: renaming it would leave every saved card behind
-    // version 2 (v23) only adds the "files" store (the index of My Files); every older store and record stays as it is
-    const r = indexedDB.open('subtext', 2);
+    // No version number: the cards' database opens exactly as it is and is never upgraded. An upgrade has to wait until every
+    // other copy of Agora lets go of it, and an older copy left in a background Chrome tab never does (v23 opened to a black screen).
+    // New kinds of data get a database of their own instead, like My Files' "agora-files".
+    const r = indexedDB.open('subtext');
     r.onupgradeneeded = e => {
+      if (e.oldVersion >= 1) return; // only a brand-new database is set up here
       const d = r.result;
-      if (e.oldVersion < 1) {
-        d.createObjectStore('decks', { keyPath: 'id' });
-        d.createObjectStore('cards', { keyPath: 'id' }).createIndex('deckId', 'deckId');
-        d.createObjectStore('blobs', { keyPath: 'id' });
-        d.createObjectStore('meta', { keyPath: 'k' });
-      }
-      if (!d.objectStoreNames.contains('files')) d.createObjectStore('files', { keyPath: 'path' });
+      d.createObjectStore('decks', { keyPath: 'id' });
+      d.createObjectStore('cards', { keyPath: 'id' }).createIndex('deckId', 'deckId');
+      d.createObjectStore('blobs', { keyPath: 'id' });
+      d.createObjectStore('meta', { keyPath: 'k' });
     };
     r.onsuccess = () => { const db = r.result; db.onversionchange = () => db.close(); res(db); };
     r.onerror = () => rej(r.error);
@@ -553,6 +553,7 @@ function openDB() {
 }
 
 let store = memStore();
+let mainDB = null; // the cards' database itself, to see which stores it has
 let decks = [];
 let cards = [];
 
@@ -2582,7 +2583,7 @@ $('#zipPicker').addEventListener('change', async e => {
       // file tags from a backup: a newer change wins; files this phone hasn't listed yet get theirs when My Files is connected
       if (man.files && Array.isArray(man.files.tags)) {
         const { changed, wait } = mergeTagEntries(man.files.tags);
-        if (changed.length) { await store.put('files', changed); ftagged += changed.length; tagsChanged(); }
+        if (changed.length) { await fstore.put('files', changed); ftagged += changed.length; tagsChanged(); }
         fwait += await addPending(wait);
       }
     }
@@ -2644,11 +2645,30 @@ function kidsOf(dir) {
 const deepCount = dir => { kidsOf(dir); return deep.get(dir) || 0; };
 const allFiles = () => [...fidx.values()].filter(r => r.kind === 'file');
 
+/* My Files keeps its index in a database of its own, so adding it never touches (or waits on) the cards' database */
+let fstore = memStore(['files', 'meta']);
+function openFilesDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('agora-files', 1);
+    r.onupgradeneeded = () => { const d = r.result; d.createObjectStore('files', { keyPath: 'path' }); d.createObjectStore('meta', { keyPath: 'k' }); };
+    r.onsuccess = () => { const db = r.result; db.onversionchange = () => db.close(); res(db); };
+    r.onerror = () => rej(r.error);
+    r.onblocked = () => rej(new Error('blocked'));
+  });
+}
 async function loadFiles() {
+  try { fstore = idbStore(await openFilesDB()); } catch (e) { console.warn('files storage unavailable, using memory', e); }
   try {
-    (await store.all('files')).forEach(r => fidx.set(r.path, r));
-    const m = await store.get('meta', 'filesRoot'); if (m && m.h) FX.root = m.h;
-    const p = await store.get('meta', 'fileTagsPending'); if (p && Array.isArray(p.v)) FX.pending = p.v;
+    // v23 kept the index inside the cards' database (as version 2): bring it over once
+    if (mainDB && mainDB.objectStoreNames.contains('files') && !(await fstore.get('meta', 'moved'))) {
+      const old = await store.all('files');
+      const extra = (await Promise.all(['filesRoot', 'fileTagsPending'].map(k => store.get('meta', k)))).filter(Boolean);
+      if (old.length) await fstore.put('files', old);
+      await fstore.put('meta', [...extra, { k: 'moved', v: 1 }]);
+    }
+    (await fstore.all('files')).forEach(r => fidx.set(r.path, r));
+    const m = await fstore.get('meta', 'filesRoot'); if (m && m.h) FX.root = m.h;
+    const p = await fstore.get('meta', 'fileTagsPending'); if (p && Array.isArray(p.v)) FX.pending = p.v;
     // no asking at start: on a phone this is "not yet" until a tap; on a computer the folder may still be allowed
     if (FX.root) FX.ready = await fsPerm(FX.root, false);
   } catch (e) { console.warn('files index', e); }
@@ -2675,7 +2695,7 @@ async function connectFiles(pick) {
     catch { return false; } // the picker was closed
   }
   FX.root = h; FX.ready = true; FX.handles = null; FX.lastJson = null;
-  store.put('meta', [{ k: 'filesRoot', h, name: h.name }]).catch(e => console.warn(e));
+  fstore.put('meta', [{ k: 'filesRoot', h, name: h.name }]).catch(e => console.warn(e));
   filesRepaint();
   rescan();
   return true;
@@ -2755,8 +2775,8 @@ async function reconcile(seen) {
   lost.forEach(o => { if (o.thumbId) dropThumbs.push(o.thumbId); });
   const dels = [...old.keys()];
   dels.forEach(p => fidx.delete(p)); put.forEach(r => fidx.set(r.path, r)); fchanged();
-  for (let i = 0; i < dels.length; i += 500) await store.del('files', dels.slice(i, i + 500));
-  for (let i = 0; i < put.length; i += 500) await store.put('files', put.slice(i, i + 500));
+  for (let i = 0; i < dels.length; i += 500) await fstore.del('files', dels.slice(i, i + 500));
+  for (let i = 0; i < put.length; i += 500) await fstore.put('files', put.slice(i, i + 500));
   if (dropThumbs.length) forget(dropThumbs);
 }
 const tagEntry = r => ({ path: r.path, name: r.name, size: r.size || 0, mtime: r.mtime || 0, tags: fileTags(r), at: r.tagsAt || 0 });
@@ -2784,14 +2804,14 @@ async function addPending(list) {
     if (i < 0) { FX.pending.push(e); n++; }
     else if ((e.at || 0) > (FX.pending[i].at || 0)) { FX.pending[i] = e; n++; }
   }
-  if (n) { FX.pending = FX.pending.slice(-5000); await store.put('meta', [{ k: 'fileTagsPending', v: FX.pending }]).catch(storageFail); }
+  if (n) { FX.pending = FX.pending.slice(-5000); await fstore.put('meta', [{ k: 'fileTagsPending', v: FX.pending }]).catch(storageFail); }
   return n;
 }
 async function applyPending() {
   if (!FX.pending.length) return;
   const { changed, wait } = mergeTagEntries(FX.pending);
-  if (changed.length) await store.put('files', changed);
-  if (wait.length !== FX.pending.length) { FX.pending = wait; await store.put('meta', [{ k: 'fileTagsPending', v: wait }]).catch(storageFail); }
+  if (changed.length) await fstore.put('files', changed);
+  if (wait.length !== FX.pending.length) { FX.pending = wait; await fstore.put('meta', [{ k: 'fileTagsPending', v: wait }]).catch(storageFail); }
 }
 async function agoraDir(create) { try { return await FX.root.getDirectoryHandle('.agora', { create }); } catch { return null; } }
 async function readTagsFile() {
@@ -2800,7 +2820,7 @@ async function readTagsFile() {
     const txt = await (await (await d.getFileHandle('file-tags.json')).getFile()).text();
     FX.lastJson = txt;
     const { changed, wait } = mergeTagEntries(JSON.parse(txt).files);
-    if (changed.length) await store.put('files', changed);
+    if (changed.length) await fstore.put('files', changed);
     if (wait.length) await addPending(wait);
   } catch (e) { console.warn('file-tags.json', e); }
 }
@@ -2833,7 +2853,7 @@ function setFileTags(paths, fn) {
     if (JSON.stringify(t) === JSON.stringify(fileTags(r))) continue;
     r.tags = t; r.tagsAt = now; changed.push(r);
   }
-  if (changed.length) { store.put('files', changed).catch(storageFail); tagsChanged(); }
+  if (changed.length) { fstore.put('files', changed).catch(storageFail); tagsChanged(); }
   return changed.length;
 }
 const spellTag = t => { t = String(t).trim().replace(/\s+/g, ' ').slice(0, 60); const k = allTags([...allFiles(), ...cards]).find(e => e.k === norm(t)); return k ? k.t : t; };
@@ -2877,7 +2897,7 @@ async function makeFileThumbs() {
       r.thumbId = id;
     } catch { r.noThumb = true; }
     r.thumbKey = tkey(r);
-    await store.put('files', [r]).catch(() => {});
+    await fstore.put('files', [r]).catch(() => {});
     paintThumb(r);
     await sleep(30);
   }
@@ -2897,7 +2917,8 @@ async function pdfThumb(f) {
 /* ================= My Files: the home tile and the folder pages ================= */
 ICON.share = ICON_SHARE;
 const CHECK_BOX = '<span class="fbox">' + svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 14) + '</span>';
-function filesTile() {
+function filesTile() { try { return tileHTML(); } catch (e) { console.warn(e); return ''; } } // My Files never stands in the way of the decks
+function tileHTML() {
   if (!hasFS && !fidx.size) return '';
   const fs = allFiles(), dirs = kidsOf('').filter(r => r.kind === 'dir').length;
   const pics = fs.filter(r => r.thumbId && fkind(r) === 'img').sort((a, b) => b.mtime - a.mtime).slice(0, 4);
@@ -3444,10 +3465,12 @@ async function seed() {
   } catch (e) { console.warn('sample skipped', e); }
 }
 (async () => {
-  try { store = idbStore(await openDB()); } catch (e) { console.warn('IndexedDB unavailable, using memory', e); }
+  // if the cards take more than a moment (another copy of Agora holding the database), say so instead of a black screen
+  const slow = setTimeout(() => { $('#home').innerHTML = '<p class="empty">Opening your cards…</p><p class="note">If Agora is also open in a Chrome tab, close that tab and Agora will carry on.</p>'; }, 2500);
+  try { mainDB = await openDB(); store = idbStore(mainDB); } catch (e) { console.warn('IndexedDB unavailable, using memory', e); }
+  clearTimeout(slow);
   try { decks = await store.all('decks'); cards = await store.all('cards'); } catch { decks = []; cards = []; }
   cards.forEach(c => { if (!c.defIds || !c.defIds.length) c.defIds = [c.defId]; });
-  await loadFiles();
   try {
     if (!(await store.get('meta', 'reviewRules2'))) {
       const marked = cards.filter(c => c.review);
@@ -3457,7 +3480,10 @@ async function seed() {
     }
   } catch (e) { console.warn(e); }
   addEventListener('resize', () => { if (S) fitBands(); });
-  renderHome();
+  try { renderHome(); }
+  catch (e) { console.error(e); $('#home').innerHTML = `<p class="empty">Agora couldn’t show your decks. Close it and open it again.</p><p class="note">${esc(e.message)}</p>`; }
+  // the files index loads after the decks are on screen, so My Files can never hold them up
+  loadFiles().then(renderHome, e => console.warn(e));
   if (!decks.length) { await seed(); renderHome(); }
   if ('serviceWorker' in navigator && document.querySelector('link[rel="manifest"]')) {
     navigator.serviceWorker.register('sw.js').catch(() => {});

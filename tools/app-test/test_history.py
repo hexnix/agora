@@ -90,7 +90,7 @@ async def main(app, out):
         await tap(f'{top} .qrow:nth-child(4)')
         check(await pg.inner_text(f'{top} .selcount') == '2 selected' and await ys() == y0, 'tapping another adds it, nothing moves')
         await tap(f'{top} [data-p="all"]')
-        check(await pg.inner_text(f'{top} .selcount') == '30 selected' and await pg.locator(f'{top} [data-p="all"]').count() == 0, 'Select all')
+        check(await pg.inner_text(f'{top} .selcount') == '30 selected' and await pg.get_attribute(f'{top} [data-p="all"]', 'aria-label') == 'Clear the selection', 'Select all (the icon then clears)')
         await ph.back()
         check(await pg.locator(f'{top} .selcount').count() == 0 and await ys() == y0, 'Back stops selecting, nothing moves')
         # look at three cards from the queue, then study two

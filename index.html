@@ -41,10 +41,10 @@ svg{display:block}
 /* ---------- home ---------- */
 .home{max-width:820px;margin:0 auto;padding-inline:20px;padding-block:10px 56px}
 .bar h1{margin:0;font-size:var(--fs-title);line-height:1.1}
-.bar.title{min-height:56px;margin-right:-8px}
+.bar.title{min-height:48px;margin:-10px -8px 0 0;padding-top:8px} /* the title sits where every page title does, with its count right under it (2A) */
 /* "Your decks": 24px, medium, so it sits with the page titles instead of shouting (v27, the owner's pick 1C) */
 .bar.title h1{font-size:24px;font-weight:500;letter-spacing:-.02em}
-.bar.title + .summary{margin-top:2px}
+.bar.title + .summary{margin-top:0}
 .bar{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px}
 .iconbtn{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;color:var(--text);flex:none}
 .iconbtn:active{background:var(--raised)}
@@ -235,6 +235,8 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 .cline > span{overflow:hidden;text-overflow:ellipsis}
 .cline .textbtn{position:relative;padding:0 6px;margin-right:-6px;font-size:14px;line-height:20px}
 .cline .textbtn::after{content:"";position:absolute;inset:-12px -8px}
+.cline .selall{position:relative;width:30px;height:20px;margin-right:-4px;border-radius:0;background:none}
+.cline .selall::after{content:"";position:absolute;inset:-12px -6px}
 .qsearch + .qbody > .cline{margin-top:4px}
 /* History: cards grouped by day, the time on the right, a studied card's answer in blue */
 .hday{margin:24px 0 2px;font-size:14px;font-weight:500;line-height:1.4;letter-spacing:0;font-family:var(--sans)}
@@ -587,6 +589,22 @@ const ICON = {
   unflag: svg('<path d="M6 20.5V4.5M6 5h11l-2.2 4L17 13H6"/><path d="M4 3l16 18"/>'),
   tag: svg('<path d="M3.5 12.2V4.5h7.7l9.3 9.3-7.7 7.7z"/><circle cx="8" cy="9" r="1.4"/>')
 };
+/* Select all: a box with a tick; filled once everything is selected (a tap then clears the selection) */
+const ICON_ALL = svg('<rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M8.2 12.2l2.6 2.6 5-5.4"/>');
+const ICON_ALL_ON = `<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3.5" fill="var(--gold)"/><path d="M8.2 12.2l2.6 2.6 5-5.4" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const allBtn = on => `<button class="iconbtn selall" data-p="all" aria-label="${on ? 'Clear the selection' : 'Select all'}">${on ? ICON_ALL_ON : ICON_ALL}</button>`;
+/* what "Select all" takes on each page: everything listed there */
+function selPool(v) {
+  if (v.kind === 'files') return (v.order || []).map(r => r.path);
+  if (v.kind === 'queue') return v.list.map(c => c.id);
+  if (v.kind === 'history') return v.list.map(x => x.c.id);
+  return srcFor(v).cards.map(c => c.id);
+}
+const allOn = v => { const ids = selPool(v); return !!(v.sel && ids.length && ids.every(id => v.sel.has(id))); };
+/* the select-all icon: selects everything, or clears the selection when everything is already selected */
+function toggleAll(v) {
+  if (allOn(v)) v.sel.clear(); else selPool(v).forEach(id => v.sel.add(id));
+}
 const ico = (name, label) => `<span class="ico">${ICON[name]}<span>${label}</span></span>`;
 
 /* ================= storage ================= */
@@ -996,7 +1014,7 @@ function renderCards() {
   const cs = defaultOrder(deckCards(d.id));
   el.innerHTML = `<div class="home">
     <div class="bar"><button class="iconbtn" data-c="back" aria-label="Back">${ICON.back}</button>
-      ${cs.length ? `<button class="textbtn" data-c="select">${select ? 'Done' : 'Select'}</button>` : ''}</div>
+      ${cs.length ? `<span class="tools">${select ? allBtn(cs.every(c => select.has(c.id))).replace('data-p="all"', 'data-c="all"') : ''}<button class="textbtn" data-c="select">${select ? 'Done' : 'Select'}</button></span>` : ''}</div>
     <h1>${esc(d.name)}</h1>
     <p class="summary">${plural(cs.length, 'card')}</p>
     <div class="thumbs">${cs.map(c => `<button class="thumb${select && select.has(c.id) ? ' on' : ''}" data-id="${c.id}">
@@ -1015,6 +1033,10 @@ function onCardsClick(e) {
   const v = cardsView;
   if (t.dataset.c === 'back') back();
   else if (t.dataset.c === 'select') { v.select = v.select ? null : new Set(); renderCards(); }
+  else if (t.dataset.c === 'all') {
+    const cs = deckCards(v.deck.id), all = cs.every(c => v.select.has(c.id));
+    cs.forEach(c => all ? v.select.delete(c.id) : v.select.add(c.id)); renderCards();
+  }
   else if (t.dataset.c === 'move') moveSheet(cards.filter(c => v.select.has(c.id)));
   else if (t.dataset.c === 'delete') confirmDeleteCards(cards.filter(c => v.select.has(c.id)));
   else if (t.dataset.id) {
@@ -1184,8 +1206,8 @@ const BOX = '<span class="box">' + svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 14)
 /* the top bar of a deck page: Back and the title (any extra name parts as small tags beside it); it stays put while the cards scroll under it */
 function pageBar(v, tools = '') {
   if (v.sel) return `<div class="pbar"><button class="iconbtn" data-p="unsel" aria-label="Stop selecting">${ICON.close}</button>
-    <span class="selcount num">${v.sel.size} selected</span>
-    <button class="iconbtn" data-p="selmenu" aria-label="Options for the selected cards" ${v.sel.size ? '' : 'disabled'}>${ICON.more}</button></div>`;
+    <span class="selcount num">${v.sel.size} selected</span>${allBtn(allOn(v))}
+    <button class="iconbtn" data-p="selmenu" aria-label="Options for the selected ${v.kind === 'files' ? 'files' : 'cards'}" ${v.sel.size ? '' : 'disabled'}>${ICON.more}</button></div>`;
   const [t, ...rest] = nameParts(v.title);
   return `<div class="pbar"><button class="iconbtn" data-p="back" aria-label="Back">${ICON.back}</button>
     <div class="ptitle"><h1 class="pt">${esc(t || v.title)}</h1>${rest.map(x => `<span class="ptag">${esc(x)}</span>`).join('')}</div>
@@ -1201,7 +1223,7 @@ function renderPage(v) {
     const gs = sourcesOf(d), total = deckCards(d.id).length;
     const meta = `${plural(gs.length, 'deck')} · ${plural(total, 'card')}`;
     v.title = d.name;
-    v.el.innerHTML = `<div class="home">${pageBar(v, d === studyDeck() ? `<button class="iconbtn" data-p="history" aria-label="History">${ICON_HISTORY}</button>` : '')}
+    v.el.innerHTML = `<div class="home">${pageBar(v, searchTool(d) + (d === studyDeck() ? `<button class="iconbtn" data-p="history" aria-label="History">${ICON_HISTORY}</button>` : ''))}
       <p class="summary">${meta}</p>${d === studyDeck() ? studyBanner(d) : ''}
       <div class="srcs">${gs.map(g => {
         const c0 = orderOf(d, g)[0];
@@ -1217,7 +1239,7 @@ function renderPage(v) {
     if (sel) [...sel].forEach(id => { if (!list.some(c => c.id === id)) sel.delete(id); });
     const meta = `${plural(list.length, 'card')} · ${sortLbl.toLowerCase()}`;
     v.title = v.whole ? d.name : g.name;
-    v.el.innerHTML = `<div class="home${sel ? ' selecting' : ''}">${pageBar(v, sortTool(sortLbl))}
+    v.el.innerHTML = `<div class="home${sel ? ' selecting' : ''}">${pageBar(v, cardsTools(v, sortLbl))}
       <p class="summary">${meta}</p>
       <div class="gal">${list.map(c => `<button class="gcard${sel && sel.has(c.id) ? ' on' : ''}" data-card="${c.id}"><div class="pic"><img alt="" data-blob="${c.thumbId}">${BOX}</div>
           <span class="w${nameOf(c) ? '' : ' none'}">${esc(nameOf(c) || 'No word yet')}</span></button>`).join('')}</div>
@@ -1226,6 +1248,9 @@ function renderPage(v) {
   pics(v.el); v.el.scrollTop = top; markScrolled(v);
 }
 const sortTool = lbl => `<button class="iconbtn" data-p="sort" aria-label="Sort: ${lbl}">${ICON_SORT}</button>`;
+/* search inside one deck, on the first page a deck opens on */
+const searchTool = d => `<button class="iconbtn" data-p="dsearch" aria-label="Search ${esc(d.name)}">${ICON.search}</button>`;
+const cardsTools = (v, lbl) => (v.whole ? searchTool(v.deck) : '') + sortTool(lbl);
 /* a hairline under the bar once cards scroll beneath it */
 function markScrolled(v) { const b = $('.pbar', v.el); if (b) b.classList.toggle('scrolled', v.el.scrollTop > 4); }
 /* selecting only changes the boxes and the bar: nothing else is redrawn */
@@ -1234,7 +1259,7 @@ function paintSel(v) {
   home.classList.toggle('selecting', !!v.sel);
   $$('.gcard', home).forEach(b => b.classList.toggle('on', !!(v.sel && v.sel.has(b.dataset.card))));
   const g = srcFor(v);
-  $('.pbar', home).outerHTML = pageBar(v, sortTool(SORTS[sortOf(v.deck, g)].label));
+  $('.pbar', home).outerHTML = pageBar(v, cardsTools(v, SORTS[sortOf(v.deck, g)].label));
   markScrolled(v);
 }
 /* hold a card to start selecting; while selecting, a tap adds or removes a card, and Back stops */
@@ -1266,6 +1291,8 @@ function onPageClick(e, v) {
   else if (v.kind === 'study') onStudyClick(b, v);
   else if (p === 'study') { if (SD.loaded) openStudyPage(v.deck); }
   else if (p === 'history') openHistory();
+  else if (p === 'dsearch') openSearch(null, v.deck);
+  else if (p === 'all') { toggleAll(v); paintSel(v); }
   else if (b.dataset.src) { const g = sourcesOf(v.deck).find(x => x.key === b.dataset.src); if (g) openSource(v.deck, g); }
   else if (b.dataset.srcmenu) { const g = sourcesOf(v.deck).find(x => x.key === b.dataset.srcmenu); if (g) srcMenu(v.deck, g); }
   else if (p === 'sort') sortSheet(v);
@@ -1335,12 +1362,10 @@ function selMenu(v) {
   const unSub = () => { const ids = new Set(list.map(c => c.id)); g.sub.cards = (g.sub.cards || []).filter(id => !ids.has(id)); saveDeck(d); };
   sheet(`<h2>${plural(n, 'card')} selected</h2>
     <div class="list">
-      ${item('all', 'Select all')}
       ${item('add', 'Add to deck')}
       ${g.sub ? item('move', 'Move to deck') + item('out', 'Remove from deck', '', '', `The cards stay in ${esc(d.name)}`) : ''}
       ${item('del', 'Delete cards', '', 'danger')}
     </div>`, {
-    all: () => { g.cards.forEach(c => v.sel.add(c.id)); paintSel(v); closeSheet(); },
     add: () => pickSub('Add to deck', s => { addToSub(d, s, list); done(`Added ${plural(n, 'card')} to ${s.name}`); }),
     move: () => pickSub('Move to deck', s => { addToSub(d, s, list); unSub(); done(`Moved ${plural(n, 'card')} to ${s.name}`); }),
     out: () => { unSub(); done(`Removed ${plural(n, 'card')} from ${g.name}`); },
@@ -2380,7 +2405,7 @@ function queueHits(v) {
 }
 function queueTop(v) {
   if (v.sel) return `<div class="pbar"><button class="iconbtn" data-p="unsel" aria-label="Stop selecting">${ICON.close}</button>
-    <span class="selcount num">${v.sel.size} selected</span><button class="textbtn qfront" data-p="front" ${v.sel.size ? '' : 'disabled'}>Bring to front</button></div>`;
+    <span class="selcount num">${v.sel.size} selected</span>${allBtn(allOn(v))}<button class="textbtn qfront" data-p="front" ${v.sel.size ? '' : 'disabled'}>Bring to front</button></div>`;
   if (v.search) return `<div class="searchbar qsearch"><div class="qwrap"><button class="iconbtn" data-p="back" aria-label="Back">${ICON.back}</button>
     <div class="pins">${v.search.pins.map((t, k) => `<button class="pin" data-unpin="${k}" aria-label="Remove tag ${esc(t)}"><b>${esc(t)}</b></button>`).join('')}</div>
     <input id="qq" type="search" value="${esc(v.search.q)}" placeholder="${v.search.pins.length ? '' : 'Search new cards'}" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="search" aria-label="Search the new cards">
@@ -2413,7 +2438,8 @@ function queueBody(v) {
 /* the count under the bar: one line of the same height while selecting, so the list never moves */
 function queueLine(v) {
   const list = v.list, n = list.length.toLocaleString();
-  return v.search || v.sel ? `<div class="cline num"><span>${n} new card${list.length === 1 ? '' : 's'}</span>${list.length && !(v.sel && v.sel.size === list.length) ? '<button class="textbtn" data-p="all">Select all</button>' : ''}</div>`
+  // searching, the icon sits on this line (the bar is the search field) until a card is selected
+  return v.search || v.sel ? `<div class="cline num"><span>${n} new card${list.length === 1 ? '' : 's'}</span>${list.length && v.search && !v.sel ? allBtn(false) : ''}</div>`
     : `<div class="cline num"><span>${n} card${list.length === 1 ? '' : 's'} · next in line first</span></div>`;
 }
 /* selecting only repaints the boxes, the bar and the count line (with a search open, the whole page is redrawn) */
@@ -2451,7 +2477,7 @@ function onQueueClick(e, v) {
   else if (p === 'clear') { v.search.q = ''; v.search.pins = []; renderQueue(v); focusQueue(v); }
   else if (b.dataset.pin != null) { v.search.pins.push(b.dataset.pin); v.search.q = ''; renderQueue(v); }
   else if (b.dataset.unpin != null) { v.search.pins.splice(+b.dataset.unpin, 1); renderQueue(v); }
-  else if (p === 'all') { if (!v.sel) startQueueSelect(v); v.list.forEach(c => v.sel.add(c.id)); paintQueueSel(v); }
+  else if (p === 'all') { if (!v.sel) startQueueSelect(v); toggleAll(v); paintQueueSel(v); }
   else if (p === 'front') bringToFront(v);
   else if (b.dataset.qc) {
     const id = b.dataset.qc;
@@ -2522,13 +2548,13 @@ function dayLabel(t) {
 const clock = t => { const d = new Date(t); return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`; };
 function historyTop(v) {
   if (v.sel) return `<div class="pbar"><button class="iconbtn" data-p="unsel" aria-label="Stop selecting">${ICON.close}</button>
-    <span class="selcount num">${v.sel.size} selected</span><button class="textbtn qfront" data-p="hremove" ${v.sel.size ? '' : 'disabled'}>Remove</button></div>`;
+    <span class="selcount num">${v.sel.size} selected</span>${allBtn(allOn(v))}<button class="textbtn qfront" data-p="hremove" ${v.sel.size ? '' : 'disabled'}>Remove</button></div>`;
   return pageBar(v, `<button class="iconbtn" data-p="hmenu" aria-label="History options">${ICON.more}</button>`);
 }
 /* one line under the bar, the same height whether or not you are selecting, so nothing below it moves */
 function historyLine(v) {
   const n = v.list.length;
-  return v.sel ? `<div class="cline num"><span>${plural(n, 'card')}</span>${n && v.sel.size < n ? '<button class="textbtn" data-p="all">Select all</button>' : ''}</div>`
+  return v.sel ? `<div class="cline num"><span>${plural(n, 'card')}</span></div>`
     : `<div class="cline num"><span>${n ? `${plural(n, 'card')} · last visited first` : 'Nothing yet'}</span></div>`;
 }
 function renderHistory(v) {
@@ -2568,7 +2594,7 @@ function onHistoryClick(e, v) {
   const p = b.dataset.p;
   if (p === 'back' || p === 'unsel') back();
   else if (p === 'hmenu') historyMenu(v);
-  else if (p === 'all') { v.list.forEach(x => v.sel.add(x.c.id)); paintHistSel(v); }
+  else if (p === 'all') { toggleAll(v); paintHistSel(v); }
   else if (p === 'hremove') {
     const ids = [...v.sel], n = ids.length; if (!n) return;
     dropHistory(ids);
@@ -2835,8 +2861,9 @@ function allTags(pool) { // distinct tags (any case) with how many cards in pool
   return [...m.values()];
 }
 const hasTags = (c, pins) => { const mine = tagsOf(c).map(norm); return pins.every(p => mine.includes(norm(p))); };
-const searchHint = () => 'Search anything';
-function openSearch(pins) {
+const searchHint = () => searchView && searchView.deck ? `Search ${searchView.deck.name}` : 'Search anything';
+/* deck: search only that deck's cards (the search icon on a deck's first page) */
+function openSearch(pins, deck = null) {
   if (searchView) { if (pins) { searchView.pins = [...pins]; searchView.draw(); } return; }
   const el = document.createElement('div'); el.className = 'page search';
   el.innerHTML = `<div class="searchbar"><div class="qwrap"><button class="iconbtn" data-q="back" aria-label="Back">${ICON.back}</button>
@@ -2845,7 +2872,8 @@ function openSearch(pins) {
     <div class="home"><div class="sugg" id="sugg" hidden></div><div class="results" id="results"></div></div>`;
   document.body.appendChild(el); document.body.classList.add('locked');
   const input = $('#q', el);
-  searchView = { el, pins: pins ? [...pins] : [] };
+  searchView = { el, pins: pins ? [...pins] : [], deck };
+  input.placeholder = searchHint();
   searchView.draw = () => {
     const P = searchView.pins;
     $('.pins', el).innerHTML = P.map((t, k) => `<button class="pin" data-unpin="${k}" aria-label="Remove tag ${esc(t)}"><b>${esc(t)}</b></button>`).join('');
@@ -2878,9 +2906,10 @@ function openSearch(pins) {
 }
 function renderResults(q) {
   const box = $('#results'), sg = $('#sugg'); if (!box || !searchView) return;
-  const P = searchView.pins, pool = P.length ? cards.filter(c => hasTags(c, P)) : cards, n = norm(q);
-  // files and folders from My Files sit below the cards, in their own section
-  const fpool = P.length ? allFiles().filter(r => hasTags(r, P)) : [...fidx.values()];
+  const P = searchView.pins, D = searchView.deck, all = D ? deckCards(D.id) : cards;
+  const pool = P.length ? all.filter(c => hasTags(c, P)) : all, n = norm(q);
+  // files and folders from My Files sit below the cards, in their own section (not when searching one deck)
+  const fpool = D ? [] : P.length ? allFiles().filter(r => hasTags(r, P)) : [...fidx.values()];
   // tags that match what is typed, shown above the results
   const tg = n ? allTags([...pool, ...fpool]).filter(x => !P.some(p => norm(p) === x.k) && x.k.includes(n))
     .sort((a, b) => (b.k.startsWith(n) - a.k.startsWith(n)) || b.n - a.n || a.k.localeCompare(b.k)).slice(0, 8) : [];
@@ -2890,28 +2919,28 @@ function renderResults(q) {
   const row = (c, title, snip) => { const d = decks.find(x => x.id === c.deckId);
     return `<button class="res" data-card="${c.id}"><img alt="" data-blob="${c.thumbId}">
       <span><span class="rw">${title}</span>
-      <span class="rd">${esc(d ? d.name : '')}</span>${snip ? `<span class="rd">${snip}</span>` : ''}</span></button>`; };
+      <span class="rd">${esc(searchView.deck ? cardDesc(c) : d ? d.name : '')}</span>${snip ? `<span class="rd">${snip}</span>` : ''}</span></button>`; };
   const pics = () => $$('img[data-blob]', box).forEach(img => { thumbIds.add(img.dataset.blob); blobURL(img.dataset.blob).then(u => { if (u) img.src = u; }); });
   $('.qclear', searchView.el).hidden = !(P.length || q);
   searchView.hits = []; searchView.fhits = [];
   // what was found can become a deck of its own
   const mk = list => {
     searchView.hits = list;
-    return `<div class="rhead"><span class="num">${plural(list.length, 'card')}</span><button class="textbtn" data-q="mkdeck">Create deck</button></div>`;
+    return `<div class="rhead"><span class="num">${plural(list.length, 'card')}${searchView.deck ? ` in ${esc(searchView.deck.name)}` : ''}</span><button class="textbtn" data-q="mkdeck">Create deck</button></div>`;
   };
   if (!n) {
     if (P.length) {
       const list = [...pool].sort((a, b) => norm(nameOf(a) || '~').localeCompare(norm(nameOf(b) || '~'))), fl = [...fpool].sort(nameCmp);
       box.innerHTML = list.length || fl.length ? (list.length ? `${mk(list)}<div class="results">${list.map(c => row(c, nameOf(c) ? esc(nameOf(c)) : '<span class="rd">No word yet</span>')).join('')}</div>` : '')
         + fileResults(fl, r => esc(r.name))
-        : `<p class="note">No card${fidx.size ? ' or file' : ''} has all of these tags.</p>`;
+        : `<p class="note">No card${fidx.size && !D ? ' or file' : ''}${D ? ` in ${esc(D.name)}` : ''} has all of these tags.</p>`;
       pics(); return;
     }
     box.innerHTML = ''; // an empty search shows nothing: the field says what it does
     return;
   }
   const hits = findWords(q, pool), fh = findFiles(q, fpool);
-  if (!hits.length && !fh.length) { box.innerHTML = tg.length ? '' : `<p class="note">Nothing matches “${esc(q.trim())}”${P.length ? ' with these tags' : fidx.size ? ' in your words, definitions or files' : ' in your words or definitions'}.</p>`; return; }
+  if (!hits.length && !fh.length) { box.innerHTML = tg.length ? '' : `<p class="note">Nothing matches “${esc(q.trim())}”${P.length ? ' with these tags' : D ? ` in ${esc(D.name)}` : fidx.size ? ' in your words, definitions or files' : ' in your words or definitions'}.</p>`; return; }
   const k = n.length;
   const markName = (w, i) => i < 0 ? esc(w) : `${esc(w.slice(0, i))}<mark>${esc(w.slice(i, i + k))}</mark>${esc(w.slice(i + k))}`;
   box.innerHTML = (hits.length ? mk(hits.map(h => h.c)) + hits.map(({ c, i, snip }) => {
@@ -3678,6 +3707,7 @@ function onFilesClick(e, v) {
   else if (p === 'fsort') filesSortSheet();
   else if (p === 'fmore') filesMenu(v);
   else if (p === 'selmenu') fileSelMenu(v);
+  else if (p === 'all') { toggleAll(v); paintFileSel(v); }
   else if (b.dataset.f === 'connect') connectFiles();
   else if (b.dataset.crumb != null) goCrumb(b.dataset.crumb);
   else if (b.dataset.fd != null) openFolder(b.dataset.fd);
@@ -3727,8 +3757,7 @@ function filesMenu(v) {
 function fileSelMenu(v) {
   const paths = [...v.sel], n = paths.length;
   sheet(`<h2>${plural(n, 'file')} selected</h2>
-    <div class="list">${item('all', 'Select all')}${item('tag', ico('tag', 'Add tags'))}${item('share', ico('share', 'Share / Open with…'))}</div>`, {
-    all: () => { v.order.forEach(r => v.sel.add(r.path)); paintFileSel(v); closeSheet(); },
+    <div class="list">${item('tag', ico('tag', 'Add tags'))}${item('share', ico('share', 'Share / Open with…'))}</div>`, {
     tag: () => fileTagSheet(paths),
     share: () => { shareFiles(paths); closeSheet(); }
   });

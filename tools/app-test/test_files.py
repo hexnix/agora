@@ -248,8 +248,8 @@ async def main(app, out):
         await pg.wait_for_timeout(500)
         check(await pg.evaluate("T.FX.ready") and await pg.locator('.page:last-child .connect').count() == 0, 'one tap connects, the line goes away')
         await pg.evaluate("T.back()"); await pg.wait_for_timeout(500)
-        await ph.shot(f'{out}/18-home-mosaic.png')
-        check(await pg.locator('#home .mosaic img').count() == 4, 'the My Files tile shows the four newest pictures')
+        await ph.shot(f'{out}/18-home-logo.png')
+        check(await pg.locator('#home [data-files] .cover .logo svg').count() == 1 and await pg.locator('#home [data-files] .cover img').count() == 0, 'the My Files tile shows its folder logo, not pictures')
 
         # backup: includes file tags; re-importing it and the old library changes nothing
         await pg.click('#appMenu'); await pg.wait_for_timeout(500)

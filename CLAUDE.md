@@ -57,7 +57,7 @@ IndexedDB database `agora-files` (v24), version 1, holds My Files: store `files`
 
 IndexedDB database `agora-history` (v27), version 1, holds History: store `visits` (key `id`, the card's id): `{id, at, ans?, ansAt?}`, one entry per card opened in the study view (`ans`: New, Repeat, Tomorrow or Pass when it was studied that day). Not in backups. It loads after the decks are on screen.
 
-IndexedDB database `agora-notes` (v28), version 1, holds Notes (see "Notes"): store `notes` (key `id`, `n-…`): `{id, title, html, imgs: [picture ids], createdAt, updatedAt}`; store `images` (key `id`, `ni-…`): `{id, blob}`, each picture at its original size plus a 480-px copy `<id>-t` for the list. It loads after the decks are on screen.
+IndexedDB database `agora-notes` (v29), version 1, holds Notes (see "Notes"): store `notes` (key `id`, `n-…`): `{id, title, html, imgs: [picture ids], createdAt, updatedAt}`; store `images` (key `id`, `ni-…`): `{id, blob}`, each picture at its original size plus a 480-px copy `<id>-t` for the list. It loads after the decks are on screen.
 
 IndexedDB database `agora-study` (v25), version 1, holds Study progress (see "Study"): store `cards` (key `id`, the card's id): `{id, step, due, first, last, at, done?}` for a card studied at least once, or `{id, front, at}` for a new card brought to the front of the queue; store `meta` (key `k`): `daily` `{v}` new cards a day (default 20), `extra` `{day, n}` more new cards asked for today. Days are whole local days starting at 4 am (`dayNo`). It loads after the decks are on screen.
 
@@ -93,7 +93,7 @@ IndexedDB database `agora-study` (v25), version 1, holds Study progress (see "St
   - The ⋯ menu on a tile: Study, Add cards, Browse cards, Rename, Cover image, Merge into another deck, Delete deck.
   - **Merge into another deck** (`mergeSheet` / `doMerge`, v18) moves every card (tags, review marks and progress kept) into a chosen deck or a new one, then removes the empty deck.
   - **Decks are kinds of content, not sources.** All vocabulary lives in one deck, "Vocabulary"; the source (show, film, channel, book) is in the tags. The owner plans to grow Agora into a place to find anything in their digital life, with more decks over time (a finance tracker, concepts with detailed explanations, pictures and files).
-  - The title "Your decks" is 24px, weight 500 (v27, pick 1C).
+  - The title "Your decks" is 24px, weight 500 (v27, pick 1C), at the same height as every page title with its count right under it (v28).
   - The top ⋯ menu is Backup: "Back up everything" (one zip), "Import a backup", "Remove screenshots behind text".
   - Search covers words, meanings and tags; its box says "Search anything" and an empty search shows nothing (v27); tapping a tag in the study view opens search pinned to that tag. The search bar (v20) is one grey pill: Back, the pinned tags as soft-blue filled chips (tap one to remove it), the field, and × to clear all.
 - **Deck pages (v19–v20):** tapping a deck tile opens its decks (page 2), then a deck's cards (page 3), then the study view; Back steps out one page at a time (`openDeck`, `pages`, `renderPage`).
@@ -102,13 +102,15 @@ IndexedDB database `agora-study` (v25), version 1, holds Study progress (see "St
     - **Decks the owner makes** (`d.subs = [{id, name, cards: [ids], createdAt}]`): a fixed list of cards, made from search ("Create deck" beside the result count, `deckFromSearch`) or from selected cards ("Add to deck › New deck…"). New matching cards don't join on their own.
     - Each tile's ⋯ (`srcMenu`): "Rename", "Delete deck only" (cards stay; a source is hidden via `d.srcHidden`, a renamed source is in `d.srcNames`), "Delete deck and cards" (asks first).
     - A deck with one source, nothing made and nothing hidden, skips page 2.
-  - **The top bar** (v21, `pageBar`) on pages 2 and 3: "<", then the title (20px), locked at the top while the page scrolls (a hairline appears under it once scrolled). The count ("7 decks · 22 cards", "2 cards · order of appearance") sits right under the title, starting where the title's text does (32px in; v27, pick 2A), and scrolls away. The same goes for Study, New cards, History and My Files folders (the path line too). While selecting, the bar becomes "× N selected ⋯".
+    - **Search inside a deck** (v28): the first page a deck opens on (page 2, or page 3 when page 2 is skipped) has a search icon. It opens the usual search limited to that deck's cards (`openSearch(pins, deck)`): "Search Vocabulary", "N cards in Vocabulary", each row showing the card's tags instead of the deck name, no files.
+  - **The top bar** (v21, `pageBar`) on pages 2 and 3: "<", then the title (20px), locked at the top while the page scrolls (a hairline appears under it once scrolled). The count ("7 decks · 22 cards", "2 cards · order of appearance") sits right under the title, starting where the title's text does (32px in; v27, pick 2A), and scrolls away. The same goes for Study, New cards, History and My Files folders (the path line too). While selecting, the bar becomes "× N selected ☑ ⋯".
+  - **Select all is an icon** (v28, the owner's pick 1): a box with a tick (`ICON_ALL`, `allBtn`) in the selection bar of every page that selects (a deck's cards, My Files, New cards, History, Browse cards, Notes). It turns solid blue when everything is selected, and a tap then clears the selection (`toggleAll`, `selPool`). It is no longer in the ⋯ menus. In New cards with a search open, it sits on the count line until a card is selected.
   - **Names in parts:** a deck made from tags is named "The 48 Laws of Power · Law 1" by default. Its tile reads "The 48 Laws of Power | Law 1"; page 3's bar shows "The 48 Laws of Power" with a small "Law 1" tag beside it (`nameHTML`, `pageBar`). This applies to any name with " · ".
   - **Page 3, a deck's cards:** a gallery, two across, no other view; the sort icon at the top right, the sort in grey under the title. **Hold a card** to select: small boxes appear on every card (selecting only repaints the boxes and the bar, `paintSel`, so nothing flickers); the bar shows × , "N selected" and ⋯ (`selMenu`): Select all, Add to deck, Move to deck and Remove from deck (in a made deck), Delete cards.
   - **Sort** (`SORTS`, `storySort`, `sortOf`): "Order of appearance" only when every card (in a source or a made deck) is from one show, film, book or YouTube video (episode then `sceneTime`; a book by `shotAt`, which follows reading order; one video by `ref.t`), otherwise newest first. Also Newest first, Oldest first, A to Z. A choice sticks per deck and source (`localStorage` `sort.<deckId>.<sourceKey>`).
   - The study view opened from page 3 shows exactly that page's cards in that order (`openStudy(d, id, order)`); no review-first.
 - **My Files** (v23): see "My Files" below. Its tile sits after the decks, before "New deck".
-- **Notes** (v28): see "Notes" below. Its tile sits after My Files.
+- **Notes** (v29): see "Notes" below. Its tile sits after My Files.
 - **Browse cards:** a thumbnail grid. Select lets the owner move or delete cards; tapping a card opens a preview sheet.
 - **Study view**, the heart of the app:
   - The header band has the word (hold it to rename), ✎ (the edit menu) and tags. The footer band has "i / n".
@@ -142,11 +144,11 @@ The spaced-repetition deck. It sits inside the deck named **Vocabulary** (`study
 - **Removed in v25:** "Mark for review" (hold, ✎ menu, select menu, Browse cards' card sheet) and every blue "N to review" count; review marks no longer move cards to the front of a deck.
 - **Backups** carry `study: {daily, cards: [records]}`; import takes a record only when it is newer (`at`) than the phone's, so a re-import changes nothing.
 
-## Notes (v28)
+## Notes (v29)
 
 A very simple notebook. The owner asked for only this much and will ask for more when they need it: build only what they ask for.
 - **Home tile** "Notes" after My Files: logo 1A (a white page with a blue title line, `LOGO_NOTES`), "N notes". Its ⋯: New note.
-- **The Notes page** (`renderNotes`, kind `notes` in `pages`; pick 2A, a list only): the locked bar "< Notes" with + (new note), "N notes · last edited first", then each note: its title (or its first line), the lines after it joined with " · " (two lines at most), the date (the time if today), and a 56-px picture when it has one. Hold a note to select (× N selected, Delete, asks first).
+- **The Notes page** (`renderNotes`, kind `notes` in `pages`; pick 2A, a list only): the locked bar "< Notes" with + (new note), "N notes · last edited first", then each note: its title (or its first line), the lines after it joined with " · " (two lines at most), the date (the time if today), and a 56-px picture when it has one. Hold a note to select (× N selected, the Select all icon, Delete, asks first).
 - **Writing** (`openNote` / `renderNote`, kind `note`): a title line (22px) and the text (Plex Mono 15px/1.65, pick 3A), saved half a second after typing stops and on Back; a note left empty is never kept, and pictures taken out of a note are deleted when it closes. One row of tools above the keyboard (`ntools`, bottom `--kb`): Heading, Bold, Italic, Underline, Bullets, Numbers, Checklist (tap the box to tick), Quote, Picture; a tool lights up blue where the cursor is. Pasted text comes in plain; a pasted picture is added like a picked one. ⋯: Add a picture, Delete note. The page keeps the phone's copy and paste menu (no `contextmenu` block).
 - A note's text is HTML from a short list (`cleanNoteHTML`: p, h2, b, i, u, s, ul (class `checks`), ol, li (class `done`), blockquote, img `data-img`); everything else is dropped, so an imported note can't carry a script. Chrome sometimes puts a new list inside its paragraph; `unnestLists` lifts it out.
 - **Backups** carry `notes: {items: [{id, title, html, createdAt, updatedAt, images: ['notes/<picture id>.jpg']}]}` with the pictures in `notes/`. Import takes a note only when it is newer (`updatedAt`) than the phone's, so a re-import changes nothing.
@@ -251,7 +253,8 @@ python3 tools/app-test/harness.py . --zips tools/app-test/fixtures/test-library.
 - Always check: the Back behaviour, re-importing the zip reports "already up to date", and there are no JavaScript errors.
 - Merriweather italics look upright in test screenshots (the test font has no true italic); the phone shows real italics.
 - Don't commit `shots/`.
-- **Notes (v28):** `python3 tools/app-test/test_notes.py . --out shots/notes/`. It writes notes with every kind of formatting and a made-up picture, and checks the tile, the list, saving, reloading, select and delete, Back, the backup on a fresh phone, re-imports, and that an imported note can't carry a script.
+- **Notes (v29):** `python3 tools/app-test/test_notes.py . --out shots/notes/`. It writes notes with every kind of formatting and a made-up picture, and checks the tile, the list, saving, reloading, select and delete, Back, the backup on a fresh phone, re-imports, and that an imported note can't carry a script.
+- **v28 (home title, select-all icon, deck search):** `python3 tools/app-test/test_v28.py . --out shots/v28/`.
 - **v27 (History, names, tiles, headings):** `python3 tools/app-test/test_history.py . --out shots/history/`.
 - **Study:** `python3 tools/app-test/test_study.py . --out shots/study/`. It turns the test library into one 30-card "Vocabulary" deck (made-up copies) and checks the banner, today's 20, the queue order, list/grid, search and Bring to front, Continue / Repeat / Tomorrow / Pass and the gaps, no swiping past a card, Done for today and Learn 10 more, that browsing changes nothing, Back, and the backup.
 - **My Files:** `python3 tools/app-test/test_files.py . --out shots/files/`. The folder picker can't be clicked in a test, so it fills the origin private file system (`navigator.storage.getDirectory()`) with made-up folders and files and hands it to the app as My Files (`window.showDirectoryPicker = async () => dir`). It checks the index, list and grid, the path, tagging (sheet and quick tagging), `.agora/file-tags.json`, search, the viewer, Share (stubbed), a moved file keeping its tags, Back, the backup, re-imports, and updating from older versions: the new version must open the cards while v22 is still open in another tab (the v23 black screen), and must carry over a My Files index v23 saved. Never put real files in the repo.
@@ -285,7 +288,8 @@ python3 tools/app-test/harness.py . --zips tools/app-test/fixtures/test-library.
 
 - **v26:** a single tap in the study view hides the header and footer, and the next tap brings them back; the pages stay where they were.
 - **v27:** "Your decks" smaller (1C); the count sits right under every page title (2A); search says "Search anything" with no "words saved" line; History on Vocabulary's page (4A, database `agora-history`); New cards no longer jumps when a card is held; a card's name is its dictionary headword everywhere; tiles of text and magazine cards are redrawn from what the card shows.
+- **v28:** "Your decks" sits where every page title does, with its count right under it; Select all is an icon (a box with a tick) in every selection bar, and tapping it again clears the selection; a search icon on a deck's first page searches only that deck.
 
-- **v28 (Notes):** a Notes tile after My Files opens a simple notebook (list, last edited first; 1A logo, 2A list, 3A Plex Mono); notes have headings, bold, italic, underline, lists, checklists, quotes and pictures; database `agora-notes`; backups carry notes.
+- **v29 (Notes):** a Notes tile after My Files opens a simple notebook (list, last edited first; 1A logo, 2A list, 3A Plex Mono); notes have headings, bold, italic, underline, lists, checklists, quotes and pictures; database `agora-notes`; backups carry notes.
 
 Add a line here with every version you ship.

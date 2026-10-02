@@ -100,7 +100,7 @@ class Phone:
                                "get SD(){return SD},get studyToday(){return studyToday},get queueOrder(){return queueOrder},get dayNo(){return dayNo},get openStudyPage(){return openStudyPage},get openQueue(){return openQueue},get openDeck(){return openDeck},get studyDeck(){return studyDeck},"
                                # History, card names and tile pictures (v27)
                                "get HI(){return HI},get openHistory(){return openHistory},get nameOf(){return nameOf},get refreshTiles(){return refreshTiles},get thumbKeyOf(){return thumbKeyOf},"
-                               # Notes (v28)
+                               # Notes (v29)
                                "get NT(){return NT},get openNotes(){return openNotes},get openNote(){return openNote},get nstore(){return nstore},"
                                "get FX(){return FX},get fidx(){return fidx},get FV(){return FV},get pages(){return pages},get connectFiles(){return connectFiles},get rescan(){return rescan},get openFolder(){return openFolder},get openViewer(){return openViewer},get openSearch(){return openSearch},get setFileTags(){return setFileTags},get saveTagsFile(){return saveTagsFile},get store(){return store},get fstore(){return fstore},get blobURL(){return blobURL}};\n") + html[i:]
             await r.fulfill(body=html, content_type='text/html')

@@ -1,4 +1,4 @@
-"""v28 test: the Notes deck.
+"""v29 test: the Notes deck.
 
     python3 tools/app-test/test_notes.py . --out shots/notes/
 
@@ -117,7 +117,8 @@ async def main(app, out):
         await ph.hold(f'{top} .nrow >> nth=0'); await pg.wait_for_timeout(200)
         check('1 selected' in await pg.inner_text(f'{top} .pbar'), 'holding a note selects it')
         await ph.shot(f'{out}/4-select.png')
-        await pg.locator(f'{top} .nrow').nth(1).click(); await pg.wait_for_timeout(150)
+        await pg.click(f'{top} [data-p="all"]'); await pg.wait_for_timeout(150)
+        check('2 selected' in await pg.inner_text(f'{top} .pbar'), 'the Select all icon selects every note')
         await pg.click(f'{top} [data-p="ndel"]'); await pg.wait_for_timeout(500)
         await pg.click('#sheet [data-act="yes"]'); await pg.wait_for_timeout(900)
         imgs = await pg.evaluate("T.nstore.all('images').then(a=>a.length)")

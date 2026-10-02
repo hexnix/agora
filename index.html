@@ -4981,7 +4981,7 @@ async function importMarks(list) {
    database "agora-sync": store `dirty` {k, at} units waiting; store `paths` {k, dir, base, nm, label, files: {name: blob id}, sum}
    where each unit is in the folder; store `meta` {k: 'linked', v: folder name} once everything was first copied there. */
 const AGF = 'Agora', VERS = 'Previous versions', KEEP_DAYS = 30;
-const AG = { dirty: new Map(), map: new Map(), linked: null, loaded: false, run: null, linking: null, done: 0, total: 0, phase: '', timer: 0, failed: new Set(), pdfs: new Set(), log: [] };
+const AG = { dirty: new Map(), map: new Map(), claim: new Map(), linked: null, loaded: false, run: null, linking: null, done: 0, total: 0, phase: '', timer: 0, failed: new Set(), pdfs: new Set(), log: [] };
 let gstore = memStore(['dirty', 'paths', 'meta']);
 KEYS.dirty = 'k'; KEYS.paths = 'k';
 /* a database's store, with every change noted as waiting for the folder */
@@ -5032,10 +5032,29 @@ const agOn = () => agReady() && FX.ready && FX.root && AG.linked === rootName();
 
 /* files inside the Agora folder */
 const splitPath = p => { const i = p.lastIndexOf('/'); return [i < 0 ? '' : p.slice(0, i), p.slice(i + 1)]; };
-async function agDir(path, create) {
-  let d = FX.root;
-  for (const p of `${AGF}/${path}`.split('/').filter(Boolean)) d = await d.getDirectoryHandle(p, { create });
-  return d;
+/* folders already found are remembered while saving: on Android each step into a folder is a slow trip through the system,
+   so Agora/Cards/<deck> is looked up once, not once per picture. The promise is kept, so cards written side by side make a new folder once. */
+const agDirs = new Map();
+function agDir(path, create) {
+  let p = Promise.resolve(FX.root), key = '';
+  if (!AG.busy) agDirs.clear(); // only while saving or reading the folder in; at other times the phone is asked afresh
+  for (const name of `${AGF}/${path}`.split('/').filter(Boolean)) {
+    key = key ? `${key}/${name}` : name;
+    const k = key;
+    if (agDirs.has(k)) { p = agDirs.get(k); continue; }
+    const q = p.then(d => d.getDirectoryHandle(name, { create }));
+    if (create) { agDirs.set(k, q); q.catch(() => { if (agDirs.get(k) === q) agDirs.delete(k); }); }
+    else q.then(h => { if (!agDirs.has(k)) agDirs.set(k, Promise.resolve(h)); }, () => {});
+    p = q;
+  }
+  return p;
+}
+/* a folder removed, or the folder changed on the phone: what was remembered under it is looked up again */
+const agBusy = on => { const was = AG.busy || 0; AG.busy = Math.max(0, was + (on ? 1 : -1)); if (!AG.busy || !was) agDirs.clear(); };
+function agDirsDrop(path) {
+  if (path == null) return agDirs.clear();
+  const k = `${AGF}/${path}`.split('/').filter(Boolean).join('/');
+  for (const x of [...agDirs.keys()]) if (x === k || x.startsWith(k + '/')) agDirs.delete(x);
 }
 async function agRead(path) {
   try { const [d, n] = splitPath(path); return await (await (await agDir(d, false)).getFileHandle(n)).getFile(); } catch { return null; }
@@ -5046,7 +5065,7 @@ async function agPut(path, data) {
   const w = await fh.createWritable(); await w.write(data); await w.close();
 }
 async function agRemove(path, recursive) {
-  try { const [d, n] = splitPath(path); await (await agDir(d, false)).removeEntry(n, { recursive: !!recursive }); return true; } catch { return false; }
+  try { const [d, n] = splitPath(path); await (await agDir(d, false)).removeEntry(n, { recursive: !!recursive }); agDirsDrop(path); return true; } catch { return false; }
 }
 async function agList(path) {
   const out = [];
@@ -5059,6 +5078,7 @@ const safeName = s => String(s || '').replace(/[\\/:*?"<>|\u0000-\u001f]+/g, ' '
 /* a folder or file name no other unit uses (the phone's storage ignores capitals, so neither does this) */
 function agUnique(k, base, nm, ext = '') {
   const taken = new Set([...AG.map.values()].filter(r => r.k !== k).map(r => String(r.dir).toLowerCase()));
+  for (const [o, dir] of AG.claim) if (o !== k) taken.add(dir.toLowerCase()); // cards being written side by side
   let p = `${base}/${nm}${ext}`, i = 2;
   while (taken.has(p.toLowerCase())) p = `${base}/${nm} ${i++}${ext}`;
   return p;
@@ -5153,14 +5173,18 @@ async function agCard(k, id, stamp) {
   const d = decks.find(x => x.id === c.deckId); if (!d) return;
   const base = agDeckDir(d), nm = safeName(nameOf(c)) || 'card';
   const dir = rec && rec.base === base && rec.nm === nm ? rec.dir : agUnique(k, base, nm);
+  AG.claim.set(k, dir); // so a card of the same name written alongside takes another folder
+  try { await agCardTo(k, c, rec, base, nm, dir, stamp); } finally { AG.claim.delete(k); }
+}
+async function agCardTo(k, c, rec, base, nm, dir, stamp) {
   const moved = !!rec && rec.dir !== dir;
   const slots = [['scene', c.frameId], ['tile', c.thumbId], ...defIdsOf(c).map((b, i) => [i ? `definition ${i + 1}` : 'definition', b]), ['source', c.ref && c.ref.thumbId]];
   const pics = await agPics(dir, slots, rec ? rec.files : {}, moved, stamp, blobOf);
   // a magazine's PDF is written once, for all the cards that share it
   if (c.pdf && c.pdf.id && !AG.pdfs.has(c.pdf.id)) {
+    AG.pdfs.add(c.pdf.id); // first, so a card alongside sharing it doesn't write it too
     const p = `Magazines/${safeName(c.pdf.id.replace(/^pdf-/, '')) || 'magazine'}.pdf`;
     if (!(await agRead(p))) { const b = await blobOf(c.pdf.id); if (b) await agPut(p, b); }
-    AG.pdfs.add(c.pdf.id);
   }
   // the card as it is stored, picture ids included, so it comes back exactly
   const txt = JSON.stringify({ app: 'agora', kind: 'card', version: 1, card: c, files: pics.files }, null, 1);
@@ -5244,6 +5268,7 @@ async function agNote(k, id, stamp) {
 
 /* ---- writing what waits ---- */
 const UNIT_ORDER = { deck: 0, card: 1, note: 2 };
+const AG_SIDE = 8; // cards written side by side
 const unitRank = k => UNIT_ORDER[k.split(':')[0]] ?? 3;
 function agSoon(ms) {
   if (ms == null) ms = [...AG.dirty.keys()].every(k => k === 'history' || k === 'study') ? 20000 : 4000; // studying writes less often
@@ -5256,25 +5281,33 @@ function agFlush() {
   AG.run = (async () => {
     const stamp = agStamp(); AG.log = []; AG.done = 0; AG.phase = 'write'; AG.empty = []; AG.runAt = Date.now();
     if (AG.why && Date.now() - AG.whyAt > 120000) AG.why = ''; // a reason only holds for the changes right after it
+    agBusy(true);
     let lastPaint = 0;
+    const one = async ([k, at]) => {
+      if (!agOn()) return;
+      try { await agWrite(k, stamp); if (AG.dirty.get(k) === at) { AG.dirty.delete(k); gstore.del('dirty', [k]).catch(() => {}); } }
+      catch (e) { console.warn('Agora folder:', k, e); AG.failed.add(k); if (e && e.name === 'NotAllowedError') FX.ready = false; }
+      AG.done++;
+      if (Date.now() - lastPaint > 400) { lastPaint = Date.now(); agPaint(); }
+    };
     while (agOn()) {
       const list = [...AG.dirty.entries()].filter(([k]) => !AG.failed.has(k)).sort((a, b) => unitRank(a[0]) - unitRank(b[0]));
       if (!list.length) break;
       AG.total = AG.done + list.length;
-      for (const [k, at] of list) {
-        if (!agOn()) break;
-        try { await agWrite(k, stamp); if (AG.dirty.get(k) === at) { AG.dirty.delete(k); gstore.del('dirty', [k]).catch(() => {}); } }
-        catch (e) { console.warn('Agora folder:', k, e); AG.failed.add(k); if (e && e.name === 'NotAllowedError') { FX.ready = false; break; } }
-        AG.done++;
-        if (Date.now() - lastPaint > 400) { lastPaint = Date.now(); agPaint(); }
-      }
+      // decks first, then cards several at a time (each card is its own folder, and on Android most of the time is waiting
+      // on the system, not copying), then notes and the rest one by one
+      const cardsNow = list.filter(([k]) => unitRank(k) === 1);
+      for (const x of list.filter(([k]) => unitRank(k) === 0)) await one(x);
+      let next = 0;
+      await Promise.all(Array.from({ length: AG_SIDE }, async () => { while (next < cardsNow.length && agOn()) await one(cardsNow[next++]); }));
+      for (const x of list.filter(([k]) => unitRank(k) > 1)) await one(x);
     }
     for (const dir of AG.empty) await agRemove(dir); // a deck folder left empty (only removed when nothing is in it)
     await agWriteLog(stamp, AG.log);
     AG.why = '';
     await agPrune();
     if (AG.failed.size) toast(`Couldn’t save ${plural(AG.failed.size, 'change')} to My Files`);
-  })().catch(e => console.warn('Agora folder', e)).finally(() => { AG.run = null; AG.phase = ''; agPaint(); if (AG.dirty.size > AG.failed.size && agOn()) agSoon(); });
+  })().catch(e => console.warn('Agora folder', e)).finally(() => { agBusy(false); AG.run = null; AG.phase = ''; agPaint(); if (AG.dirty.size > AG.failed.size && agOn()) agSoon(); });
   return AG.run;
 }
 /* the list of what changed this hour, for the Previous versions page */
@@ -5312,7 +5345,7 @@ async function agLink() {
   if (!agReady() || !FX.ready || !FX.root) return;
   if (AG.linked === rootName()) { agSoon(0); return; }
   AG.linking = (async () => {
-    AG.phase = 'read'; AG.done = 0; agPaint();
+    agBusy(true); AG.phase = 'read'; AG.done = 0; agPaint();
     const n = await agMerge();
     AG.linked = rootName(); await gstore.put('meta', [{ k: 'linked', v: AG.linked }]).catch(() => {});
     if (!(await agRead('Read me.txt'))) await agPut('Read me.txt', README).catch(() => {});
@@ -5321,7 +5354,7 @@ async function agLink() {
     AG.phase = '';
     if (n) { renderHome(); refreshPages(); toast(`Brought in ${plural(n, 'item')} from My Files › Agora`); }
     agSoon(0);
-  })().catch(e => { console.warn('Agora folder', e); toast('Couldn’t read the Agora folder'); }).finally(() => { AG.linking = null; AG.phase = ''; agPaint(); });
+  })().catch(e => { console.warn('Agora folder', e); toast('Couldn’t read the Agora folder'); }).finally(() => { agBusy(false); AG.linking = null; AG.phase = ''; agPaint(); });
   return AG.linking;
 }
 /* read the Agora folder into the phone: anything the phone doesn't have yet, and anything newer there. Nothing on the phone is lost. */

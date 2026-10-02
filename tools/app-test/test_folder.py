@@ -10,7 +10,7 @@ of the Previous versions page and an item's own list; the "changes waiting" line
 phone bringing everything back from the folder alone; re-importing the test library reporting "already up to date"; Back;
 and JavaScript errors. Everything here is made up.
 """
-import argparse, asyncio, os, sys
+import argparse, asyncio, json, os, sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from harness import Phone
@@ -48,6 +48,8 @@ LOAD = """async files => { const root = await navigator.storage.getDirectory();
     for (const p of parts.slice(0, -1)) d = await d.getDirectoryHandle(p, {create: true});
     const w = await (await d.getFileHandle(parts.at(-1), {create: true})).createWritable();
     await w.write(Uint8Array.from(atob(data), c => c.charCodeAt(0))); await w.close(); } }"""
+READ = """async path => { let d = await (await navigator.storage.getDirectory()).getDirectoryHandle('Agora'); const parts = path.split('/');
+  for (const p of parts.slice(0, -1)) d = await d.getDirectoryHandle(p); return (await (await d.getFileHandle(parts.at(-1))).getFile()).text(); }"""
 PIC = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAFklEQVQImWNkYPj/n4GBgYGJAQoQAwA7LgQEcG9JmAAAAABJRU5ErkJggg=='
 
 
@@ -80,13 +82,19 @@ async def main(app, out):
         await pg.evaluate(CONNECT)
         check(await pg.evaluate(IDLE), 'first copy finished')
         files = await pg.evaluate(LIST)
-        want = ['Agora/Read me.txt', 'Agora/Cards/Example Show/candor/card.json', 'Agora/Cards/Example Show/candor/scene.jpg',
-                'Agora/Cards/Example Show/candor/tile.jpg', 'Agora/Cards/Example Show/brusque/definition 2.jpg', 'Agora/Cards/Example Show/deck.json',
-                'Agora/Cards/Example Reading/heuristic/source.jpg', 'Agora/Notes/Weekend plan.html', 'Agora/Notes/pictures/ni-test1.jpg',
+        want = ['Agora/Read me.txt', 'Agora/Cards/Example Show/cards.json', 'Agora/Cards/Example Show/Pictures/candor scene.jpg',
+                'Agora/Cards/Example Show/Pictures/candor tile.jpg', 'Agora/Cards/Example Show/Pictures/brusque definition 2.jpg', 'Agora/Cards/Example Show/deck.json',
+                'Agora/Cards/Example Reading/Pictures/heuristic source.jpg', 'Agora/Notes/Weekend plan.html', 'Agora/Notes/pictures/ni-test1.jpg',
                 'Agora/Bookmarks.json', 'Agora/Study progress.json', 'Agora/History.json']
         for w in want: check(w in files, f'folder has {w}')
         check(any(p.startswith('Agora/Magazines/') and p.endswith('.pdf') for p in files), 'folder has the magazine PDF')
         check(not any(k.startswith('Previous versions') for k in files), 'no previous versions after the first copy')
+        # one folder per deck (the owner's pick): no folder for each card
+        dirs = await pg.evaluate("""async () => { const out = []; const walk = async (d, p) => { for await (const [n, h] of d.entries()) if (h.kind === 'directory') { out.push(p + n); await walk(h, p + n + '/'); } };
+          await walk(await (await navigator.storage.getDirectory()).getDirectoryHandle('Agora'), ''); return out; }""")
+        check(sorted(d for d in dirs if d.startswith('Cards/')) == ['Cards/Example Reading', 'Cards/Example Reading/Pictures', 'Cards/Example Show', 'Cards/Example Show/Pictures'], f'one folder per deck: {dirs}')
+        cj = await pg.evaluate(READ, 'Cards/Example Show/cards.json')
+        check(sorted(e['card']['id'] for e in json.loads(cj)['cards']) == ['test-brusque', 'test-candor', 'test-reticent'], 'cards.json holds the deck\'s cards')
         await pg.wait_for_timeout(800)
         idx = await pg.evaluate("[...T.fidx.keys()]")
         check('Documents/letter.txt' in idx and not any(p.startswith('Agora') for p in idx), f'My Files lists the owner\'s files only: {idx}')
@@ -102,21 +110,20 @@ async def main(app, out):
         files2 = await pg.evaluate(LIST)
         check(not any(k.startswith('Agora/Previous versions') for k in files2), 'an unchanged item makes no previous version')
 
-        # change a card's tags: the earlier card.json is kept
+        # change a card's tags: the card as it was goes into the list of changes
         await pg.evaluate("() => { const c = T.cards.find(x => x.id === 'test-candor'); c.tags = [...c.tags, 'Favourite']; return T.saveCards([c]); }")
         await pg.evaluate(IDLE)
-        files = await pg.evaluate(LIST)
-        vers = [k for k in files if k.startswith('Agora/Previous versions/') and k.endswith('candor/card.json')]
-        check(len(vers) == 1, f'the earlier card.json is in Previous versions: {vers}')
-        ch = await pg.evaluate("async () => (await T.agVersions()).map(x => [x.k, x.what])")
-        check(['card:test-candor', 'tags changed'] in ch, f'changes.json says tags changed: {ch}')
+        ch = await pg.evaluate("async () => (await T.agVersions()).map(x => [x.k, x.what, x.card && x.card.tags.includes('Favourite')])")
+        check(['card:test-candor', 'tags changed', False] in ch, f'changes.json has the card as it was: {ch}')
+        check('Favourite' in await pg.evaluate(READ, 'Cards/Example Show/cards.json'), 'cards.json has the new tag')
 
         # delete a card, then restore it from Previous versions
         await pg.evaluate("T.deleteCards([T.cards.find(x => x.id === 'test-brusque')])")
         await pg.evaluate(IDLE)
         files = await pg.evaluate(LIST)
-        check(not any('Example Show/brusque/' in k and not k.startswith('Agora/Previous') for k in files), 'a deleted card\'s folder goes')
-        check(any(k.startswith('Agora/Previous versions/') and k.endswith('brusque/definition 2.jpg') for k in files), 'its files are kept in Previous versions')
+        check(not any('Pictures/brusque' in k and not k.startswith('Agora/Previous') for k in files), 'a deleted card\'s pictures go')
+        check('brusque' not in await pg.evaluate(READ, 'Cards/Example Show/cards.json'), 'and it leaves cards.json')
+        check(any(k.startswith('Agora/Previous versions/') and k.endswith('Pictures/brusque definition 2.jpg') for k in files), 'its pictures are kept in Previous versions')
 
         # rename the note, edit the bookmark
         await pg.evaluate("""() => { const n = T.NT.notes.get('n-test1'); n.title = 'Saturday plan'; n.updatedAt = Date.now(); return T.nstore.put('notes', [n]); }""")
@@ -149,7 +156,7 @@ async def main(app, out):
         check(await pg.evaluate("T.pages.length") == 0, 'Back closes Previous versions')
         await pg.evaluate(IDLE)
         files = await pg.evaluate(LIST)
-        check('Agora/Cards/Example Show/brusque/card.json' in files, 'the restored card is written back to the folder')
+        check('Agora/Cards/Example Show/Pictures/brusque definition 2.jpg' in files and 'test-brusque' in await pg.evaluate(READ, 'Cards/Example Show/cards.json'), 'the restored card is written back to the folder')
 
         # an item's own previous versions: a card from the study view, a bookmark
         await ph.open_card('test-candor')
@@ -180,7 +187,7 @@ async def main(app, out):
         check('Save to My Files' in line and '1 change waiting' in line, f'changes waiting line: {line!r}')
         await ph.shot(f'{out}/7-home-waiting.png')
         await pg.click('#home [data-ag]'); await pg.evaluate(IDLE)
-        rj = await pg.evaluate("async () => JSON.parse(await (await (await (await (await (await (await (await navigator.storage.getDirectory()).getDirectoryHandle('Agora')).getDirectoryHandle('Cards')).getDirectoryHandle('Example Show')).getDirectoryHandle('reticent')).getFileHandle('card.json')).getFile()).text()).card.tags")
+        rj = next(e['card']['tags'] for e in json.loads(await pg.evaluate(READ, 'Cards/Example Show/cards.json'))['cards'] if e['card']['id'] == 'test-reticent')
         check('Later' in rj, 'one tap saves what waited')
         state = await pg.evaluate("({cards: T.cards.length, notes: T.NT.notes.size, marks: T.BM.recs.size, study: T.SD.recs.size, hist: T.HI.recs.size})")
         dump = await pg.evaluate(DUMP)

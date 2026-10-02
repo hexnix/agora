@@ -4971,7 +4971,8 @@ async function importMarks(list) {
    from a tap: the cards show at once, and changes wait in a list (database "agora-sync") until the folder is allowed again.
    The folder:
      Read me.txt
-     Cards/<deck>/deck.json (+ cover), Cards/<deck>/<word>/card.json + scene, tile, definition, definition 2…, source pictures
+     Cards/<deck>/deck.json (+ cover), Cards/<deck>/cards.json (every card of the deck), Cards/<deck>/Pictures/<word> scene.jpg,
+       <word> tile.jpg, <word> definition.jpg, <word> definition 2.jpg…, <word> source.jpg
      Magazines/<key>.pdf          the magazine pages' PDFs, one per magazine, shared by its cards
      Notes/<title>.html            each note as a page any browser opens; its pictures in Notes/pictures/
      Bookmarks.json, Study progress.json, History.json
@@ -4981,7 +4982,7 @@ async function importMarks(list) {
    database "agora-sync": store `dirty` {k, at} units waiting; store `paths` {k, dir, base, nm, label, files: {name: blob id}, sum}
    where each unit is in the folder; store `meta` {k: 'linked', v: folder name} once everything was first copied there. */
 const AGF = 'Agora', VERS = 'Previous versions', KEEP_DAYS = 30;
-const AG = { dirty: new Map(), map: new Map(), linked: null, loaded: false, run: null, linking: null, done: 0, total: 0, phase: '', timer: 0, failed: new Set(), pdfs: new Set(), log: [] };
+const AG = { dirty: new Map(), map: new Map(), claim: new Map(), decks: new Map(), linked: null, loaded: false, run: null, linking: null, done: 0, total: 0, phase: '', timer: 0, failed: new Set(), pdfs: new Set(), log: [] };
 let gstore = memStore(['dirty', 'paths', 'meta']);
 KEYS.dirty = 'k'; KEYS.paths = 'k';
 /* a database's store, with every change noted as waiting for the folder */
@@ -5022,6 +5023,9 @@ async function loadSync() {
     (await gstore.all('paths')).forEach(r => AG.map.set(r.k, r));
     const l = await gstore.get('meta', 'linked'); AG.linked = l ? l.v : null;
     if (early.length) await gstore.put('dirty', early);
+    // cards saved in a folder each (before v35) move to their deck's cards.json and Pictures folder on the next save
+    const at = Date.now(), old = [...AG.map.values()].filter(r => r.k.startsWith('card:') && !r.flat && !AG.dirty.has(r.k)).map(r => ({ k: r.k, at }));
+    if (old.length) { old.forEach(r => AG.dirty.set(r.k, r.at)); await gstore.put('dirty', old); }
   } catch (e) { console.warn('sync', e); }
   AG.loaded = true;
 }
@@ -5032,10 +5036,29 @@ const agOn = () => agReady() && FX.ready && FX.root && AG.linked === rootName();
 
 /* files inside the Agora folder */
 const splitPath = p => { const i = p.lastIndexOf('/'); return [i < 0 ? '' : p.slice(0, i), p.slice(i + 1)]; };
-async function agDir(path, create) {
-  let d = FX.root;
-  for (const p of `${AGF}/${path}`.split('/').filter(Boolean)) d = await d.getDirectoryHandle(p, { create });
-  return d;
+/* folders already found are remembered while saving: on Android each step into a folder is a slow trip through the system,
+   so Agora/Cards/<deck> is looked up once, not once per picture. The promise is kept, so cards written side by side make a new folder once. */
+const agDirs = new Map();
+function agDir(path, create) {
+  let p = Promise.resolve(FX.root), key = '';
+  if (!AG.busy) agDirs.clear(); // only while saving or reading the folder in; at other times the phone is asked afresh
+  for (const name of `${AGF}/${path}`.split('/').filter(Boolean)) {
+    key = key ? `${key}/${name}` : name;
+    const k = key;
+    if (agDirs.has(k)) { p = agDirs.get(k); continue; }
+    const q = p.then(d => d.getDirectoryHandle(name, { create }));
+    if (create) { agDirs.set(k, q); q.catch(() => { if (agDirs.get(k) === q) agDirs.delete(k); }); }
+    else q.then(h => { if (!agDirs.has(k)) agDirs.set(k, Promise.resolve(h)); }, () => {});
+    p = q;
+  }
+  return p;
+}
+/* a folder removed, or the folder changed on the phone: what was remembered under it is looked up again */
+const agBusy = on => { const was = AG.busy || 0; AG.busy = Math.max(0, was + (on ? 1 : -1)); if (!AG.busy || !was) agDirs.clear(); };
+function agDirsDrop(path) {
+  if (path == null) return agDirs.clear();
+  const k = `${AGF}/${path}`.split('/').filter(Boolean).join('/');
+  for (const x of [...agDirs.keys()]) if (x === k || x.startsWith(k + '/')) agDirs.delete(x);
 }
 async function agRead(path) {
   try { const [d, n] = splitPath(path); return await (await (await agDir(d, false)).getFileHandle(n)).getFile(); } catch { return null; }
@@ -5046,7 +5069,7 @@ async function agPut(path, data) {
   const w = await fh.createWritable(); await w.write(data); await w.close();
 }
 async function agRemove(path, recursive) {
-  try { const [d, n] = splitPath(path); await (await agDir(d, false)).removeEntry(n, { recursive: !!recursive }); return true; } catch { return false; }
+  try { const [d, n] = splitPath(path); await (await agDir(d, false)).removeEntry(n, { recursive: !!recursive }); agDirsDrop(path); return true; } catch { return false; }
 }
 async function agList(path) {
   const out = [];
@@ -5059,6 +5082,7 @@ const safeName = s => String(s || '').replace(/[\\/:*?"<>|\u0000-\u001f]+/g, ' '
 /* a folder or file name no other unit uses (the phone's storage ignores capitals, so neither does this) */
 function agUnique(k, base, nm, ext = '') {
   const taken = new Set([...AG.map.values()].filter(r => r.k !== k).map(r => String(r.dir).toLowerCase()));
+  for (const [o, dir] of AG.claim) if (o !== k) taken.add(dir.toLowerCase()); // cards being written side by side
   let p = `${base}/${nm}${ext}`, i = 2;
   while (taken.has(p.toLowerCase())) p = `${base}/${nm} ${i++}${ext}`;
   return p;
@@ -5078,7 +5102,7 @@ async function agKeep(path, stamp, old) {
   if (!(await agRead(vp))) await agPut(vp, f);
   return true;
 }
-function agLogChange(k, kind, label, what, dir) { AG.log.push({ k, kind, label, what, dir, at: Date.now(), run: AG.runAt, why: AG.why || '' }); }
+function agLogChange(k, kind, label, what, dir, more) { AG.log.push({ k, kind, label, what, dir, at: Date.now(), run: AG.runAt, why: AG.why || '', ...more }); }
 /* what the next changes are about ("Imported a backup"), for the moments view of Previous versions */
 function agWhy(text) { AG.why = text; AG.whyAt = Date.now(); }
 /* write a text file unless it already says exactly that; the earlier copy is kept first */
@@ -5093,9 +5117,9 @@ async function agText(path, txt, rec, stamp, same) {
 }
 
 /* ---- one unit at a time ---- */
-async function agWrite(k, stamp) {
+async function agWrite(k, stamp, at) {
   const [kind, id] = k.includes(':') ? [k.slice(0, k.indexOf(':')), k.slice(k.indexOf(':') + 1)] : [k, ''];
-  if (kind === 'card') return agCard(k, id, stamp);
+  if (kind === 'card') return agCard(k, id, stamp, at);
   if (kind === 'deck') return agDeck(k, id, stamp);
   if (kind === 'note') return agNote(k, id, stamp);
   if (kind === 'study') return agOne(k, 'Study progress.json', 'Study progress', { app: 'agora', kind: 'study', version: 1, daily: SD.dailySet ? SD.daily : null, extra: SD.extra, cards: [...SD.recs.values()] }, stamp);
@@ -5126,11 +5150,11 @@ async function agPics(dir, slots, old, moved, stamp, getBlob) {
     if (same) { files[same] = bid; continue; }
     const blob = await getBlob(bid); if (!blob) continue;
     const n = `${stem}.${EXT[blob.type] || (blob.type === 'application/pdf' ? 'pdf' : 'jpg')}`;
-    if (!moved && old[n] && stem !== 'tile' && await agKeep(`${dir}/${n}`, stamp)) changed = true;
+    if (!moved && old[n] && !isTile(n) && await agKeep(`${dir}/${n}`, stamp)) changed = true;
     await agPut(`${dir}/${n}`, blob); files[n] = bid;
   }
   if (!moved) for (const n of Object.keys(old)) if (!files[n]) {
-    if (!n.startsWith('tile.') && await agKeep(`${dir}/${n}`, stamp)) changed = true;
+    if (!isTile(n) && await agKeep(`${dir}/${n}`, stamp)) changed = true;
     await agRemove(`${dir}/${n}`);
   }
   return { files, changed };
@@ -5147,38 +5171,119 @@ function cardChange(a, b) {
   if (a.deckId !== b.deckId) return 'moved to another deck';
   return 'changed';
 }
-async function agCard(k, id, stamp) {
+/* ---- cards: one cards.json per deck, the deck's pictures in one folder (v35, the owner's pick "per deck") ----
+   Cards/<deck>/cards.json: every card of the deck, one per line, {name, card, files: {picture: blob id}}.
+   Cards/<deck>/Pictures/<name> scene.jpg, <name> tile.jpg, <name> definition.jpg, <name> definition 2.jpg, <name> source.jpg.
+   A card's record in `paths`: {k, flat: true, base: deck folder, dir: <base>/Pictures/<name>, nm, files, sum}.
+   The earlier copy of a changed or deleted card goes into that hour's changes.json (the card itself) with its pictures beside it in
+   Previous versions, so cards.json is rewritten without a copy of the whole file each time.
+   Cards written before v35 had a folder each (Cards/<deck>/<name>/card.json); they move over on the next save. */
+const picDir = base => `${base}/Pictures`;
+const isTile = n => /(^| )tile\.[^.]+$/.test(n);
+const lastPart = p => p.slice(p.lastIndexOf('/') + 1);
+const agEntry = (c, files, name) => ({ name, card: c, files });
+function agDone(k, at) { if (AG.dirty.get(k) === at) { AG.dirty.delete(k); gstore.del('dirty', [k]).catch(() => {}); } }
+/* a deck's cards.json, read once per save; cards change it in memory, and it is written every 100 cards, every 15 s and at the end.
+   A card counts as saved (its record kept, its old pictures removed) only once the cards.json holding it is written. */
+function agDeckFile(base) {
+  let df = AG.decks.get(base);
+  if (df) return df;
+  df = { base, entries: new Map(), pending: [], changed: false, at: Date.now(), writing: null };
+  df.ready = (async () => {
+    const f = await agRead(`${base}/cards.json`);
+    let j = null; if (f) try { j = JSON.parse(await f.text()); } catch {}
+    if (j && Array.isArray(j.cards)) { j.cards.forEach(e => { if (e && e.card && e.card.id) df.entries.set(e.card.id, e); }); return; }
+    // missing or unreadable: the cards the phone has written there are written again (an unreadable file is kept first)
+    if (f) await agKeep(`${base}/cards.json`, AG.stamp).catch(() => {});
+    const redo = [...AG.map.values()].filter(r => r.flat && r.base === base);
+    redo.forEach(r => { r.sum = ''; });
+    if (redo.length) agWaiting(redo.map(r => r.k));
+  })();
+  AG.decks.set(base, df);
+  return df;
+}
+async function agDeckWrite(df) {
+  while (df.writing) await df.writing;
+  if (!df.changed || !agOn()) return;
+  df.writing = (async () => {
+    df.changed = false; df.at = Date.now();
+    const run = df.pending.splice(0);
+    try {
+      const list = [...df.entries.values()].sort((a, b) => a.name.localeCompare(b.name));
+      if (list.length) await agPut(`${df.base}/cards.json`, `{"app":"agora","kind":"cards","version":1,"cards":[\n${list.map(e => JSON.stringify(e)).join(',\n')}\n]}\n`);
+      else { await agRemove(`${df.base}/cards.json`); await agRemove(picDir(df.base)); } // the Pictures folder only goes when empty
+    } catch (e) {
+      console.warn('Agora folder:', df.base, e); df.changed = true; run.forEach(x => AG.failed.add(x.k));
+      if (e && e.name === 'NotAllowedError') FX.ready = false;
+      return;
+    }
+    for (const x of run) { try { await x.fn(); } catch (e) { console.warn('Agora folder:', x.k, e); } }
+  })().finally(() => { df.writing = null; });
+  await df.writing;
+}
+const agDecksDue = all => Promise.all([...AG.decks.values()].filter(df => df.changed && (all || df.pending.length >= 100 || Date.now() - df.at > 15000)).map(agDeckWrite));
+
+async function agCard(k, id, stamp, at) {
   const c = cards.find(x => x.id === id), rec = AG.map.get(k);
-  if (!c) { if (rec) await agGone(k, rec, 'card', 'card.json', stamp); return; }
+  if (!c) { if (!rec) return; return rec.flat ? agCardGone(k, rec, stamp, at) : agGone(k, rec, 'card', 'card.json', stamp); }
   const d = decks.find(x => x.id === c.deckId); if (!d) return;
   const base = agDeckDir(d), nm = safeName(nameOf(c)) || 'card';
-  const dir = rec && rec.base === base && rec.nm === nm ? rec.dir : agUnique(k, base, nm);
-  const moved = !!rec && rec.dir !== dir;
-  const slots = [['scene', c.frameId], ['tile', c.thumbId], ...defIdsOf(c).map((b, i) => [i ? `definition ${i + 1}` : 'definition', b]), ['source', c.ref && c.ref.thumbId]];
-  const pics = await agPics(dir, slots, rec ? rec.files : {}, moved, stamp, blobOf);
+  const dir = rec && rec.flat && rec.base === base && rec.nm === nm ? rec.dir : agUnique(k, picDir(base), nm);
+  AG.claim.set(k, dir); // so a card of the same name written alongside takes another name; it holds until the card's cards.json is written
+  try { const r = await agCardTo(k, c, rec, base, nm, dir, stamp, at); if (r !== 'later') AG.claim.delete(k); return r; }
+  catch (e) { AG.claim.delete(k); throw e; }
+}
+async function agCardTo(k, c, rec, base, nm, dir, stamp, at) {
+  const flatWas = !!rec && !!rec.flat, moved = !!rec && rec.dir !== dir, name = lastPart(dir), pdir = picDir(base);
+  const slots = [['scene', c.frameId], ['tile', c.thumbId], ...defIdsOf(c).map((b, i) => [i ? `definition ${i + 1}` : 'definition', b]), ['source', c.ref && c.ref.thumbId]]
+    .map(([stem, b]) => [`${name} ${stem}`, b]);
+  // nothing changed since it was last written
+  if (flatWas && !moved && hashOf(JSON.stringify(agEntry(c, rec.files, name))) === rec.sum) {
+    const ids = slots.map(x => x[1]).filter(Boolean), had = Object.values(rec.files);
+    if (ids.length === had.length && ids.every(b => had.includes(b))) return;
+  }
+  const df = agDeckFile(base), oldDf = flatWas && rec.base !== base ? agDeckFile(rec.base) : null;
+  await df.ready; if (oldDf) await oldDf.ready;
+  const was = (oldDf || df).entries.get(c.id) || null;
+  const pics = await agPics(pdir, slots, flatWas && !moved ? rec.files : {}, moved || !flatWas, stamp, blobOf);
   // a magazine's PDF is written once, for all the cards that share it
   if (c.pdf && c.pdf.id && !AG.pdfs.has(c.pdf.id)) {
+    AG.pdfs.add(c.pdf.id); // first, so a card alongside sharing it doesn't write it too
     const p = `Magazines/${safeName(c.pdf.id.replace(/^pdf-/, '')) || 'magazine'}.pdf`;
     if (!(await agRead(p))) { const b = await blobOf(c.pdf.id); if (b) await agPut(p, b); }
-    AG.pdfs.add(c.pdf.id);
   }
   // the card as it is stored, picture ids included, so it comes back exactly
-  const txt = JSON.stringify({ app: 'agora', kind: 'card', version: 1, card: c, files: pics.files }, null, 1);
-  const r = await agText(`${dir}/card.json`, txt, rec && !moved ? { sum: rec.sum, dir: `${dir}/card.json` } : null, stamp);
-  if (moved) {
-    // its folder moved (a new name or deck): the old one goes, keeping its card.json if the card also changed
-    const was = await agJSON(`${rec.dir}/card.json`);
-    if (was && was.card && JSON.stringify(was.card) !== JSON.stringify(c)) {
-      await agKeep(`${rec.dir}/card.json`, stamp);
-      for (const n of Object.keys(rec.files)) if (!n.startsWith('tile.')) await agKeep(`${rec.dir}/${n}`, stamp);
-      agLogChange(k, 'card', nameOf(c), cardChange(was.card, c), rec.dir);
-    }
-    await agRemove(rec.dir, true);
-  } else if (r.kept != null || pics.changed) {
-    let was = null; try { was = r.kept && JSON.parse(r.kept).card; } catch {}
-    agLogChange(k, 'card', nameOf(c), cardChange(was, c), dir);
+  const entry = agEntry(c, pics.files, name), sum = hashOf(JSON.stringify(entry));
+  if (oldDf) { oldDf.entries.delete(c.id); oldDf.changed = true; }
+  df.entries.set(c.id, entry); df.changed = true;
+  if (was && (pics.changed || JSON.stringify(was.card) !== JSON.stringify(c))) {
+    // the card as it was goes into the list of changes; its pictures, when they change or move, into Previous versions
+    if (moved) for (const n of Object.keys(rec.files)) if (!isTile(n)) await agKeep(`${picDir(rec.base)}/${n}`, stamp);
+    agLogChange(k, 'card', nameOf(c), cardChange(was.card, c), rec ? rec.dir : dir, { card: was.card, files: was.files });
   }
-  await agSave({ k, dir, base, nm, label: nameOf(c), files: pics.files, sum: r.sum });
+  const now = new Set(Object.keys(pics.files).map(n => n.toLowerCase()));
+  df.pending.push({ k, fn: async () => {
+    if (moved && flatWas) { // a new name or deck: the old pictures go (the phone ignores capitals, so a name that only changed case stays)
+      for (const n of Object.keys(rec.files)) if (rec.base !== base || !now.has(n.toLowerCase())) await agRemove(`${picDir(rec.base)}/${n}`);
+    } else if (moved) await agRemove(rec.dir, true); // its folder from before v35
+    await agSave({ k, flat: true, dir, base, nm, label: nameOf(c), files: pics.files, sum });
+    if (AG.claim.get(k) === dir) AG.claim.delete(k);
+    agDone(k, at);
+  } });
+  return 'later';
+}
+/* a deleted card: its pictures go to Previous versions, the card itself into the list of changes */
+async function agCardGone(k, rec, stamp, at) {
+  const df = agDeckFile(rec.base); await df.ready;
+  const id = k.slice(5), was = df.entries.get(id), pdir = picDir(rec.base);
+  let any = false;
+  for (const n of Object.keys(rec.files)) if (await agKeep(`${pdir}/${n}`, stamp)) any = true;
+  if (was || any) agLogChange(k, 'card', rec.label, 'deleted', rec.dir, was ? { card: was.card, files: was.files } : {});
+  if (df.entries.delete(id)) df.changed = true;
+  const fn = async () => { for (const n of Object.keys(rec.files)) await agRemove(`${pdir}/${n}`); await agForget(k); agDone(k, at); };
+  if (!df.changed) { await fn(); return; }
+  df.pending.push({ k, fn });
+  return 'later';
 }
 /* a deleted card, deck or note: every file goes to Previous versions, then out of the folder */
 async function agGone(k, rec, kind, main, stamp) {
@@ -5244,6 +5349,7 @@ async function agNote(k, id, stamp) {
 
 /* ---- writing what waits ---- */
 const UNIT_ORDER = { deck: 0, card: 1, note: 2 };
+const AG_SIDE = 8; // cards written side by side
 const unitRank = k => UNIT_ORDER[k.split(':')[0]] ?? 3;
 function agSoon(ms) {
   if (ms == null) ms = [...AG.dirty.keys()].every(k => k === 'history' || k === 'study') ? 20000 : 4000; // studying writes less often
@@ -5254,27 +5360,39 @@ function agFlush() {
   if (AG.run) return AG.run;
   if (!agOn() || !AG.dirty.size) { agPaint(); return Promise.resolve(); }
   AG.run = (async () => {
-    const stamp = agStamp(); AG.log = []; AG.done = 0; AG.phase = 'write'; AG.empty = []; AG.runAt = Date.now();
+    const stamp = agStamp(); AG.log = []; AG.done = 0; AG.phase = 'write'; AG.empty = []; AG.runAt = Date.now(); AG.stamp = stamp; AG.decks = new Map(); AG.claim.clear();
     if (AG.why && Date.now() - AG.whyAt > 120000) AG.why = ''; // a reason only holds for the changes right after it
+    agBusy(true);
     let lastPaint = 0;
+    const one = async ([k, at]) => {
+      if (!agOn()) return;
+      try { if (await agWrite(k, stamp, at) !== 'later') agDone(k, at); } // a card is done once its deck's cards.json is written
+      catch (e) { console.warn('Agora folder:', k, e); AG.failed.add(k); if (e && e.name === 'NotAllowedError') FX.ready = false; }
+      AG.done++;
+      if (unitRank(k) === 1) await agDecksDue();
+      if (Date.now() - lastPaint > 400) { lastPaint = Date.now(); agPaint(); }
+    };
     while (agOn()) {
       const list = [...AG.dirty.entries()].filter(([k]) => !AG.failed.has(k)).sort((a, b) => unitRank(a[0]) - unitRank(b[0]));
       if (!list.length) break;
       AG.total = AG.done + list.length;
-      for (const [k, at] of list) {
-        if (!agOn()) break;
-        try { await agWrite(k, stamp); if (AG.dirty.get(k) === at) { AG.dirty.delete(k); gstore.del('dirty', [k]).catch(() => {}); } }
-        catch (e) { console.warn('Agora folder:', k, e); AG.failed.add(k); if (e && e.name === 'NotAllowedError') { FX.ready = false; break; } }
-        AG.done++;
-        if (Date.now() - lastPaint > 400) { lastPaint = Date.now(); agPaint(); }
-      }
+      // decks first, then cards several at a time (each card is its own folder, and on Android most of the time is waiting
+      // on the system, not copying), then notes and the rest one by one
+      const cardsNow = list.filter(([k]) => unitRank(k) === 1);
+      for (const x of list.filter(([k]) => unitRank(k) === 0)) await one(x);
+      let next = 0;
+      await Promise.all(Array.from({ length: AG_SIDE }, async () => { while (next < cardsNow.length && agOn()) await one(cardsNow[next++]); }));
+      for (const x of list.filter(([k]) => unitRank(k) > 1)) await one(x);
+      await agDecksDue(true);
     }
-    for (const dir of AG.empty) await agRemove(dir); // a deck folder left empty (only removed when nothing is in it)
+    // a deck folder left empty (only removed when nothing is in it), and a Pictures folder whose cards all moved out
+    for (const df of AG.decks.values()) if (!df.entries.size) await agRemove(picDir(df.base));
+    for (const dir of AG.empty) { await agRemove(picDir(dir)); await agRemove(dir); }
     await agWriteLog(stamp, AG.log);
     AG.why = '';
     await agPrune();
     if (AG.failed.size) toast(`Couldn’t save ${plural(AG.failed.size, 'change')} to My Files`);
-  })().catch(e => console.warn('Agora folder', e)).finally(() => { AG.run = null; AG.phase = ''; agPaint(); if (AG.dirty.size > AG.failed.size && agOn()) agSoon(); });
+  })().catch(e => console.warn('Agora folder', e)).finally(() => { agBusy(false); AG.run = null; AG.phase = ''; agPaint(); if (AG.dirty.size > AG.failed.size && agOn()) agSoon(); });
   return AG.run;
 }
 /* the list of what changed this hour, for the Previous versions page */
@@ -5295,7 +5413,7 @@ async function agPrune() {
 }
 const README = `Agora keeps everything here: your cards, notes, bookmarks and study progress.
 
-Cards/<deck>/<word>/   one folder per card: card.json (its words, tags and meanings) and its pictures
+Cards/<deck>/          deck.json, cards.json (every card: its words, tags and meanings) and Pictures/ (each card's pictures, by word)
 Magazines/             the magazine pages behind some cards
 Notes/                 each note as a page any browser can open, with its pictures
 Bookmarks.json, Study progress.json, History.json
@@ -5312,7 +5430,7 @@ async function agLink() {
   if (!agReady() || !FX.ready || !FX.root) return;
   if (AG.linked === rootName()) { agSoon(0); return; }
   AG.linking = (async () => {
-    AG.phase = 'read'; AG.done = 0; agPaint();
+    agBusy(true); AG.phase = 'read'; AG.done = 0; agPaint();
     const n = await agMerge();
     AG.linked = rootName(); await gstore.put('meta', [{ k: 'linked', v: AG.linked }]).catch(() => {});
     if (!(await agRead('Read me.txt'))) await agPut('Read me.txt', README).catch(() => {});
@@ -5321,7 +5439,7 @@ async function agLink() {
     AG.phase = '';
     if (n) { renderHome(); refreshPages(); toast(`Brought in ${plural(n, 'item')} from My Files › Agora`); }
     agSoon(0);
-  })().catch(e => { console.warn('Agora folder', e); toast('Couldn’t read the Agora folder'); }).finally(() => { AG.linking = null; AG.phase = ''; agPaint(); });
+  })().catch(e => { console.warn('Agora folder', e); toast('Couldn’t read the Agora folder'); }).finally(() => { agBusy(false); AG.linking = null; AG.phase = ''; agPaint(); });
   return AG.linking;
 }
 /* read the Agora folder into the phone: anything the phone doesn't have yet, and anything newer there. Nothing on the phone is lost. */
@@ -5344,6 +5462,17 @@ async function agMerge() {
         deckIds.set(dj.deck.id, d);
         if (d.id === dj.deck.id) await agSave({ k: 'deck:' + d.id, dir, nm: safeName(d.name) || 'Deck', label: d.name, files: dj.files || {}, sum: '' });
       }
+      // the deck's cards.json (v35), and its Pictures folder
+      const cj = await agJSON(`${dir}/cards.json`);
+      for (const e of (cj && Array.isArray(cj.cards) ? cj.cards : [])) {
+        if (!e || !e.card || !e.card.id) continue;
+        AG.done++; if (AG.done % 20 === 0) agPaint();
+        const k = 'card:' + e.card.id, rec = { k, flat: true, dir: `${picDir(dir)}/${e.name}`, base: dir, nm: safeName(nameOf(e.card)) || 'card', label: nameOf(e.card), files: e.files || {}, sum: hashOf(JSON.stringify(e)) };
+        if (cards.some(x => x.id === e.card.id)) { if (!AG.map.has(k)) await agSave(rec); continue; } // the phone's copy is the one in use
+        const card = await agCardIn(e.card, e.files || {}, [picDir(dir)], deckIds.get(e.card.deckId) || decks.find(x => x.id === e.card.deckId) || d);
+        if (card) { n++; await agSave(rec); }
+      }
+      // cards saved before v35, a folder each
       for (const c of await agList(dir)) {
         if (c.kind !== 'directory') continue;
         const cdir = `${dir}/${c.name}`, cj = await agJSON(`${cdir}/card.json`);
@@ -5351,21 +5480,8 @@ async function agMerge() {
         AG.done++; if (AG.done % 20 === 0) agPaint();
         const card = cj.card, files = cj.files || {};
         if (cards.some(x => x.id === card.id)) continue; // the phone's copy is the one in use
-        const home = deckIds.get(card.deckId) || decks.find(x => x.id === card.deckId) || d;
-        if (!home) continue;
-        const blobs = [];
-        for (const [name, bid] of Object.entries(files)) {
-          if (await store.get('blobs', bid).catch(() => null)) continue;
-          const f = await agRead(`${cdir}/${name}`); if (f) blobs.push({ id: bid, blob: new Blob([f], { type: f.type || MIME[fext(name)] || 'image/jpeg' }) });
-        }
-        if (card.pdf && card.pdf.id && !(await store.get('blobs', card.pdf.id).catch(() => null))) {
-          const f = await agRead(`Magazines/${safeName(card.pdf.id.replace(/^pdf-/, '')) || 'magazine'}.pdf`);
-          if (f) blobs.push({ id: card.pdf.id, blob: new Blob([f], { type: 'application/pdf' }) });
-        }
-        if (!blobs.some(b => b.id === card.frameId) && !(await store.get('blobs', card.frameId).catch(() => null))) continue; // no scene: not a card
-        if (blobs.length) await store.put('blobs', blobs);
-        card.deckId = home.id; if (!card.defIds || !card.defIds.length) card.defIds = [card.defId];
-        cards.push(card); await store.put('cards', [card]); thumbIds.add(card.thumbId); n++;
+        if (!(await agCardIn(card, files, [cdir], deckIds.get(card.deckId) || decks.find(x => x.id === card.deckId) || d))) continue;
+        n++;
         await agSave({ k: 'card:' + card.id, dir: cdir, base: dir, nm: safeName(nameOf(card)) || 'card', label: nameOf(card), files, sum: '' });
       }
     }
@@ -5393,6 +5509,28 @@ async function agMerge() {
     }
   } finally { AG.mute--; }
   return n;
+}
+/* a card from the folder or from Previous versions into the phone: its pictures from the first folder that has them */
+async function agCardIn(card, files, dirs, home) {
+  if (!home) return null;
+  const blobs = [];
+  for (const [name, bid] of Object.entries(files)) {
+    if (await store.get('blobs', bid).catch(() => null)) continue;
+    let f = null; for (const dir of dirs) if ((f = await agRead(`${dir}/${name}`))) break;
+    if (f) blobs.push({ id: bid, blob: new Blob([f], { type: f.type || MIME[fext(name)] || 'image/jpeg' }) });
+  }
+  if (card.pdf && card.pdf.id && !(await store.get('blobs', card.pdf.id).catch(() => null))) {
+    const f = await agRead(`Magazines/${safeName(card.pdf.id.replace(/^pdf-/, '')) || 'magazine'}.pdf`);
+    if (f) blobs.push({ id: card.pdf.id, blob: new Blob([f], { type: 'application/pdf' }) });
+  }
+  if (!blobs.some(b => b.id === card.frameId) && !(await store.get('blobs', card.frameId).catch(() => null))) return null; // no scene: not a card
+  if (blobs.length) await store.put('blobs', blobs);
+  card.deckId = home.id; if (!card.defIds || !card.defIds.length) card.defIds = [card.defId];
+  const i = cards.findIndex(c => c.id === card.id);
+  if (i >= 0) cards[i] = card; else cards.push(card);
+  thumbIds.add(card.thumbId); urls.delete(card.thumbId);
+  await store.put('cards', [card]);
+  return card;
 }
 async function agNoteFile(path) {
   const f = await agRead(path); if (!f) return null;
@@ -5478,6 +5616,7 @@ function verPic(x) {
   const c = x.kind === 'card' && cards.find(y => 'card:' + y.id === x.k);
   if (c) return `<img alt="" data-blob="${c.thumbId}">`;
   if (x.kind === 'file') { const f = fidx.get(x.to || x.path); return f && f.thumbId ? `<img alt="" data-blob="${f.thumbId}">` : `<span class="vgly">${ICON_DOC(24)}</span>`; }
+  if (x.kind === 'card' && x.files) { const t = Object.keys(x.files).find(isTile); if (t) return `<img alt="" data-vpic="${esc(`${VERS}/${x.stamp}/${parentOf(x.dir)}/${t}`)}">`; }
   if (x.kind === 'card') return `<img alt="" data-vtile="${esc(`${VERS}/${x.stamp}/${x.dir}`)}">`; // a deleted card: its tile from the kept copy
   return `<span class="vgly">${x.kind === 'note' ? ICON_DOC(24) : x.kind === 'deck' ? ICON_FOLDER(24) : ICON_CLOCK}</span>`;
 }
@@ -5503,6 +5642,10 @@ function renderVersions(v) {
   pics(v.el); v.el.scrollTop = top; markScrolled(v);
   $$('img[data-vtile]', v.el).forEach(async img => {
     const dir = img.dataset.vtile, t = (await agList(dir)).find(e => e.name.startsWith('tile.')), f = t && await agRead(`${dir}/${t.name}`);
+    if (f) { img.onload = () => img.classList.add('in'); img.src = URL.createObjectURL(f); }
+  });
+  $$('img[data-vpic]', v.el).forEach(async img => {
+    const f = await agRead(img.dataset.vpic);
     if (f) { img.onload = () => img.classList.add('in'); img.src = URL.createObjectURL(f); }
   });
 }
@@ -5555,6 +5698,10 @@ async function itemVersions(k, title, markId, after) {
 async function agRestore(x) {
   if (x.kind === 'file') return fileRestore(x);
   const vdir = `${VERS}/${x.stamp}`;
+  if (x.kind === 'card' && x.card) { // v35: the card itself is in the list of changes, its pictures in the deck's Pictures folder
+    const card = JSON.parse(JSON.stringify(x.card)), pdir = parentOf(x.dir);
+    return !!(await agCardIn(card, x.files || {}, [`${vdir}/${pdir}`, pdir], decks.find(d => d.id === card.deckId) || studyDeck() || decks[0] || newDeck('Restored')));
+  }
   if (x.kind === 'card') {
     const j = await agJSON(`${vdir}/${x.dir}/card.json`); if (!j || !j.card) return false;
     const card = j.card, blobs = [];

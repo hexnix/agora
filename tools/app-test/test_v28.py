@@ -1,4 +1,5 @@
-"""v28 test: the home title spaced like every page title, Select all as an icon in every selection bar, search inside a deck.
+"""v28 test: the home title spaced like every page title, Select all as an icon in every selection bar, search inside a deck,
+and (v31) the same search inside My Files and Notes.
 
     python3 tools/app-test/test_v28.py . --out shots/v28/
 """
@@ -7,6 +8,7 @@ import argparse, asyncio, os, sys, tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from harness import Phone
 from test_study import vocab_zip
+from test_files import FILL_JS, tree_for_js
 
 
 async def main(app, out):
@@ -70,6 +72,42 @@ async def main(app, out):
         has = await pg.locator('.page:last-child .pbar [data-p="dsearch"]').count()
         check(kind != 'cards' or has == 1, f'the first page a deck opens on has the search icon ({kind})')
         check(not ph.errors, 'no JavaScript errors')
+    # v31: search inside My Files and inside Notes
+    async with Phone(app) as ph:
+        pg = ph.pg; top = '.page:last-child'
+        async def tap(sel): await pg.locator(sel).first.click(); await pg.wait_for_timeout(450)
+        await pg.evaluate(FILL_JS, tree_for_js()); await pg.evaluate("T.connectFiles(true)")
+        await pg.wait_for_function("T.FX.scanned && !T.FX.scanning", timeout=30000)
+        await pg.evaluate("T.openFolder('')"); await pg.wait_for_timeout(500)
+        check(await pg.locator(f'{top} .pbar [data-p="fsearch"]').count() == 1, 'My Files has the search icon')
+        await ph.shot(f'{out}/03-files-bar.png')
+        await tap(f'{top} [data-p="fsearch"]')
+        check(await pg.get_attribute('#q', 'placeholder') == 'Search My Files', 'it says "Search My Files"')
+        await pg.keyboard.type('resume'); await pg.wait_for_timeout(400)
+        check(await pg.locator('#results [data-fopen="resume-2026.pdf"]').count() == 1 and await pg.locator('#results [data-card], #results [data-bm]').count() == 0,
+              'it finds the file and nothing but files')
+        await ph.shot(f'{out}/04-files-search.png')
+        await ph.back()
+        check(await pg.locator('.page.search').count() == 0, 'Back closes it')
+        await ph.back()
+        await pg.wait_for_function("T.NT.loaded")
+        await pg.evaluate("""async () => { const now = Date.now();
+          for (const [i, [t, h]] of [['Groceries', '<p>Milk, eggs</p><p>Olive oil</p>'], ['', '<p>Call the plumber</p><p>about the kitchen tap</p>'], ['Trip', '<p>Book the cabin</p>']].entries()) {
+            const n = { id: 'n-test' + i, title: t, html: h, imgs: [], createdAt: now - i * 1000, updatedAt: now - i * 1000 };
+            T.NT.notes.set(n.id, n); await T.nstore.put('notes', [n]); } }""")
+        await pg.evaluate("T.openNotes()"); await pg.wait_for_timeout(500)
+        check(await pg.locator(f'{top} .pbar [data-p="nsearch"]').count() == 1, 'Notes has the search icon')
+        await tap(f'{top} [data-p="nsearch"]')
+        check(await pg.get_attribute('#q', 'placeholder') == 'Search Notes', 'it says "Search Notes"')
+        await pg.keyboard.type('tap'); await pg.wait_for_timeout(400)
+        ids = await pg.evaluate("[...document.querySelectorAll('#results [data-note]')].map(b => b.dataset.note)")
+        check(ids == ['n-test1'], f'it finds the note by a line inside it ({ids})')
+        await ph.shot(f'{out}/05-notes-search.png')
+        await tap('#results [data-note]')
+        check(await pg.locator(f'{top} .nbody').count() == 1, 'tapping it opens the note')
+        await ph.back(); await ph.back()
+        check(await pg.locator('.page.search').count() == 0 and await pg.evaluate("T.pages.length") == 1, 'Back steps out: note, search, then the Notes page')
+        check(not ph.errors, f'no JavaScript errors {ph.errors}')
     print('\nALL PASSED' if not fails else f'\n{len(fails)} FAILED')
     return not fails
 

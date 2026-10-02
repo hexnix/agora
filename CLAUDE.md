@@ -316,5 +316,6 @@ python3 tools/app-test/harness.py . --zips tools/app-test/fixtures/test-library.
 - **v31:** a search icon in My Files and in Notes, searching only there, like the one on a deck's first page.
 
 - **v32:** everything Agora holds is also kept as files in My Files › Agora (cards with their pictures, notes as pages, bookmarks, study progress, history); a new phone brings it all back from there; the earlier copy of anything changed or deleted is kept 30 days, with a Previous versions page (each item or by moment) and per-card, per-note and per-bookmark restore (database `agora-sync`). My Files can move, rename, edit text, make folders and delete, each change restorable.
+- **v33:** fix: the "Keep everything in My Files · tap to start" line now shows on a phone updated from v31 (it waited for a change to be made first, so the Agora folder never started).
 
 Add a line here with every version you ship.

@@ -105,7 +105,7 @@ class Phone:
                                # Bookmarks (v30)
                                "get BM(){return BM},get openMarks(){return openMarks},"
                                # the Agora folder (v32)
-                               "get AG(){return AG},get agFlush(){return agFlush},get agLink(){return agLink},get openVersions(){return openVersions},get itemVersions(){return itemVersions},get agVersions(){return agVersions},get agRestore(){return agRestore},get deleteCards(){return deleteCards},get saveCards(){return saveCards},get saveMarks(){return saveMarks},get saveRecs(){return saveRecs},"
+                               "get AG(){return AG},get agPaint(){return agPaint},get agFlush(){return agFlush},get agLink(){return agLink},get openVersions(){return openVersions},get itemVersions(){return itemVersions},get agVersions(){return agVersions},get agRestore(){return agRestore},get deleteCards(){return deleteCards},get saveCards(){return saveCards},get saveMarks(){return saveMarks},get saveRecs(){return saveRecs},"
                                "get FX(){return FX},get fidx(){return fidx},get FV(){return FV},get pages(){return pages},get connectFiles(){return connectFiles},get rescan(){return rescan},get openFolder(){return openFolder},get openViewer(){return openViewer},get openSearch(){return openSearch},get setFileTags(){return setFileTags},get saveTagsFile(){return saveTagsFile},get store(){return store},get fstore(){return fstore},get blobURL(){return blobURL}};\n") + html[i:]
             await r.fulfill(body=html, content_type='text/html')
         # also with a query, as when Android's share menu opens the app at ./?url=…

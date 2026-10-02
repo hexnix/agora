@@ -107,7 +107,7 @@ IndexedDB database `agora-study` (v25), version 1, holds Study progress (see "St
   - Pages sit in the band between them (`.stage`, sized by `--hd` / `--ft`).
   - Layers: `-1` is the source page, `0` the scene, `1…n` the definitions. `openLevel` / `openRef` / `go` / `beginMove` / `dragMove` / `finishMove` move between them. The incoming page's content starts right at the band edge and follows the finger 1:1; the outgoing page fades.
   - Swipe left or right changes card.
-  - **A single tap does nothing.** The old "bare mode" was removed on purpose. Double-tap or pinch zooms the scene; a PDF page zooms and scrolls.
+  - **A single tap hides the header and footer** (word, ✎, tags, "i / n"); the next tap brings them back (v26, `.study.bare`, set in `handleTap` 320 ms after the tap so a double tap isn't mistaken for it). The pages don't move or grow: they stay in the band between where the header and footer were. It lasts across cards until tapped again; Study's answer buttons stay. Double-tap or pinch zooms the scene; a PDF page zooms and scrolls.
   - Holding the scene or a definition does nothing (the hold-to-mark-for-review was removed in v25). Opening the meaning only counts a "peek".
   - ✎ edit menu (`studyEditSheet`): Replace scene/definition image, Add tag, Delete card.
   - Opened from a deck page, search or the queue, the study view is for looking only: it never moves a card along its Study cycle.
@@ -259,5 +259,7 @@ python3 tools/app-test/harness.py . --zips tools/app-test/fixtures/test-library.
 - **v24:** fix for the v23 black screen: the cards' database is opened as it is and never upgraded; My Files moves to its own database `agora-files` (a v23 index is copied over) and loads after the decks show; a plain message replaces a black screen if the cards ever take long to open.
 
 - **v25:** Study: a Study deck inside Vocabulary with 20 new cards a day plus reviews on a 1-3-7-14-30-60-120 day cycle; Continue, then Repeat / Tomorrow / Pass; a queue of new cards (list or grid, search, Bring to front). Progress in its own database `agora-study` and in backups. "Mark for review" and the "to review" counts are gone.
+
+- **v26:** a single tap in the study view hides the header and footer, and the next tap brings them back; the pages stay where they were.
 
 Add a line here with every version you ship.

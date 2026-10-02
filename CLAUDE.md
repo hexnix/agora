@@ -83,7 +83,7 @@ IndexedDB database `agora-study` (v25), version 1, holds Study progress (see "St
 ## Screens
 
 - **Home:** "Your decks", a grid with the newest deck first.
-  - Each tile has a cover (a chosen photo, a chosen card, or the deck's first card) and "N cards".
+  - Each tile has a cover (a chosen photo, a chosen card, or the deck's first card) and "N cards". Vocabulary (`studyDeck`) shows its logo instead, a white "A" with a blue "a" (`LOGO_VOCAB`, v26), and its ⋯ has no "Cover image".
   - The ⋯ menu on a tile: Study, Add cards, Browse cards, Rename, Cover image, Merge into another deck, Delete deck.
   - **Merge into another deck** (`mergeSheet` / `doMerge`, v18) moves every card (tags, review marks and progress kept) into a chosen deck or a new one, then removes the empty deck.
   - **Decks are kinds of content, not sources.** All vocabulary lives in one deck, "Vocabulary"; the source (show, film, channel, book) is in the tags. The owner plans to grow Agora into a place to find anything in their digital life, with more decks over time (a finance tracker, concepts with detailed explanations, pictures and files).
@@ -149,7 +149,7 @@ The owner keeps important files (documents, PDFs, photos, anything) in a folder 
 - **Connecting** (`connectFiles`): must run straight from a tap. The folder handle is kept in `agora-files` `meta.filesRoot`; "Choose a different folder" picks again.
 
 **Screens:**
-- **Home tile** "My Files" after the decks: a mosaic of the four newest pictures (or a folder), "N files · N folders", or "Tap to connect" before the first connect. Its ⋯ (`filesMenu`): Refresh the list / Connect My Files, Choose a different folder.
+- **Home tile** "My Files" after the decks: its logo (a white folder with a blue tab, v26), "N files · N folders", or "Tap to connect" before the first connect. Its ⋯ (`filesMenu`): Refresh the list / Connect My Files, Choose a different folder.
 - **Folder pages** (`openFolder`, kind `files` in `pages`, `renderFiles`): the same locked bar as deck pages ("<", the folder's name), then the path in grey ("My Files › Documents › Bank", each part tappable, `goCrumb`), then "4 folders · 8 files · newest first". Tools: the **list/grid toggle** (`files.view`), sort (Newest first, Oldest first, A to Z, Largest first; folders always first, A to Z), ⋯ (Refresh, Quick tagging, Select files, Choose a different folder).
   - **List** (the owner's pick B1): a 56-px picture, the name, "PDF · 1.2 MB · 14 Sep 2026", up to two tags as small blue pills and "+N".
   - **Grid** (B2): two across like a deck's cards; tags as blue text under the name.
@@ -181,7 +181,7 @@ The only way cards get in and out of the app.
 
 ## Design system (keep it unless the owner changes it)
 
-**My Files choices (v23, picked from numbered previews):** A1 tile after the decks; B1 list + B2 grid with a toggle in the bar; B4 path above the count; C2 cards then files in search; D1 hold-to-select + tag sheet and D3 quick tagging; E1 one quiet "Connect My Files" line; F viewer like the study view. Folders are a grey outlined folder; files without a picture are a grey page with the extension (no colours per file type).
+**My Files choices (v23, picked from numbered previews):** A1 tile after the decks; B1 list + B2 grid with a toggle in the bar; B4 path above the count; C2 cards then files in search; D1 hold-to-select + tag sheet and D3 quick tagging; E1 one quiet "Connect My Files" line; F viewer like the study view. **Home tile logos (v26, the owner's pick 2B):** Vocabulary is "Aa" in Plex Mono Light 46px, the "A" white and the "a" blue; My Files is a white outlined folder with a solid blue tab (`LOGO_VOCAB`, `LOGO_FILES`). Folders inside My Files are a grey outlined folder; files without a picture are a grey page with the extension (no colours per file type).
 
 
 **Colours:**
@@ -259,5 +259,6 @@ python3 tools/app-test/harness.py . --zips tools/app-test/fixtures/test-library.
 - **v24:** fix for the v23 black screen: the cards' database is opened as it is and never upgraded; My Files moves to its own database `agora-files` (a v23 index is copied over) and loads after the decks show; a plain message replaces a black screen if the cards ever take long to open.
 
 - **v25:** Study: a Study deck inside Vocabulary with 20 new cards a day plus reviews on a 1-3-7-14-30-60-120 day cycle; Continue, then Repeat / Tomorrow / Pass; a queue of new cards (list or grid, search, Bring to front). Progress in its own database `agora-study` and in backups. "Mark for review" and the "to review" counts are gone.
+- **v26:** logos on the home tiles: Vocabulary shows a white "A" with a blue "a", My Files a white folder with a blue tab (instead of a card picture and the four newest photos).
 
 Add a line here with every version you ship.

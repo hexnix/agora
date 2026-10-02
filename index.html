@@ -470,6 +470,15 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 .crumbs i{font-style:normal;color:var(--faint);padding:0 2px}
 .crumbs + .summary{margin-top:0}
 /* the one quiet line that asks for the folder */
+.mvbar{position:fixed;left:0;right:0;bottom:0;z-index:5;display:flex;align-items:center;gap:10px;padding:12px 20px calc(14px + env(safe-area-inset-bottom));background:var(--ink);border-top:1px solid var(--line)}
+.mvbar .to{flex:1;min-width:0;color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mvbar .btn{flex:none;min-height:46px}
+.mvbar .btn:disabled{opacity:.4}
+.home.moving{padding-bottom:110px}
+.fedit{display:block;width:100%;min-height:calc(100vh - 150px);background:transparent;color:var(--text);border:0;outline:0;resize:none;font:15px/1.65 var(--sans);padding:6px 0 calc(60px + var(--kb, 0px))}
+.agline{margin:10px 0 0;padding:6px 0;color:var(--muted);font-size:13px}
+.vgly{display:grid;place-items:center;width:100%;height:100%;color:var(--muted)}
+.vnote{color:var(--muted);font-size:13px;line-height:1.5;margin:22px 0 0}
 .connect{display:flex;align-items:center;gap:10px;margin-top:10px;padding:6px 0;font-size:14.5px;text-align:left}
 .connect .dot{flex:none}
 .connect b{font-weight:500;color:var(--blue-text)}
@@ -757,6 +766,7 @@ async function addPair(deck, frame, def, extra = {}) {
   return card;
 }
 async function deleteCards(list) {
+  if (list.length > 1) agWhy(`Deleted ${plural(list.length, 'card')}`);
   const ids = new Set(list.map(c => c.id));
   cards = cards.filter(c => !ids.has(c.id));
   const blobIds = list.flatMap(c => [c.frameId, c.thumbId, ...defIdsOf(c), c.ref && c.ref.thumbId]).filter(Boolean);
@@ -867,6 +877,7 @@ function renderHome() {
     <div class="bar title"><h1>Your decks</h1>
       <span class="tools"><button class="iconbtn" id="searchBtn" aria-label="Search words">${ICON.search}</button><button class="iconbtn" id="appMenu" aria-label="Backup and import">${ICON.more}</button></span></div>
     <p class="summary">${list.length ? `${plural(list.length, 'deck')} · ${plural(total, 'card')}` : 'Make a deck for each film or show you watch.'}</p>
+    <div class="agslot">${agLine()}</div>
     <div class="grid">${tiles}
       ${marksTile()}
       ${filesTile()}
@@ -889,6 +900,7 @@ $('#home').addEventListener('click', e => {
   else if (t.dataset.mmenu) marksMenu(null);
   else if (t.dataset.fmenu) filesMenu(null);
   else if (t.dataset.notes) openNotes();
+  else if (t.dataset.ag) agTap();
   else if (t.dataset.nmenu) notesMenu();
   else if (t.id === 'appMenu') appMenu();
   else if (t.id === 'searchBtn') openSearch();
@@ -971,9 +983,9 @@ function nameSheet(d, then) {
     } });
 }
 /* a sheet that asks for one line of text (a deck's name, a card's word): a card floating just above the keyboard */
-function askSheet({ title, sub = '', value = '', placeholder = '', btn = 'Save', label = '', empty = false, attrs = 'autocomplete="off" enterkeyhint="done"', done }) {
+function askSheet({ title, sub = '', value = '', placeholder = '', btn = 'Save', label = '', empty = false, max = 80, attrs = 'autocomplete="off" enterkeyhint="done"', done }) {
   sheet(`<form class="ask"><h2>${title}</h2>${sub ? `<p class="sub">${sub}</p>` : ''}
-    <div class="field"><input id="askIn" type="text" maxlength="80" ${attrs} value="${esc(value)}" placeholder="${esc(placeholder)}" aria-label="${esc(label || title)}"></div>
+    <div class="field"><input id="askIn" type="text" maxlength="${max}" ${attrs} value="${esc(value)}" placeholder="${esc(placeholder)}" aria-label="${esc(label || title)}"></div>
     <div class="askbtns"><button type="button" class="textbtn quiet" data-act="cancel">Cancel</button><button type="submit" class="textbtn">${btn}</button></div></form>`, {
     cancel: () => closeSheet(),
     submit: f => { const i = $('#askIn', f), x = i.value.trim(); if (!x && !empty) { i.focus(); return; } done(x); }
@@ -1226,7 +1238,7 @@ function newPage(v) {
   document.body.appendChild(el); document.body.classList.add('locked');
   v.el = el; pages.push(v);
   el.addEventListener('click', e => onPageClick(e, v));
-  if (v.kind !== 'note') el.addEventListener('contextmenu', e => e.preventDefault()); // a note keeps the phone's copy and paste
+  if (v.kind !== 'note' && v.kind !== 'ftext') el.addEventListener('contextmenu', e => e.preventDefault()); // a note keeps the phone's copy and paste
   el.addEventListener('scroll', () => markScrolled(v), { passive: true });
   if (v.kind === 'cards') holdToSelect(v);
   else if (v.kind === 'queue') holdToSelect(v, '[data-qc]', b => startQueueSelect(v, b.dataset.qc));
@@ -1259,6 +1271,7 @@ const BOX = '<span class="box">' + svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 14)
 function pageBar(v, tools = '') {
   if (v.sel) return `<div class="pbar"><button class="iconbtn" data-p="unsel" aria-label="Stop selecting">${ICON.close}</button>
     <span class="selcount num">${v.sel.size} selected</span>${allBtn(allOn(v))}
+    ${v.kind === 'files' ? `<button class="iconbtn" data-p="fmove" aria-label="Move" ${v.sel.size ? '' : 'disabled'}>${ICON.move}</button><button class="iconbtn" data-p="fdel" aria-label="Delete" ${v.sel.size ? '' : 'disabled'}>${ICON.trash}</button>` : ''}
     <button class="iconbtn" data-p="selmenu" aria-label="Options for the selected ${v.kind === 'files' ? 'files' : v.kind === 'marks' ? 'bookmarks' : 'cards'}" ${v.sel.size ? '' : 'disabled'}>${ICON.more}</button></div>`;
   const [t, ...rest] = nameParts(v.title);
   return `<div class="pbar"><button class="iconbtn" data-p="back" aria-label="Back">${ICON.back}</button>
@@ -1273,6 +1286,8 @@ function renderPage(v) {
   if (v.kind === 'marks') { renderMarks(v); return; }
   if (v.kind === 'notes') { renderNotes(v); return; }
   if (v.kind === 'note') { renderNote(v); return; }
+  if (v.kind === 'versions') { renderVersions(v); return; }
+  if (v.kind === 'ftext') { renderTextEdit(v); return; }
   const d = v.deck, top = v.el.scrollTop;
   if (v.kind === 'sources') {
     const gs = sourcesOf(d), total = deckCards(d.id).length;
@@ -1343,6 +1358,8 @@ function onPageClick(e, v) {
   if (v.kind === 'history') { onHistoryClick(e, v); return; }
   if (v.kind === 'notes') { onNotesClick(e, v); return; }
   if (v.kind === 'note') { onNoteClick(e, v); return; }
+  if (v.kind === 'versions') { onVersionsClick(e, v); return; }
+  if (v.kind === 'ftext') { onTextClick(e, v); return; }
   const b = e.target.closest('button'); if (!b || b.disabled) return;
   const p = b.dataset.p;
   if (p === 'back' || p === 'unsel') back();
@@ -2241,9 +2258,11 @@ function studyEditSheet(c) {
     <div class="list">
       ${L >= 0 ? item('replace', ico('image', L === 0 ? 'Replace scene image' : 'Replace definition image')) : ''}
       ${item('tag', ico('tag', 'Add tag'), '', '', 'Or hold a tag and tap +')}
+      ${AG.linked ? item('vers', ico('history', 'Previous versions')) : ''}
       ${item('del', ico('trash', 'Delete card'), '', 'danger')}
     </div>`, {
     tag: () => tagSheet(c),
+    vers: () => itemVersions('card:' + c.id, nameOf(c) || 'Untitled card'),
     replace: () => pickOne(async f => {
       if (L === 0) await replaceScene(c, f); else await replaceDef(c, L - 1, f);
       closeSheet(); toast('Image replaced');
@@ -2288,7 +2307,7 @@ function openStudyDB() {
   });
 }
 async function loadStudy() {
-  try { sstore = idbStore(await openStudyDB()); } catch (e) { console.warn('study storage unavailable, using memory', e); }
+  try { sstore = tracked(idbStore(await openStudyDB()), 'study'); } catch (e) { console.warn('study storage unavailable, using memory', e); }
   try {
     (await sstore.all('cards')).forEach(r => SD.recs.set(r.id, r));
     const m = await sstore.get('meta', 'daily'); if (m && m.v > 0) { SD.daily = m.v; SD.dailySet = true; }
@@ -2563,6 +2582,7 @@ function bringToFront(v) {
 const HI = { recs: new Map(), loaded: false };
 let hstore = memStore(['visits']);
 const ICON_HISTORY = svg('<path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3.5 4.5v4h4"/><path d="M12 7.5V12l3 2"/>');
+ICON.history = ICON_HISTORY;
 const ANS = { continue: 'New', repeat: 'Repeat', tomorrow: 'Tomorrow', pass: 'Pass' };
 function openHistoryDB() {
   return new Promise((res, rej) => {
@@ -2574,7 +2594,7 @@ function openHistoryDB() {
   });
 }
 async function loadHistory() {
-  try { hstore = idbStore(await openHistoryDB()); } catch (e) { console.warn('history storage unavailable, using memory', e); }
+  try { hstore = tracked(idbStore(await openHistoryDB()), 'history'); } catch (e) { console.warn('history storage unavailable, using memory', e); }
   try { (await hstore.all('visits')).forEach(r => { if (!HI.recs.has(r.id)) HI.recs.set(r.id, r); }); } catch (e) { console.warn('history', e); }
   HI.loaded = true;
 }
@@ -3060,14 +3080,17 @@ const cleanText = t => (t && t.mode !== 'image' && Array.isArray(t.blocks) && t.
 async function appMenu() {
   let used = '';
   try { const e = await navigator.storage.estimate(); used = `${Math.max(1, Math.round(e.usage / 1048576))} MB stored on this phone`; } catch {}
-  sheet(`<h2>Backup</h2><p class="sub num">${used || plural(cards.length, 'card')}</p>
+  const home = AG.linked ? 'Everything is also kept in My Files › Agora' : '';
+  sheet(`<h2>Backup</h2><p class="sub num">${[used || plural(cards.length, 'card'), home].filter(Boolean).join(' · ')}</p>
     <div class="list">
       ${item('export', 'Back up everything', '', '', 'Saves one .zip with all decks, screenshots, study progress and notes')}
       ${item('import', 'Import a backup', '', '', 'Adds decks and cards from an Agora .zip')}
+      ${hasFS && FX.root && AG.linked ? item('versions', 'Previous versions', '', '', `Copies from before Agora changed or deleted something, kept ${KEEP_DAYS} days`) : ''}
       ${textPairs().length ? item('slim', 'Remove screenshots behind text', '', '', `${plural(textPairs().length, 'definition')} also have a text version`) : ''}
     </div>`, {
     export: exportAll,
     import: () => $('#zipPicker').click(),
+    versions: () => closeSheet(openVersions),
     slim: slimSheet
   });
 }
@@ -3158,6 +3181,7 @@ async function exportAll() {
 $('#zipPicker').addEventListener('change', async e => {
   const files = [...e.target.files]; e.target.value = ''; if (!files.length) return;
   progressSheet('Importing', 'Reading the file…');
+  agWhy(files.length > 1 ? `Imported ${files.length} backups` : 'Imported a backup');
   let added = 0, updated = 0, skipped = 0, mismatched = 0, absent = 0, ftagged = 0, fwait = 0, studyN = 0, notesN = 0, marksN = 0; const touched = new Set();
   try {
     const JSZip = await loadZip();
@@ -3437,7 +3461,7 @@ async function fsPerm(h, ask) {
 }
 /* call this straight from a tap: Android only lets a tap ask for the folder. pick: choose the folder again */
 async function connectFiles(pick) {
-  if (FX.ready && !pick) { if (!FX.scanned) rescan(); return true; }
+  if (FX.ready && !pick) { if (!FX.scanned) rescan(); agLink(); return true; }
   let h = pick ? null : FX.root;
   if (h) {
     if (!(await fsPerm(h, true))) { toast('Agora needs My Files for that'); return false; }
@@ -3448,8 +3472,10 @@ async function connectFiles(pick) {
   }
   FX.root = h; FX.ready = true; FX.handles = null; FX.lastJson = null;
   fstore.put('meta', [{ k: 'filesRoot', h, name: h.name }]).catch(e => console.warn(e));
+  if (pick) { AG.linked = null; gstore.put('meta', [{ k: 'linked', v: null }]).catch(() => {}); } // a different folder: everything is copied there too
   filesRepaint();
   rescan();
+  agLink();
   return true;
 }
 /* the whole folder is walked in the background; the screen stays usable, the count updates as it goes */
@@ -3463,6 +3489,7 @@ function rescan() {
     const walk = async (dh, dir) => {
       for await (const [name, h] of dh.entries()) {
         if (name.startsWith('.')) continue; // hidden files, and Agora's own .agora folder
+        if (!dir && name === AGF) continue; // Agora's own data (cards, notes…) is not one of your files
         const path = dir ? `${dir}/${name}` : name;
         if (h.kind === 'directory') { seen.set(path, { path, kind: 'dir', name, dir }); await walk(h, path); }
         else {
@@ -3737,19 +3764,22 @@ function filesSummary(v, dirs, files) {
   return parts.join(' · ') || (fidx.size ? 'Empty' : 'Not connected yet');
 }
 function renderFiles(v) {
-  const top = v.el.scrollTop, list = kidsOf(v.dir), grid = gridView();
+  const top = v.el.scrollTop, grid = gridView() && !v.moving;
+  // while moving, only folders show (not the ones being moved)
+  const list = v.moving ? kidsOf(v.dir).filter(r => r.kind === 'dir' && !v.moving.paths.includes(r.path)) : kidsOf(v.dir);
   const dirs = list.filter(r => r.kind === 'dir').sort(nameCmp), files = list.filter(r => r.kind === 'file').sort(FSORTS[fsortOf()].fn);
   v.order = files; v.title = fname(v.dir);
   if (v.sel) [...v.sel].forEach(p => { if (!files.some(r => r.path === p)) v.sel.delete(p); });
   const segs = v.dir ? v.dir.split('/') : [];
-  const crumbs = segs.length ? `<p class="crumbs"><button data-crumb="">My Files</button>${segs.map((s, i) => '<i>›</i>' + (i === segs.length - 1 ? `<b>${esc(s)}</b>`
+  const crumbs = segs.length && v.moving ? `<p class="crumbs"><span>My Files</span>${segs.map((s, i) => '<i>›</i>' + (i === segs.length - 1 ? `<b>${esc(s)}</b>` : `<span>${esc(s)}</span>`)).join('')}</p>`
+    : segs.length ? `<p class="crumbs"><button data-crumb="">My Files</button>${segs.map((s, i) => '<i>›</i>' + (i === segs.length - 1 ? `<b>${esc(s)}</b>`
     : `<button data-crumb="${esc(segs.slice(0, i + 1).join('/'))}">${esc(s)}</button>`)).join('')}</p>` : '';
   const connect = FX.ready || !hasFS ? '' : `<button class="connect" data-f="connect"><span class="dot"></span><b>Connect My Files</b><span>· ${FX.root ? 'to refresh and open' : 'to choose the folder'}</span></button>`;
   const item = grid ? fileCardHTML : fileRowHTML;
-  const empty = !fidx.size ? (hasFS ? '<p class="empty">Tap Connect My Files and choose the My Files folder in your phone’s storage. Agora reads it and never moves, renames or deletes your files.</p>' : fsOffLine())
-    : list.length ? '' : '<p class="empty">This folder is empty.</p>';
-  v.el.innerHTML = `<div class="home${v.sel ? ' selecting' : ''}${FX.mode ? ' tagging' : ''}">${filesBar(v)}${crumbs}
-    <p class="summary fsum num">${filesSummary(v, dirs, files)}</p>${connect}
+  const empty = !fidx.size ? (hasFS ? '<p class="empty">Tap Connect My Files and choose the My Files folder in your phone’s storage. Agora only changes a file when you ask, and keeps the earlier copy for 30 days.</p>' : fsOffLine())
+    : list.length || v.moving ? '' : '<p class="empty">This folder is empty.</p>';
+  v.el.innerHTML = `<div class="home${v.sel ? ' selecting' : ''}${FX.mode ? ' tagging' : ''}${v.moving ? ' moving' : ''}">${v.moving ? movingBar(v) : filesBar(v)}${crumbs}
+    <p class="summary fsum num">${v.moving ? (dirs.length ? plural(dirs.length, 'folder') : 'No folders here') : filesSummary(v, dirs, files)}</p>${v.moving ? '' : connect}
     ${list.length ? `<div class="${grid ? 'fgrid' : 'flist'}">${dirs.map(r => item(r)).join('')}${files.map(r => item(r, onOf(v, r))).join('')}</div>` : ''}${empty}</div>`;
   filePics(v); v.el.scrollTop = top; markScrolled(v);
 }
@@ -3784,6 +3814,9 @@ function goCrumb(dir) {
 function onFilesClick(e, v) {
   const b = e.target.closest('button'); if (!b || b.disabled) return;
   const p = b.dataset.p;
+  if (v.moving) { onMovingClick(b, v); return; }
+  if (p === 'fmove') { const paths = [...v.sel]; back(() => startMove(paths)); return; }
+  if (p === 'fdel') { fileDeleteSheet([...v.sel], () => { if (v.sel) back(); }); return; }
   if (p === 'back' || p === 'unsel' || p === 'endmode') back();
   else if (p === 'view') { ls.set('files.view', gridView() ? 'list' : 'grid'); refreshFiles(); }
   else if (p === 'fsort') filesSortSheet();
@@ -3827,8 +3860,20 @@ function filesMenu(v) {
       ${FX.root ? item('refresh', 'Refresh the list', '', '', 'Finds new, renamed and removed files') : item('connect', 'Connect My Files', '', '', 'Choose the My Files folder in your phone’s storage')}
       ${v && n ? item('quick', 'Quick tagging', '', '', 'Pick a tag, then tap files to add or remove it') : ''}
       ${v && v.order && v.order.length ? item('select', 'Select files', '', '', 'Or hold a file') : ''}
+      ${v && FX.root ? item('newf', ico('newfolder', 'New folder')) : ''}
+      ${v && v.dir ? item('renf', ico('rename', 'Rename this folder')) : ''}
+      ${v && v.dir && !kidsOf(v.dir).length ? item('delf', ico('trash', 'Delete this folder'), '', 'danger') : ''}
       ${FX.root ? item('pick', 'Choose a different folder') : ''}
     </div>`, {
+    newf: () => newFolderSheet(v.dir, path => openFolder(path)),
+    renf: () => fileRenameSheet(v.dir, to => { v.dir = to; refreshFiles(); }),
+    delf: async () => {
+      if (!(await fsNeed())) return;
+      const name = fname(v.dir), r = fidx.get(v.dir);
+      try { await (await fsDir(parentOf(v.dir))).removeEntry(name); fidx.delete(v.dir); fchanged(); await fstore.del('files', [v.dir]); }
+      catch { closeSheet(() => toast('That folder isn’t empty on the phone')); return; }
+      back(() => toast(`Deleted ${r ? r.name : name}`), 2);
+    },
     // the tap itself asks for the folder, so these start before the sheet closes
     refresh: () => { if (FX.ready) { FX.scanned = false; rescan(); } else connectFiles(); closeSheet(); },
     connect: () => { connectFiles(); closeSheet(); },
@@ -3838,9 +3883,11 @@ function filesMenu(v) {
   });
 }
 function fileSelMenu(v) {
-  const paths = [...v.sel], n = paths.length;
+  const paths = [...v.sel], n = paths.length, one = n === 1 && fidx.get(paths[0]);
   sheet(`<h2>${plural(n, 'file')} selected</h2>
-    <div class="list">${item('tag', ico('tag', 'Add tags'))}${item('share', ico('share', 'Share / Open with…'))}</div>`, {
+    <div class="list">${item('tag', ico('tag', 'Add tags'))}${n === 1 ? item('ren', ico('rename', 'Rename')) : ''}${one && fkind(one) === 'txt' ? item('edit', ico('text', 'Edit text')) : ''}${item('share', ico('share', 'Share / Open with…'))}</div>`, {
+    ren: () => fileRenameSheet(paths[0], () => { if (v.sel) back(); }),
+    edit: () => back(() => openTextEdit(paths[0]), 2),
     tag: () => fileTagSheet(paths),
     share: () => { shareFiles(paths); closeSheet(); }
   });
@@ -4172,7 +4219,13 @@ function viewerMenu(r) {
       ${item('tag', ico('tag', 'Tags'), '', '', 'Or hold a tag and tap +')}
       ${item('share', ico('share', 'Share / Open with…'))}
       ${item('folder', ico('folder', 'Show in folder'), '', '', esc(['My Files', ...(r.dir ? r.dir.split('/') : [])].join(' › ')))}
+      ${FX.root ? `${item('ren', ico('rename', 'Rename'))}${fkind(r) === 'txt' ? item('edit', ico('text', 'Edit text')) : ''}${item('move', ico('move', 'Move to…'))}${item('vers', ico('history', 'Previous versions'))}${item('del', ico('trash', 'Delete file'), '', 'danger')}` : ''}
     </div>`, {
+    ren: () => fileRenameSheet(r.path, to => { if (FV) { FV.order[FV.i] = fidx.get(to); showFileHead(); } }),
+    edit: () => closeSheet(() => openTextEdit(r.path)),
+    move: () => back(() => startMove([r.path]), 2),
+    vers: () => itemVersions('file:' + r.path, r.name),
+    del: () => fileDeleteSheet([r.path], () => back()),
     tag: () => fileTagSheet([r.path]),
     share: () => { shareFiles([r.path]); closeSheet(); },
     folder: () => {
@@ -4235,7 +4288,7 @@ function openNotesDB() {
   });
 }
 async function loadNotes() {
-  try { nstore = idbStore(await openNotesDB()); } catch (e) { console.warn('notes storage unavailable, using memory', e); }
+  try { nstore = tracked(idbStore(await openNotesDB()), 'notes'); } catch (e) { console.warn('notes storage unavailable, using memory', e); }
   try { (await nstore.all('notes')).forEach(n => { if (!NT.notes.has(n.id)) NT.notes.set(n.id, n); }); } catch (e) { console.warn('notes', e); }
   NT.loaded = true;
 }
@@ -4509,8 +4562,9 @@ function onNoteClick(e, v) {
     saveNote(v);
     const n = v.note, w = NT.notes.has(n.id);
     sheet(`<h2>${esc(noteHead(n).t)}</h2><p class="sub num">${w ? `Edited ${noteDate(n.updatedAt)} · created ${noteDate(n.createdAt)}` : 'Not saved yet: nothing written'}</p>
-      <div class="list">${item('pic', 'Add a picture')}${w ? item('del', 'Delete note') : ''}</div>`, {
+      <div class="list">${item('pic', 'Add a picture')}${w && AG.linked ? item('vers', 'Previous versions') : ''}${w ? item('del', 'Delete note') : ''}</div>`, {
       pic: () => closeSheet(() => noteFormat(v, 'pic')),
+      vers: () => itemVersions('note:' + n.id, noteHead(n).t, null, () => { const m = NT.notes.get(n.id); if (m && v.el.isConnected) { v.note = m; renderNote(v); } }),
       del: () => deleteNotesSheet([n.id], () => { v.deleted = true; back(); })
     });
   }
@@ -4577,7 +4631,7 @@ function openMarksDB() {
   });
 }
 async function loadMarks() {
-  try { bstore = idbStore(await openMarksDB()); } catch (e) { console.warn('bookmarks storage unavailable, using memory', e); }
+  try { bstore = tracked(idbStore(await openMarksDB()), 'marks'); } catch (e) { console.warn('bookmarks storage unavailable, using memory', e); }
   try { (await bstore.all('marks')).forEach(r => { if (r.gone) BM.gone.set(r.id, r); else if (!BM.recs.has(r.id)) BM.recs.set(r.id, r); }); } catch (e) { console.warn('bookmarks', e); }
   BM.loaded = true;
 }
@@ -4840,8 +4894,9 @@ function marksMenu(v) {
 function markSelMenu(v) {
   const ids = [...v.sel], n = ids.length, one = n === 1 && BM.recs.get(ids[0]);
   sheet(`<h2>${plural(n, 'bookmark')} selected</h2>
-    <div class="list">${one ? item('edit', ico('edit', 'Edit')) : ''}${item('tag', ico('tag', 'Add tags'))}${item('share', ico('share', 'Share'))}${item('del', ico('trash', n === 1 ? 'Delete bookmark' : `Delete ${n} bookmarks`), '', 'danger')}</div>`, {
+    <div class="list">${one ? item('edit', ico('edit', 'Edit')) : ''}${item('tag', ico('tag', 'Add tags'))}${one && AG.linked ? item('vers', ico('history', 'Previous versions')) : ''}${item('share', ico('share', 'Share'))}${item('del', ico('trash', n === 1 ? 'Delete bookmark' : `Delete ${n} bookmarks`), '', 'danger')}</div>`, {
     edit: () => back(() => markSheet(one, false), 2),
+    vers: () => itemVersions('marks', one.title || one.site, one.id),
     tag: () => markTagSheet(v, ids),
     share: async () => {
       const rs = ids.map(id => BM.recs.get(id)).filter(Boolean); closeSheet();
@@ -4909,6 +4964,883 @@ async function importMarks(list) {
   return take.length;
 }
 
+/* ================= the Agora folder: everything kept as files in My Files › Agora ================= */
+/* Everything Agora holds is also kept as plain files in an "Agora" folder inside My Files, so that folder is the real home of the
+   data: on a new phone, installing Agora and allowing My Files brings everything back from it.
+   The databases stay as a quick-start copy, because Android forgets the folder each time Agora closes and can only ask for it again
+   from a tap: the cards show at once, and changes wait in a list (database "agora-sync") until the folder is allowed again.
+   The folder:
+     Read me.txt
+     Cards/<deck>/deck.json (+ cover), Cards/<deck>/<word>/card.json + scene, tile, definition, definition 2…, source pictures
+     Magazines/<key>.pdf          the magazine pages' PDFs, one per magazine, shared by its cards
+     Notes/<title>.html            each note as a page any browser opens; its pictures in Notes/pictures/
+     Bookmarks.json, Study progress.json, History.json
+     Previous versions/<day hour>/…  the earlier copy of every file Agora changed or deleted (the first one of each hour), kept 30 days,
+                                    with changes.json listing what changed, for the Previous versions page.
+   A put or delete in any database marks its unit as waiting: card:<id>, deck:<id>, note:<id>, study, history, marks.
+   database "agora-sync": store `dirty` {k, at} units waiting; store `paths` {k, dir, base, nm, label, files: {name: blob id}, sum}
+   where each unit is in the folder; store `meta` {k: 'linked', v: folder name} once everything was first copied there. */
+const AGF = 'Agora', VERS = 'Previous versions', KEEP_DAYS = 30;
+const AG = { dirty: new Map(), map: new Map(), linked: null, loaded: false, run: null, linking: null, done: 0, total: 0, phase: '', timer: 0, failed: new Set(), pdfs: new Set(), log: [] };
+let gstore = memStore(['dirty', 'paths', 'meta']);
+KEYS.dirty = 'k'; KEYS.paths = 'k';
+/* a database's store, with every change noted as waiting for the folder */
+function tracked(s, db) {
+  const keyOf = v => v.id != null ? v.id : v.k;
+  return { ...s,
+    put(name, vals) { agMark(db, name, vals.map(keyOf)); return s.put(name, vals); },
+    del(name, keys) { agMark(db, name, keys); return s.del(name, keys); } };
+}
+function agMark(db, name, keys) {
+  if (AG.mute) return;
+  const units = db === 'main' ? (name === 'cards' ? keys.map(k => 'card:' + k) : name === 'decks' ? keys.map(k => 'deck:' + k) : [])
+    : db === 'notes' ? (name === 'notes' ? keys.map(k => 'note:' + k) : [])
+    : [db]; // study, history and bookmarks are one file each
+  agWaiting(units);
+}
+function agWaiting(units) {
+  if (!units.length) return;
+  const at = Date.now(), recs = [...new Set(units)].map(k => ({ k, at }));
+  recs.forEach(r => { AG.dirty.set(r.k, r.at); AG.failed.delete(r.k); });
+  gstore.put('dirty', recs).catch(() => {});
+  agSoon();
+}
+function openSyncDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('agora-sync', 1);
+    r.onupgradeneeded = () => { const d = r.result; d.createObjectStore('dirty', { keyPath: 'k' }); d.createObjectStore('paths', { keyPath: 'k' }); d.createObjectStore('meta', { keyPath: 'k' }); };
+    r.onsuccess = () => { const db = r.result; db.onversionchange = () => db.close(); res(db); };
+    r.onerror = () => rej(r.error);
+    r.onblocked = () => rej(new Error('blocked'));
+  });
+}
+async function loadSync() {
+  const early = [...AG.dirty.entries()].map(([k, at]) => ({ k, at })); // changes made before this database was open
+  try { gstore = idbStore(await openSyncDB()); } catch (e) { console.warn('sync storage unavailable, using memory', e); }
+  try {
+    (await gstore.all('dirty')).forEach(r => { if (!AG.dirty.has(r.k)) AG.dirty.set(r.k, r.at); });
+    (await gstore.all('paths')).forEach(r => AG.map.set(r.k, r));
+    const l = await gstore.get('meta', 'linked'); AG.linked = l ? l.v : null;
+    if (early.length) await gstore.put('dirty', early);
+  } catch (e) { console.warn('sync', e); }
+  AG.loaded = true;
+}
+const agReady = () => AG.loaded && SD.loaded && HI.loaded && NT.loaded && BM.loaded;
+/* the folder Agora keeps its data in, by name ("My Files"); a folder without a name still counts */
+const rootName = () => FX.root ? (FX.root.name || '(folder)') : null;
+const agOn = () => agReady() && FX.ready && FX.root && AG.linked === rootName();
+
+/* files inside the Agora folder */
+const splitPath = p => { const i = p.lastIndexOf('/'); return [i < 0 ? '' : p.slice(0, i), p.slice(i + 1)]; };
+async function agDir(path, create) {
+  let d = FX.root;
+  for (const p of `${AGF}/${path}`.split('/').filter(Boolean)) d = await d.getDirectoryHandle(p, { create });
+  return d;
+}
+async function agRead(path) {
+  try { const [d, n] = splitPath(path); return await (await (await agDir(d, false)).getFileHandle(n)).getFile(); } catch { return null; }
+}
+async function agPut(path, data) {
+  const [d, n] = splitPath(path);
+  const fh = await (await agDir(d, true)).getFileHandle(n, { create: true });
+  const w = await fh.createWritable(); await w.write(data); await w.close();
+}
+async function agRemove(path, recursive) {
+  try { const [d, n] = splitPath(path); await (await agDir(d, false)).removeEntry(n, { recursive: !!recursive }); return true; } catch { return false; }
+}
+async function agList(path) {
+  const out = [];
+  try { for await (const [name, h] of (await agDir(path, false)).entries()) out.push({ name, kind: h.kind }); } catch {}
+  return out;
+}
+const agJSON = async path => { const f = await agRead(path); if (!f) return null; try { return JSON.parse(await f.text()); } catch { return null; } };
+/* a name that works as a file or folder name on the phone */
+const safeName = s => String(s || '').replace(/[\\/:*?"<>|\u0000-\u001f]+/g, ' ').replace(/\s+/g, ' ').replace(/^[.\s]+|[.\s]+$/g, '').slice(0, 60).trim();
+/* a folder or file name no other unit uses (the phone's storage ignores capitals, so neither does this) */
+function agUnique(k, base, nm, ext = '') {
+  const taken = new Set([...AG.map.values()].filter(r => r.k !== k).map(r => String(r.dir).toLowerCase()));
+  let p = `${base}/${nm}${ext}`, i = 2;
+  while (taken.has(p.toLowerCase())) p = `${base}/${nm} ${i++}${ext}`;
+  return p;
+}
+const canon = v => Array.isArray(v) ? `[${v.map(canon).sort().join(',')}]` : v && typeof v === 'object'
+  ? `{${Object.keys(v).filter(k => v[k] !== undefined).sort().map(k => JSON.stringify(k) + ':' + canon(v[k])).join(',')}}` : JSON.stringify(v === undefined ? null : v);
+function hashOf(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36) + '.' + s.length; }
+const agStamp = (t = Date.now()) => { const d = new Date(t), p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}.00`; };
+const stampTime = s => { const m = /^(\d{4})-(\d\d)-(\d\d) (\d\d)/.exec(s); return m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4]).getTime() : 0; };
+function agSave(rec) { AG.map.set(rec.k, rec); return gstore.put('paths', [rec]).catch(() => {}); }
+function agForget(k) { AG.map.delete(k); return gstore.del('paths', [k]).catch(() => {}); }
+
+/* before Agora changes or deletes a file, its earlier copy goes to Previous versions/<this hour>/ (the first copy of the hour stays) */
+async function agKeep(path, stamp, old) {
+  const f = old || await agRead(path); if (!f) return false;
+  const vp = `${VERS}/${stamp}/${path}`;
+  if (!(await agRead(vp))) await agPut(vp, f);
+  return true;
+}
+function agLogChange(k, kind, label, what, dir) { AG.log.push({ k, kind, label, what, dir, at: Date.now(), run: AG.runAt, why: AG.why || '' }); }
+/* what the next changes are about ("Imported a backup"), for the moments view of Previous versions */
+function agWhy(text) { AG.why = text; AG.whyAt = Date.now(); }
+/* write a text file unless it already says exactly that; the earlier copy is kept first */
+async function agText(path, txt, rec, stamp, same) {
+  const sum = hashOf(txt);
+  if (rec && rec.sum === sum && rec.dir === path) return { sum, kept: null };
+  const prev = await agRead(path);
+  let old = null;
+  if (prev) { old = await prev.text(); if (old === txt || (same && same(old))) return { sum, kept: null }; await agKeep(path, stamp, prev); }
+  await agPut(path, txt);
+  return { sum, kept: old };
+}
+
+/* ---- one unit at a time ---- */
+async function agWrite(k, stamp) {
+  const [kind, id] = k.includes(':') ? [k.slice(0, k.indexOf(':')), k.slice(k.indexOf(':') + 1)] : [k, ''];
+  if (kind === 'card') return agCard(k, id, stamp);
+  if (kind === 'deck') return agDeck(k, id, stamp);
+  if (kind === 'note') return agNote(k, id, stamp);
+  if (kind === 'study') return agOne(k, 'Study progress.json', 'Study progress', { app: 'agora', kind: 'study', version: 1, daily: SD.dailySet ? SD.daily : null, extra: SD.extra, cards: [...SD.recs.values()] }, stamp);
+  if (kind === 'history') return agOne(k, 'History.json', 'History', { app: 'agora', kind: 'history', version: 1, visits: [...HI.recs.values()] }, stamp);
+  if (kind === 'marks') return agOne(k, 'Bookmarks.json', 'Bookmarks', { app: 'agora', kind: 'bookmarks', version: 1, marks: [...BM.recs.values(), ...BM.gone.values()] }, stamp);
+}
+async function agOne(k, path, label, data, stamp) {
+  // the same records in another order (as read back on a new phone) count as unchanged
+  const same = old => { try { return canon(JSON.parse(old)) === canon(data); } catch { return false; } };
+  const rec = AG.map.get(k), r = await agText(path, JSON.stringify(data, null, 1), rec, stamp, same);
+  if (r.kept != null) agLogChange(k, k, label, 'changed', path);
+  await agSave({ k, dir: path, label, files: {}, sum: r.sum });
+}
+/* where a deck's cards go: Cards/<deck name> */
+function agDeckDir(d) {
+  const k = 'deck:' + d.id, rec = AG.map.get(k);
+  if (rec) return rec.dir;
+  const nm = safeName(d.name) || 'Deck', dir = agUnique(k, 'Cards', nm);
+  agSave({ k, dir, nm, label: d.name, files: {}, sum: '' }); agWaiting([k]);
+  return dir;
+}
+/* pictures: each one written when it is new or changed; tiles are made again from the scene, so no earlier copy of them is kept */
+async function agPics(dir, slots, old, moved, stamp, getBlob) {
+  const files = {}; let changed = false;
+  for (const [stem, bid] of slots) {
+    if (!bid) continue;
+    const same = !moved && Object.keys(old).find(n => old[n] === bid && n.slice(0, n.lastIndexOf('.')) === stem);
+    if (same) { files[same] = bid; continue; }
+    const blob = await getBlob(bid); if (!blob) continue;
+    const n = `${stem}.${EXT[blob.type] || (blob.type === 'application/pdf' ? 'pdf' : 'jpg')}`;
+    if (!moved && old[n] && stem !== 'tile' && await agKeep(`${dir}/${n}`, stamp)) changed = true;
+    await agPut(`${dir}/${n}`, blob); files[n] = bid;
+  }
+  if (!moved) for (const n of Object.keys(old)) if (!files[n]) {
+    if (!n.startsWith('tile.') && await agKeep(`${dir}/${n}`, stamp)) changed = true;
+    await agRemove(`${dir}/${n}`);
+  }
+  return { files, changed };
+}
+const blobOf = async id => { const r = await store.get('blobs', id).catch(() => null); return r && r.blob; };
+function cardChange(a, b) {
+  const j = v => JSON.stringify(v == null ? null : v);
+  if (!a) return 'changed';
+  if (nameOf(a) !== nameOf(b)) return `renamed from “${nameOf(a)}”`;
+  if (j(a.tags) !== j(b.tags)) return 'tags changed';
+  if (j(a.defIds) !== j(b.defIds) || j(a.defText) !== j(b.defText)) return 'definition changed';
+  if (a.frameId !== b.frameId || j(a.sceneText) !== j(b.sceneText) || j(a.pdf) !== j(b.pdf) || a.sceneCaption !== b.sceneCaption) return 'scene changed';
+  if (j(a.ref) !== j(b.ref)) return 'source changed';
+  if (a.deckId !== b.deckId) return 'moved to another deck';
+  return 'changed';
+}
+async function agCard(k, id, stamp) {
+  const c = cards.find(x => x.id === id), rec = AG.map.get(k);
+  if (!c) { if (rec) await agGone(k, rec, 'card', 'card.json', stamp); return; }
+  const d = decks.find(x => x.id === c.deckId); if (!d) return;
+  const base = agDeckDir(d), nm = safeName(nameOf(c)) || 'card';
+  const dir = rec && rec.base === base && rec.nm === nm ? rec.dir : agUnique(k, base, nm);
+  const moved = !!rec && rec.dir !== dir;
+  const slots = [['scene', c.frameId], ['tile', c.thumbId], ...defIdsOf(c).map((b, i) => [i ? `definition ${i + 1}` : 'definition', b]), ['source', c.ref && c.ref.thumbId]];
+  const pics = await agPics(dir, slots, rec ? rec.files : {}, moved, stamp, blobOf);
+  // a magazine's PDF is written once, for all the cards that share it
+  if (c.pdf && c.pdf.id && !AG.pdfs.has(c.pdf.id)) {
+    const p = `Magazines/${safeName(c.pdf.id.replace(/^pdf-/, '')) || 'magazine'}.pdf`;
+    if (!(await agRead(p))) { const b = await blobOf(c.pdf.id); if (b) await agPut(p, b); }
+    AG.pdfs.add(c.pdf.id);
+  }
+  // the card as it is stored, picture ids included, so it comes back exactly
+  const txt = JSON.stringify({ app: 'agora', kind: 'card', version: 1, card: c, files: pics.files }, null, 1);
+  const r = await agText(`${dir}/card.json`, txt, rec && !moved ? { sum: rec.sum, dir: `${dir}/card.json` } : null, stamp);
+  if (moved) {
+    // its folder moved (a new name or deck): the old one goes, keeping its card.json if the card also changed
+    const was = await agJSON(`${rec.dir}/card.json`);
+    if (was && was.card && JSON.stringify(was.card) !== JSON.stringify(c)) {
+      await agKeep(`${rec.dir}/card.json`, stamp);
+      for (const n of Object.keys(rec.files)) if (!n.startsWith('tile.')) await agKeep(`${rec.dir}/${n}`, stamp);
+      agLogChange(k, 'card', nameOf(c), cardChange(was.card, c), rec.dir);
+    }
+    await agRemove(rec.dir, true);
+  } else if (r.kept != null || pics.changed) {
+    let was = null; try { was = r.kept && JSON.parse(r.kept).card; } catch {}
+    agLogChange(k, 'card', nameOf(c), cardChange(was, c), dir);
+  }
+  await agSave({ k, dir, base, nm, label: nameOf(c), files: pics.files, sum: r.sum });
+}
+/* a deleted card, deck or note: every file goes to Previous versions, then out of the folder */
+async function agGone(k, rec, kind, main, stamp) {
+  const dirLike = kind !== 'note';
+  const paths = dirLike ? [`${rec.dir}/${main}`, ...Object.keys(rec.files).filter(n => !n.startsWith('tile.') || kind === 'card').map(n => `${rec.dir}/${n}`)]
+    : [rec.dir, ...Object.keys(rec.files).map(n => `Notes/pictures/${n}`)];
+  let any = false;
+  for (const p of paths) if (await agKeep(p, stamp)) any = true;
+  if (kind === 'card') await agRemove(rec.dir, true);
+  else if (kind === 'deck') { for (const p of paths) await agRemove(p); AG.empty = [...(AG.empty || []), rec.dir]; }
+  else for (const p of paths) await agRemove(p);
+  if (any) agLogChange(k, kind, rec.label, 'deleted', rec.dir);
+  await agForget(k);
+}
+async function agDeck(k, id, stamp) {
+  const d = decks.find(x => x.id === id), rec = AG.map.get(k);
+  if (!d) { if (rec) await agGone(k, rec, 'deck', 'deck.json', stamp); return; }
+  const nm = safeName(d.name) || 'Deck';
+  const dir = rec && rec.nm === nm ? rec.dir : agUnique(k, 'Cards', nm), moved = !!rec && rec.dir !== dir;
+  if (moved) {
+    // a renamed deck: its folder gets the new name, and each card moves into it
+    agWaiting(deckCards(d.id).map(c => 'card:' + c.id));
+    await agRemove(`${rec.dir}/deck.json`); for (const n of Object.keys(rec.files)) await agRemove(`${rec.dir}/${n}`);
+    AG.empty = [...(AG.empty || []), rec.dir];
+  }
+  const pics = await agPics(dir, [['cover', d.coverId]], rec && !moved ? rec.files : {}, moved, stamp, blobOf);
+  const r = await agText(`${dir}/deck.json`, JSON.stringify({ app: 'agora', kind: 'deck', version: 1, deck: d, files: pics.files }, null, 1),
+    rec && !moved ? { sum: rec.sum, dir: `${dir}/deck.json` } : null, stamp);
+  if (r.kept != null && !moved) agLogChange(k, 'deck', d.name, 'changed', dir);
+  await agSave({ k, dir, nm, label: d.name, files: pics.files, sum: r.sum });
+}
+/* a note as a page any browser can open: its pictures beside it, and what Agora needs to bring it back in a hidden block */
+function notePage(n) {
+  const h = noteHead(n), t = document.createElement('template'); t.innerHTML = n.html || '';
+  t.content.querySelectorAll('img[data-img]').forEach(img => img.setAttribute('src', `pictures/${img.dataset.img}.jpg`));
+  const meta = JSON.stringify({ app: 'agora', kind: 'note', version: 1, id: n.id, title: n.title, imgs: n.imgs || [], createdAt: n.createdAt, updatedAt: n.updatedAt }).replace(/</g, '\\u003c');
+  return `<!doctype html>\n<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(h.t)}</title>
+<style>body{margin:24px auto;max-width:680px;padding:0 18px;background:#000;color:#fff;font:15px/1.65 'IBM Plex Mono',monospace}h1{font-size:22px;font-weight:500}h2{font-size:18px;font-weight:500}img{max-width:100%;border-radius:8px}blockquote{margin:0;padding-left:14px;border-left:2px solid #0086FF;color:#d8d8d8}ul.checks{list-style:none;padding-left:4px}ul.checks li::before{content:'☐  '}ul.checks li.done::before{content:'☑  '}ul.checks li.done{color:#8D9096;text-decoration:line-through}</style>
+</head><body>${n.title ? `<h1>${esc(n.title)}</h1>` : ''}
+<main id="agora-note-text">${t.innerHTML}</main>
+<script type="application/json" id="agora-note">${meta}<\/script>
+</body></html>\n`;
+}
+async function agNote(k, id, stamp) {
+  const n = NT.notes.get(id), rec = AG.map.get(k);
+  if (!n) { if (rec) await agGone(k, rec, 'note', '', stamp); return; }
+  const nm = safeName(noteHead(n).t) || 'Note';
+  const path = rec && rec.nm === nm ? rec.dir : agUnique(k, 'Notes', nm, '.html'), moved = !!rec && rec.dir !== path;
+  const getPic = async pid => { const r = await nstore.get('images', pid).catch(() => null); return r && r.blob; };
+  // pictures are named by their id, so a note keeps them when it is renamed
+  const files = {}; let changed = false;
+  for (const pid of n.imgs || []) {
+    if (rec && rec.files[`${pid}.jpg`]) { files[`${pid}.jpg`] = pid; continue; }
+    const b = await getPic(pid); if (!b) continue;
+    await agPut(`Notes/pictures/${pid}.jpg`, b); files[`${pid}.jpg`] = pid;
+  }
+  if (rec) for (const f of Object.keys(rec.files)) if (!files[f]) { if (await agKeep(`Notes/pictures/${f}`, stamp)) changed = true; await agRemove(`Notes/pictures/${f}`); }
+  const r = await agText(path, notePage(n), rec && !moved ? rec : null, stamp);
+  if (moved) { await agKeep(rec.dir, stamp); await agRemove(rec.dir); changed = true; }
+  if (r.kept != null || changed) agLogChange(k, 'note', noteHead(n).t, moved ? `renamed from “${rec.label}”` : 'text changed', path);
+  await agSave({ k, dir: path, nm, label: noteHead(n).t, files, sum: r.sum });
+}
+
+/* ---- writing what waits ---- */
+const UNIT_ORDER = { deck: 0, card: 1, note: 2 };
+const unitRank = k => UNIT_ORDER[k.split(':')[0]] ?? 3;
+function agSoon(ms) {
+  if (ms == null) ms = [...AG.dirty.keys()].every(k => k === 'history' || k === 'study') ? 20000 : 4000; // studying writes less often
+  clearTimeout(AG.timer); AG.timer = setTimeout(agFlush, ms);
+  agPaint();
+}
+function agFlush() {
+  if (AG.run) return AG.run;
+  if (!agOn() || !AG.dirty.size) { agPaint(); return Promise.resolve(); }
+  AG.run = (async () => {
+    const stamp = agStamp(); AG.log = []; AG.done = 0; AG.phase = 'write'; AG.empty = []; AG.runAt = Date.now();
+    if (AG.why && Date.now() - AG.whyAt > 120000) AG.why = ''; // a reason only holds for the changes right after it
+    let lastPaint = 0;
+    while (agOn()) {
+      const list = [...AG.dirty.entries()].filter(([k]) => !AG.failed.has(k)).sort((a, b) => unitRank(a[0]) - unitRank(b[0]));
+      if (!list.length) break;
+      AG.total = AG.done + list.length;
+      for (const [k, at] of list) {
+        if (!agOn()) break;
+        try { await agWrite(k, stamp); if (AG.dirty.get(k) === at) { AG.dirty.delete(k); gstore.del('dirty', [k]).catch(() => {}); } }
+        catch (e) { console.warn('Agora folder:', k, e); AG.failed.add(k); if (e && e.name === 'NotAllowedError') { FX.ready = false; break; } }
+        AG.done++;
+        if (Date.now() - lastPaint > 400) { lastPaint = Date.now(); agPaint(); }
+      }
+    }
+    for (const dir of AG.empty) await agRemove(dir); // a deck folder left empty (only removed when nothing is in it)
+    await agWriteLog(stamp, AG.log);
+    AG.why = '';
+    await agPrune();
+    if (AG.failed.size) toast(`Couldn’t save ${plural(AG.failed.size, 'change')} to My Files`);
+  })().catch(e => console.warn('Agora folder', e)).finally(() => { AG.run = null; AG.phase = ''; agPaint(); if (AG.dirty.size > AG.failed.size && agOn()) agSoon(); });
+  return AG.run;
+}
+/* the list of what changed this hour, for the Previous versions page */
+async function agWriteLog(stamp, log, every) {
+  if (!log.length) return;
+  const p = `${VERS}/${stamp}/changes.json`, have = (await agJSON(p)) || { changes: [] };
+  // one line per item and hour: the copy kept is the first of the hour, so its first line stays (a file's moves are each their own line)
+  const seen = new Set(have.changes.map(x => x.k));
+  for (const x of log) if (every || !seen.has(x.k)) { have.changes.push(x); seen.add(x.k); } else { const o = have.changes.find(y => y.k === x.k); o.what = x.what === 'deleted' ? x.what : o.what; o.label = x.label; }
+  await agPut(p, JSON.stringify(have, null, 1));
+}
+/* earlier copies older than 30 days go, once a day */
+async function agPrune() {
+  if (AG.pruned === dayStart(Date.now())) return;
+  AG.pruned = dayStart(Date.now());
+  const cut = Date.now() - KEEP_DAYS * 864e5;
+  for (const e of await agList(VERS)) if (e.kind === 'directory' && stampTime(e.name) && stampTime(e.name) < cut) await agRemove(`${VERS}/${e.name}`, true);
+}
+const README = `Agora keeps everything here: your cards, notes, bookmarks and study progress.
+
+Cards/<deck>/<word>/   one folder per card: card.json (its words, tags and meanings) and its pictures
+Magazines/             the magazine pages behind some cards
+Notes/                 each note as a page any browser can open, with its pictures
+Bookmarks.json, Study progress.json, History.json
+Previous versions/     the earlier copy of anything Agora changed or deleted, kept for ${KEEP_DAYS} days.
+                       Open Agora › Backup (⋯ on the home screen) › Previous versions to bring one back.
+
+On a new phone: install Agora, open My Files and choose this folder's parent (My Files). Agora brings everything back.
+Please don't rename or move things inside this folder: Agora finds them by these names.
+`;
+
+/* ---- linking a folder: the first time, what the folder already has comes in, then everything is copied there ---- */
+async function agLink() {
+  if (AG.linking) return AG.linking;
+  if (!agReady() || !FX.ready || !FX.root) return;
+  if (AG.linked === rootName()) { agSoon(0); return; }
+  AG.linking = (async () => {
+    AG.phase = 'read'; AG.done = 0; agPaint();
+    const n = await agMerge();
+    AG.linked = rootName(); await gstore.put('meta', [{ k: 'linked', v: AG.linked }]).catch(() => {});
+    if (!(await agRead('Read me.txt'))) await agPut('Read me.txt', README).catch(() => {});
+    // everything on the phone is checked against the folder; what is already there the same is left alone
+    agWaiting([...decks.map(d => 'deck:' + d.id), ...cards.map(c => 'card:' + c.id), ...[...NT.notes.keys()].map(id => 'note:' + id), 'study', 'history', 'marks']);
+    AG.phase = '';
+    if (n) { renderHome(); refreshPages(); toast(`Brought in ${plural(n, 'item')} from My Files › Agora`); }
+    agSoon(0);
+  })().catch(e => { console.warn('Agora folder', e); toast('Couldn’t read the Agora folder'); }).finally(() => { AG.linking = null; AG.phase = ''; agPaint(); });
+  return AG.linking;
+}
+/* read the Agora folder into the phone: anything the phone doesn't have yet, and anything newer there. Nothing on the phone is lost. */
+async function agMerge() {
+  if (!(await agList('')).length) return 0;
+  let n = 0; AG.mute = (AG.mute || 0) + 1;
+  try {
+    const deckIds = new Map(); // the folder's deck id → this phone's deck
+    for (const e of await agList('Cards')) {
+      if (e.kind !== 'directory') continue;
+      const dir = `Cards/${e.name}`, dj = await agJSON(`${dir}/deck.json`);
+      let d = null;
+      if (dj && dj.deck && dj.deck.id) {
+        d = decks.find(x => x.id === dj.deck.id) || decks.find(x => norm(x.name) === norm(dj.deck.name));
+        if (!d) {
+          d = { ...dj.deck }; const cov = Object.keys(dj.files || {})[0];
+          if (cov && d.coverId) { const f = await agRead(`${dir}/${cov}`); if (f) await store.put('blobs', [{ id: d.coverId, blob: f }]); else delete d.coverId; }
+          decks.push(d); await store.put('decks', [d]); n++;
+        }
+        deckIds.set(dj.deck.id, d);
+        if (d.id === dj.deck.id) await agSave({ k: 'deck:' + d.id, dir, nm: safeName(d.name) || 'Deck', label: d.name, files: dj.files || {}, sum: '' });
+      }
+      for (const c of await agList(dir)) {
+        if (c.kind !== 'directory') continue;
+        const cdir = `${dir}/${c.name}`, cj = await agJSON(`${cdir}/card.json`);
+        if (!cj || !cj.card || !cj.card.id) continue;
+        AG.done++; if (AG.done % 20 === 0) agPaint();
+        const card = cj.card, files = cj.files || {};
+        if (cards.some(x => x.id === card.id)) continue; // the phone's copy is the one in use
+        const home = deckIds.get(card.deckId) || decks.find(x => x.id === card.deckId) || d;
+        if (!home) continue;
+        const blobs = [];
+        for (const [name, bid] of Object.entries(files)) {
+          if (await store.get('blobs', bid).catch(() => null)) continue;
+          const f = await agRead(`${cdir}/${name}`); if (f) blobs.push({ id: bid, blob: new Blob([f], { type: f.type || MIME[fext(name)] || 'image/jpeg' }) });
+        }
+        if (card.pdf && card.pdf.id && !(await store.get('blobs', card.pdf.id).catch(() => null))) {
+          const f = await agRead(`Magazines/${safeName(card.pdf.id.replace(/^pdf-/, '')) || 'magazine'}.pdf`);
+          if (f) blobs.push({ id: card.pdf.id, blob: new Blob([f], { type: 'application/pdf' }) });
+        }
+        if (!blobs.some(b => b.id === card.frameId) && !(await store.get('blobs', card.frameId).catch(() => null))) continue; // no scene: not a card
+        if (blobs.length) await store.put('blobs', blobs);
+        card.deckId = home.id; if (!card.defIds || !card.defIds.length) card.defIds = [card.defId];
+        cards.push(card); await store.put('cards', [card]); thumbIds.add(card.thumbId); n++;
+        await agSave({ k: 'card:' + card.id, dir: cdir, base: dir, nm: safeName(nameOf(card)) || 'card', label: nameOf(card), files, sum: '' });
+      }
+    }
+    // Study progress, History and Bookmarks: the newer record wins, one by one
+    const st = await agJSON('Study progress.json');
+    if (st && Array.isArray(st.cards)) n += await importStudy({ daily: st.daily, cards: st.cards });
+    const hi = await agJSON('History.json');
+    if (hi && Array.isArray(hi.visits)) {
+      const take = hi.visits.filter(r => r && r.id && +r.at && (!HI.recs.has(r.id) || HI.recs.get(r.id).at < r.at));
+      take.forEach(r => HI.recs.set(r.id, r)); if (take.length) await hstore.put('visits', take);
+    }
+    const bm = await agJSON('Bookmarks.json');
+    if (bm && Array.isArray(bm.marks)) {
+      n += await importMarks(bm.marks.filter(r => !r.gone));
+      const gone = bm.marks.filter(r => r && r.gone && r.id && !(BM.gone.has(r.id)) && (!BM.recs.has(r.id) || (BM.recs.get(r.id).at || 0) < r.at));
+      if (gone.length) { gone.forEach(g => { BM.recs.delete(g.id); BM.gone.set(g.id, g); }); await bstore.put('marks', gone); }
+    }
+    // Notes: a note comes in when the phone doesn't have it or has an older copy
+    for (const e of await agList('Notes')) {
+      if (e.kind !== 'file' || !/\.html$/i.test(e.name)) continue;
+      const got = await agNoteFile(`Notes/${e.name}`); if (!got) continue;
+      const { meta, html } = got, old = NT.notes.get(meta.id);
+      if (!old || old.updatedAt < meta.updatedAt) { await agNoteIn(meta, html, 'Notes/pictures'); n++; }
+      if (NT.notes.get(meta.id)) await agSave({ k: 'note:' + meta.id, dir: `Notes/${e.name}`, nm: e.name.replace(/( \d+)?\.html$/i, ''), label: noteHead(NT.notes.get(meta.id)).t, files: Object.fromEntries((meta.imgs || []).map(p => [`${p}.jpg`, p])), sum: '' });
+    }
+  } finally { AG.mute--; }
+  return n;
+}
+async function agNoteFile(path) {
+  const f = await agRead(path); if (!f) return null;
+  const doc = new DOMParser().parseFromString(await f.text(), 'text/html');
+  let meta = null; try { meta = JSON.parse(doc.getElementById('agora-note').textContent); } catch {}
+  if (!meta || !/^n-[\w-]+$/.test(String(meta.id))) return null;
+  const main = doc.getElementById('agora-note-text');
+  return { meta, html: cleanNoteHTML(main ? main.innerHTML : '') };
+}
+async function agNoteIn(meta, html, picDir) {
+  const imgs = [];
+  for (const pid of Array.isArray(meta.imgs) ? meta.imgs : []) {
+    if (!/^ni-[\w-]+$/.test(pid)) continue;
+    if (!(await nstore.get('images', pid).catch(() => null))) {
+      const f = await agRead(`${picDir}/${pid}.jpg`) || await agRead(`Notes/pictures/${pid}.jpg`); if (!f) continue;
+      const blob = new Blob([f], { type: f.type || 'image/jpeg' });
+      await nstore.put('images', [{ id: pid, blob }, { id: pid + '-t', blob: await makeThumb(blob, 480) }]);
+    }
+    imgs.push(pid);
+  }
+  const note = { id: meta.id, title: String(meta.title || '').trim(), html, imgs, createdAt: +meta.createdAt || Date.now(), updatedAt: +meta.updatedAt || Date.now() };
+  NT.notes.set(note.id, note); await nstore.put('notes', [note]);
+  return note;
+}
+
+/* ---- the line under "Your decks" ---- */
+function agLine() {
+  if (!hasFS || !AG.loaded) return '';
+  if (AG.phase === 'read') return `<p class="agline num">Reading My Files › Agora${AG.done ? ` · ${AG.done.toLocaleString('en')} cards` : '…'}</p>`;
+  if (AG.phase === 'write' && AG.total > 3) return `<p class="agline num">Saving to My Files · ${Math.min(AG.done, AG.total).toLocaleString('en')} of ${AG.total.toLocaleString('en')}</p>`;
+  if (!agReady() || !AG.dirty.size || AG.run || AG.linking) return '';
+  if (!FX.root || !AG.linked) return '<button class="connect" data-ag="1"><span class="dot"></span><b>Keep everything in My Files</b><span>· tap to start</span></button>';
+  if (agOn()) return '';
+  const n = AG.dirty.size;
+  return `<button class="connect" data-ag="1"><span class="dot"></span><b>Save to My Files</b><span class="num">· ${plural(n, 'change')} waiting</span></button>`;
+}
+function agPaint() { const s = $('#home .agslot'); if (s) { const h = agLine(); if (s.innerHTML !== h) s.innerHTML = h; } }
+async function agTap() { if (await connectFiles()) agLink(); }
+
+/* ---- Previous versions: what Agora changed or deleted in the last 30 days, and bringing one back ----
+   Two views (the owner's pick 2A + 2B with a toggle): each item that changed, or each moment (one save, named for what happened). */
+async function agVersions() {
+  if (!FX.ready && !(await connectFiles())) return null;
+  await agFlush(); // what waits is saved first, so the list is complete
+  const list = [];
+  for (const e of await agList(VERS)) {
+    if (e.kind !== 'directory' || !stampTime(e.name)) continue;
+    const j = await agJSON(`${VERS}/${e.name}/changes.json`);
+    (j && Array.isArray(j.changes) ? j.changes : []).forEach(x => list.push({ ...x, stamp: e.name }));
+  }
+  return list.sort((a, b) => b.at - a.at);
+}
+async function openVersions() {
+  progressSheet('Previous versions', 'Reading…');
+  const list = await agVersions();
+  closeSheet(() => { if (list) newPage({ kind: 'versions', list }); });
+}
+const ICON_CLOCK = svg('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>', 24);
+const ICON_STACK = svg('<rect x="4" y="9" width="16" height="11" rx="1.5"/><path d="M6.5 6h11M9 3h6"/>', 20);
+const KIND_NAME = { card: 'Card', note: 'Note', deck: 'Deck', file: 'File', study: 'Study progress', history: 'History', marks: 'Bookmarks' };
+/* the changes of one save, in a few words: "Deleted 3 cards", "Changed 42 cards", "Edited a note" */
+function momentName(xs) {
+  if (xs[0].why) return xs[0].why;
+  if (xs.every(x => x.kind === 'file')) {
+    const op = xs[0].op, same = xs.every(x => x.op === op), one = xs.length === 1 ? xs[0].label : plural(xs.length, 'file');
+    return !same ? `Changed ${plural(xs.length, 'file')}` : op === 'delete' ? `Deleted ${one}` : op === 'edit' ? `Edited ${one}` : xs[0].what.startsWith('renamed') ? `Renamed ${one}` : `Moved ${one}`;
+  }
+  const by = k => xs.filter(x => x.kind === k), del = xs.every(x => x.what === 'deleted');
+  const parts = [['card', 'card'], ['note', 'note'], ['deck', 'deck']].map(([k, w]) => by(k).length ? plural(by(k).length, w) : '').filter(Boolean);
+  const rest = xs.filter(x => !['card', 'note', 'deck'].includes(x.kind)).map(x => (KIND_NAME[x.k] || 'a file').toLowerCase());
+  if (parts.length) parts.push(...rest);
+  if (!parts.length) return xs.length === 1 ? `Changed ${KIND_NAME[xs[0].k] ? KIND_NAME[xs[0].k].toLowerCase() : 'a file'}` : `Changed ${plural(xs.length, 'file')}`;
+  return `${del ? 'Deleted' : 'Changed'} ${parts.join(', ')}`;
+}
+function momentsOf(list) {
+  const m = new Map();
+  list.forEach(x => { const key = `${x.stamp}|${x.run || x.at}`; if (!m.has(key)) m.set(key, []); m.get(key).push(x); });
+  return [...m.values()].map(xs => ({ xs, at: Math.min(...xs.map(x => x.at)), name: momentName(xs) })).sort((a, b) => b.at - a.at);
+}
+const versionsByMoment = () => ls.get('versions.view') === 'moments';
+function verPic(x) {
+  const c = x.kind === 'card' && cards.find(y => 'card:' + y.id === x.k);
+  if (c) return `<img alt="" data-blob="${c.thumbId}">`;
+  if (x.kind === 'file') { const f = fidx.get(x.to || x.path); return f && f.thumbId ? `<img alt="" data-blob="${f.thumbId}">` : `<span class="vgly">${ICON_DOC(24)}</span>`; }
+  if (x.kind === 'card') return `<img alt="" data-vtile="${esc(`${VERS}/${x.stamp}/${x.dir}`)}">`; // a deleted card: its tile from the kept copy
+  return `<span class="vgly">${x.kind === 'note' ? ICON_DOC(24) : x.kind === 'deck' ? ICON_FOLDER(24) : ICON_CLOCK}</span>`;
+}
+function renderVersions(v) {
+  const top = v.el.scrollTop, moments = versionsByMoment(); v.title = 'Previous versions';
+  const rows = moments ? momentsOf(v.list) : v.list.map(x => ({ x, at: x.at }));
+  v.rows = rows;
+  let html = '', day = null;
+  rows.forEach((r, i) => {
+    const d = dayStart(r.at);
+    if (d !== day) { if (day !== null) html += '</div>'; html += `<h3 class="hday">${dayLabel(r.at)}</h3><div class="qlist hlist">`; day = d; }
+    const name = moments ? r.name : (r.x.label || KIND_NAME[r.x.kind] || 'File');
+    const sub = moments ? `${esc([...new Set(r.xs.map(x => x.label || KIND_NAME[x.kind]))].slice(0, 3).join(', '))}${r.xs.length > 3 ? ', …' : ''} · <b>Restore${r.xs.length > 1 ? ' all' : ''}</b>`
+      : `${esc(KIND_NAME[r.x.kind] || 'File')} · ${esc(r.x.what)}`;
+    html += `<button class="qrow hrow" data-ver="${i}"><span class="pic">${moments ? `<span class="vgly">${ICON_CLOCK}</span>` : verPic(r.x)}</span>
+      <span class="qm"><span class="hw"><span class="w">${esc(name)}</span><span class="tm num">${clock(r.at)}</span></span>
+      <span class="d">${sub}</span></span></button>`;
+  });
+  if (day !== null) html += '</div>';
+  const tool = `<button class="iconbtn" data-p="vview" aria-label="${moments ? 'Show each item' : 'Show by moment'}">${moments ? ICON_LIST : ICON_STACK}</button>`;
+  v.el.innerHTML = `<div class="home">${pageBar(v, tool)}<div class="cline num"><span>${rows.length ? `${plural(rows.length, moments ? 'moment' : 'change')} · last ${KEEP_DAYS} days` : 'Nothing yet'}</span></div>${html}
+    <p class="vnote">${rows.length ? '' : 'When Agora changes or deletes something, the copy from before shows up here. '}Kept for ${KEEP_DAYS} days in My Files › Agora › Previous versions.</p></div>`;
+  pics(v.el); v.el.scrollTop = top; markScrolled(v);
+  $$('img[data-vtile]', v.el).forEach(async img => {
+    const dir = img.dataset.vtile, t = (await agList(dir)).find(e => e.name.startsWith('tile.')), f = t && await agRead(`${dir}/${t.name}`);
+    if (f) { img.onload = () => img.classList.add('in'); img.src = URL.createObjectURL(f); }
+  });
+}
+function onVersionsClick(e, v) {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.p === 'back') { back(); return; }
+  if (b.dataset.p === 'vview') { ls.set('versions.view', versionsByMoment() ? 'items' : 'moments'); renderVersions(v); return; }
+  const r = v.rows && v.rows[+b.dataset.ver]; if (!r) return;
+  restoreSheet(r.xs || [r.x], r.name || r.x.label);
+}
+/* "Restore" for one change or for a whole moment */
+function restoreSheet(xs, title, after) {
+  const one = xs.length === 1, x = xs[0];
+  sheet(`<h2>${esc(title || 'Previous version')}</h2><p class="sub num">${one ? `${esc(x.what[0].toUpperCase() + x.what.slice(1))} · ` : `${plural(xs.length, 'item')} · `}${esc(dayLabel(x.at))}, ${clock(x.at)}</p>
+    <p class="note">Restoring brings back ${one ? 'the copy' : 'the copies'} from just before ${one ? 'this change' : 'these changes'}. What ${one ? 'it is' : 'they are'} now is kept as a previous version too, so you can change your mind.</p>
+    <div class="btns"><button class="btn" data-act="no">Cancel</button><button class="btn primary" data-act="yes">Restore${one ? '' : ' all'}</button></div>`, {
+    no: () => closeSheet(),
+    yes: async () => {
+      progressSheet('Restoring', esc(title || ''));
+      let ok = 0;
+      agWhy(`Restored ${one ? (x.label || 'an item') : plural(xs.length, 'item')}`);
+      for (const y of xs) { try { if (await agRestore(y)) ok++; } catch (err) { console.warn(err); } }
+      closeSheet(() => {
+        toast(ok ? (one ? `Restored ${x.label || 'it'}` : `Restored ${plural(ok, 'item')}`) : 'Couldn’t find that copy any more');
+        renderHome(); refreshPages(); if (S && typeof showSlide === 'function') { const c = S.order[S.i]; const n = c && cards.find(y => y.id === c.id); if (n) { S.order[S.i] = n; showSlide(S.i); } } agSoon(0);
+        if (after) after();
+      });
+    }
+  });
+}
+/* the earlier copies of one card, note or bookmark, from its own ⋯ menu */
+async function itemVersions(k, title, markId, after) {
+  progressSheet('Previous versions', 'Reading…');
+  let list = await agVersions(); if (!list) { closeSheet(); return; }
+  if (markId) {
+    // bookmarks are one file: an earlier copy counts when this bookmark was different in it
+    const now = JSON.stringify(BM.recs.get(markId) || null), out = [];
+    for (const x of list.filter(y => y.k === 'marks')) {
+      const j = await agJSON(`${VERS}/${x.stamp}/${x.dir}`), r = j && Array.isArray(j.marks) && j.marks.find(m => m.id === markId && !m.gone);
+      if (r && JSON.stringify(r) !== now && !out.some(o => JSON.stringify(o.rec) === JSON.stringify(r))) out.push({ ...x, label: r.title || r.site, what: r.title !== (BM.recs.get(markId) || {}).title ? `was “${r.title}”` : 'tags were ' + ((r.tags || []).join(', ') || 'none'), rec: r });
+    }
+    list = out;
+  } else list = list.filter(x => x.k === k || (k.startsWith('file:') && (x.path === k.slice(5) || x.to === k.slice(5))));
+  sheet(`<h2>Previous versions</h2><p class="sub">${esc(title)}</p>
+    <div class="list">${list.length ? list.map((x, i) => item('v' + i, `${esc(dayLabel(x.at))}, ${clock(x.at)}`, '', '', esc(x.what[0].toUpperCase() + x.what.slice(1)))).join('')
+      : `<p class="note">No earlier copies in the last ${KEEP_DAYS} days.</p>`}</div>`,
+    Object.fromEntries(list.map((x, i) => ['v' + i, () => restoreSheet([x], title, after)])));
+}
+/* bring back the copy kept in Previous versions/<stamp>/; it goes through the usual saving, so what it replaces is kept in turn */
+async function agRestore(x) {
+  if (x.kind === 'file') return fileRestore(x);
+  const vdir = `${VERS}/${x.stamp}`;
+  if (x.kind === 'card') {
+    const j = await agJSON(`${vdir}/${x.dir}/card.json`); if (!j || !j.card) return false;
+    const card = j.card, blobs = [];
+    for (const [name, bid] of Object.entries(j.files || {})) {
+      if (await store.get('blobs', bid).catch(() => null)) continue;
+      const f = await agRead(`${vdir}/${x.dir}/${name}`) || await agRead(`${x.dir}/${name}`);
+      if (f) blobs.push({ id: bid, blob: new Blob([f], { type: f.type || MIME[fext(name)] || 'image/jpeg' }) });
+    }
+    if (card.pdf && card.pdf.id && !(await store.get('blobs', card.pdf.id).catch(() => null))) {
+      const f = await agRead(`Magazines/${safeName(card.pdf.id.replace(/^pdf-/, '')) || 'magazine'}.pdf`);
+      if (f) blobs.push({ id: card.pdf.id, blob: new Blob([f], { type: 'application/pdf' }) });
+    }
+    if (blobs.length) await store.put('blobs', blobs);
+    if (!decks.some(d => d.id === card.deckId)) card.deckId = (studyDeck() || decks[0] || newDeck('Restored')).id;
+    if (!card.defIds || !card.defIds.length) card.defIds = [card.defId];
+    const i = cards.findIndex(c => c.id === card.id);
+    if (i >= 0) cards[i] = card; else cards.push(card);
+    thumbIds.add(card.thumbId); urls.delete(card.thumbId);
+    await store.put('cards', [card]);
+    return true;
+  }
+  if (x.kind === 'deck') {
+    const j = await agJSON(`${vdir}/${x.dir}/deck.json`); if (!j || !j.deck) return false;
+    const d = j.deck, i = decks.findIndex(y => y.id === d.id);
+    if (d.coverId && !(await store.get('blobs', d.coverId).catch(() => null))) {
+      const name = Object.keys(j.files || {})[0], f = name && (await agRead(`${vdir}/${x.dir}/${name}`) || await agRead(`${x.dir}/${name}`));
+      if (f) await store.put('blobs', [{ id: d.coverId, blob: f }]); else delete d.coverId;
+    }
+    if (i >= 0) decks[i] = d; else decks.push(d);
+    await store.put('decks', [d]);
+    return true;
+  }
+  if (x.kind === 'note') {
+    const got = await agNoteFile(`${vdir}/${x.dir}`); if (!got) return false;
+    await agNoteIn({ ...got.meta, updatedAt: Date.now() }, got.html, `${vdir}/Notes/pictures`);
+    return true;
+  }
+  const j = await agJSON(`${vdir}/${x.dir}`); if (!j) return false;
+  if (x.k === 'study' && Array.isArray(j.cards)) {
+    const keep = new Set(j.cards.map(r => r.id)), drop = [...SD.recs.keys()].filter(id => !keep.has(id));
+    drop.forEach(id => SD.recs.delete(id)); if (drop.length) await sstore.del('cards', drop);
+    await saveRecs(j.cards);
+    return true;
+  }
+  if (x.k === 'history' && Array.isArray(j.visits)) {
+    const keep = new Set(j.visits.map(r => r.id)); await dropHistory([...HI.recs.keys()].filter(id => !keep.has(id)));
+    j.visits.forEach(r => HI.recs.set(r.id, r)); await hstore.put('visits', j.visits);
+    return true;
+  }
+  if (x.rec) { await saveMarks([{ ...x.rec, at: Date.now() }]); return true; } // one bookmark, from its own menu
+  if (x.k === 'marks' && Array.isArray(j.marks)) {
+    const live = j.marks.filter(r => !r.gone), keep = new Set(live.map(r => r.id));
+    const drop = [...BM.recs.keys()].filter(id => !keep.has(id)); if (drop.length) await dropMarks(drop);
+    await saveMarks(live.map(r => ({ ...r, at: Date.now() })));
+    return true;
+  }
+  return false;
+}
+
+/* ================= My Files: moving, renaming, editing and deleting files ================= */
+/* Only when you ask (the owner's picks A2 and B2: Move and Delete beside ⋯ while selecting, moving on full folder pages).
+   Every change can be undone from Previous versions: a deleted or edited file's earlier copy goes to
+   Agora/Previous versions/<hour>/My Files/<its path> first, and a move or rename is noted so the file can go back.
+   Each change is one line in that hour's changes.json: {k: 'file:<path>', kind: 'file', op: 'delete' | 'edit' | 'move', path, to?, tags?, dir (the kept copy)}. */
+ICON.move = svg('<path d="M3.5 7.5V18a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5V9.5A1.5 1.5 0 0 0 19 8h-7.2L9.6 5.5H5A1.5 1.5 0 0 0 3.5 7v.5z"/><path d="M10 13.5h6M13.5 11l2.5 2.5-2.5 2.5"/>');
+ICON.rename = svg('<path d="M4 17.5V20h2.5L17 9.5 14.5 7z"/><path d="M13 20h7"/>');
+ICON.text = svg('<path d="M6.5 3.5h7.5l4.5 4.5v12.5h-12z"/><path d="M9 13h6M9 16.5h4"/>');
+ICON.newfolder = svg('<path d="M3.5 7.5V18a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5V9.5A1.5 1.5 0 0 0 19 8h-7.2L9.6 5.5H5A1.5 1.5 0 0 0 3.5 7v.5z"/><path d="M12 11v5M9.5 13.5h5"/>');
+const fsJoin = (dir, name) => dir ? `${dir}/${name}` : name;
+const parentOf = p => p.includes('/') ? p.slice(0, p.lastIndexOf('/')) : '';
+async function fsDir(dir, create) { let d = FX.root; for (const p of dir.split('/').filter(Boolean)) d = await d.getDirectoryHandle(p, { create: !!create }); return d; }
+async function fsExists(dir, name) {
+  let d; try { d = await fsDir(dir); } catch { return false; }
+  try { await d.getFileHandle(name); return true; } catch {}
+  try { await d.getDirectoryHandle(name); return true; } catch { return false; }
+}
+/* a name not used in that folder yet: "receipt.jpg", then "receipt 2.jpg" */
+async function freeName(dir, name, skip) {
+  const dot = name.lastIndexOf('.'), stem = dot > 0 ? name.slice(0, dot) : name, ext = dot > 0 ? name.slice(dot) : '';
+  let n = name, i = 2;
+  while (n !== skip && await fsExists(dir, n)) n = `${stem} ${i++}${ext}`;
+  return n;
+}
+const badName = n => !n || /[\\/:*?"<>|]/.test(n) || /^\.+$/.test(n);
+/* the folder has to be allowed again after Android forgot it: the tap that asked for the change does it */
+const fsNeed = () => FX.ready ? Promise.resolve(true) : connectFiles();
+/* the earlier copy of one of your files, before Agora changes or deletes it; returns where it was kept */
+async function fsKeepFile(path, stamp) {
+  const f = await fileOf(path);
+  let vp = `My Files/${path}`;
+  if (await agRead(`${VERS}/${stamp}/${vp}`)) { const d = new Date(), t = [d.getHours(), d.getMinutes(), d.getSeconds()].map(x => String(x).padStart(2, '0')).join('.'), dot = vp.lastIndexOf('.');
+    vp = dot > vp.lastIndexOf('/') ? `${vp.slice(0, dot)} (${t})${vp.slice(dot)}` : `${vp} (${t})`; }
+  await agPut(`${VERS}/${stamp}/${vp}`, f);
+  return vp;
+}
+const fileLog = (stamp, log) => agWriteLog(stamp, log.map(x => ({ kind: 'file', at: Date.now(), run: AG.fileRun || Date.now(), why: '', ...x })), true);
+/* the index follows a file or a folder (and everything in it) to its new place, keeping tags and pictures */
+async function idxMove(from, to) {
+  const moved = [], gone = [];
+  for (const r of [...fidx.values()]) {
+    if (r.path !== from && !r.path.startsWith(from + '/')) continue;
+    const np = to + r.path.slice(from.length), nr = { ...r, path: np, dir: parentOf(np), name: np.slice(np.lastIndexOf('/') + 1) };
+    if (nr.kind === 'file') nr.ext = fext(nr.name);
+    fidx.delete(r.path); gone.push(r.path); fidx.set(np, nr); moved.push(nr);
+    if (FX.handles) FX.handles.delete(r.path);
+  }
+  fchanged();
+  await fstore.del('files', gone).catch(() => {}); await fstore.put('files', moved).catch(storageFail);
+  tagsChanged();
+}
+async function copyInto(src, target, name) {
+  if (src.kind === 'file') {
+    const f = await src.getFile(), fh = await target.getFileHandle(name, { create: true }), w = await fh.createWritable();
+    await w.write(f); await w.close();
+    if ((await fh.getFile()).size !== f.size) throw new Error('copy incomplete');
+    return;
+  }
+  const d = await target.getDirectoryHandle(name, { create: true });
+  for await (const [n, h] of src.entries()) await copyInto(h, d, n);
+}
+/* move (or rename) one file or folder; returns its new path */
+async function fsMoveOne(from, toDir, newName) {
+  const r = fidx.get(from), dir = parentOf(from), name = from.slice(from.lastIndexOf('/') + 1), nm = newName || name;
+  if (toDir === dir && nm === name) return from;
+  if (r && r.kind === 'dir' && (toDir === from || toDir.startsWith(from + '/'))) throw new Error('into itself');
+  const src = r && r.kind === 'dir' ? await (await fsDir(dir)).getDirectoryHandle(name) : await handleOf(from);
+  const target = await fsDir(toDir, true), free = await freeName(toDir, nm, toDir === dir && nm.toLowerCase() === name.toLowerCase() ? nm : null);
+  let done = false;
+  // the phone's own move keeps the file's date; where it isn't there, copy then remove
+  if (src.move) { try { await src.move(target, free); done = true; } catch (e) { console.warn('move', e); } }
+  if (!done) { await copyInto(src, target, free); await (await fsDir(dir)).removeEntry(name, { recursive: true }); }
+  const to = fsJoin(toDir, free);
+  await idxMove(from, to);
+  return to;
+}
+async function fsMove(paths, toDir, stamp = agStamp()) {
+  const log = [], out = [];
+  for (const p of paths) {
+    const to = await fsMoveOne(p, toDir); if (to === p) continue;
+    const r = fidx.get(to), same = parentOf(p) === parentOf(to);
+    log.push({ k: 'file:' + p, op: 'move', path: p, to, label: r ? r.name : to, what: same ? `renamed from “${p.slice(p.lastIndexOf('/') + 1)}”` : `moved from ${fname(parentOf(p))}` });
+    out.push(to);
+  }
+  await fileLog(stamp, log);
+  return out;
+}
+async function fsDelete(paths) {
+  const stamp = agStamp(), log = [], gone = [];
+  for (const p of paths) {
+    const r = fidx.get(p); if (!r || r.kind !== 'file') continue;
+    const vp = await fsKeepFile(p, stamp);
+    await (await fsDir(r.dir)).removeEntry(r.name);
+    log.push({ k: 'file:' + p, op: 'delete', path: p, dir: vp, label: r.name, what: 'deleted', tags: fileTags(r) });
+    fidx.delete(p); gone.push(p); if (FX.handles) FX.handles.delete(p); if (r.thumbId) forget([r.thumbId]);
+  }
+  fchanged(); await fstore.del('files', gone).catch(() => {}); tagsChanged();
+  await fileLog(stamp, log);
+  return gone.length;
+}
+async function fsWriteText(path, text, what = 'edited') {
+  const stamp = agStamp(), r = fidx.get(path), vp = await fsKeepFile(path, stamp);
+  const h = await handleOf(path), w = await h.createWritable(); await w.write(text); await w.close();
+  const f = await h.getFile();
+  if (r) { Object.assign(r, { size: f.size, mtime: f.lastModified }); fstore.put('files', [r]).catch(storageFail); }
+  await fileLog(stamp, [{ k: 'file:' + path, op: 'edit', path, dir: vp, label: r ? r.name : path, what }]);
+}
+/* Previous versions: a deleted file comes back (beside one that took its name), an edited one gets its old text, a moved one goes back */
+async function fileRestore(x) {
+  if (!(await fsNeed())) return false;
+  if (x.op === 'move') {
+    if (!fidx.get(x.to)) return false;
+    const stamp = agStamp(), name = x.path.slice(x.path.lastIndexOf('/') + 1), to = await fsMoveOne(x.to, parentOf(x.path), name);
+    await fileLog(stamp, [{ k: 'file:' + x.to, op: 'move', path: x.to, to, label: fidx.get(to) ? fidx.get(to).name : name, what: 'moved back' }]);
+    return true;
+  }
+  const f = await agRead(`${VERS}/${x.stamp}/${x.dir}`); if (!f) return false;
+  const dir = parentOf(x.path), name = x.path.slice(x.path.lastIndexOf('/') + 1);
+  if (x.op === 'edit' && fidx.get(x.path)) { await fsWriteText(x.path, f, 'brought back an earlier copy'); return true; }
+  const free = await freeName(dir, name), d = await fsDir(dir, true), fh = await d.getFileHandle(free, { create: true }), w = await fh.createWritable();
+  await w.write(f); await w.close();
+  const got = await fh.getFile(), path = fsJoin(dir, free), now = Date.now();
+  // its folders, if they had gone from the list, and the file with its tags
+  const add = [];
+  for (let p = dir; p && !fidx.get(p); p = parentOf(p)) add.push({ path: p, kind: 'dir', name: p.slice(p.lastIndexOf('/') + 1), dir: parentOf(p) });
+  const r = { path, kind: 'file', name: free, dir, size: got.size, mtime: got.lastModified, ext: fext(free) };
+  if (x.tags && x.tags.length) { r.tags = x.tags; r.tagsAt = now; }
+  add.push(r); add.forEach(a => fidx.set(a.path, a)); fchanged();
+  await fstore.put('files', add).catch(storageFail); tagsChanged(); thumbsLater();
+  return true;
+}
+
+/* ---- the screens ---- */
+function fileDeleteSheet(paths, after) {
+  const rs = paths.map(p => fidx.get(p)).filter(Boolean), n = rs.length; if (!n) return;
+  const names = rs.slice(0, 2).map(r => esc(r.name)).join(' and ') + (n > 2 ? ` and ${n - 2} more` : '');
+  sheet(`<h2>Delete ${n === 1 ? esc(rs[0].name) : plural(n, 'file')}?</h2>
+    <p class="note">${n === 1 ? 'It goes' : `${names} go`} to Previous versions in the Agora folder for ${KEEP_DAYS} days, so you can bring ${n === 1 ? 'it' : 'them'} back.</p>
+    <div class="btns"><button class="btn" data-act="keep">Keep</button><button class="btn danger" data-act="yes">Delete</button></div>`, {
+    keep: () => closeSheet(),
+    yes: async () => {
+      if (!(await fsNeed())) return;
+      let k = 0; try { k = await fsDelete(paths); } catch (e) { console.warn(e); }
+      closeSheet(() => { if (after) after(); refreshFiles(); renderHome(); toast(k ? (k === 1 ? `Deleted ${rs[0].name}` : `Deleted ${plural(k, 'file')}`) : 'Couldn’t delete that'); });
+    }
+  });
+}
+function fileRenameSheet(path, after) {
+  const r = fidx.get(path); if (!r) return;
+  askSheet({ title: r.kind === 'dir' ? 'Rename folder' : 'Rename', value: r.name, btn: 'Rename', label: 'New name', max: 255, done: async x => {
+    if (x === r.name) { closeSheet(); return; }
+    if (badName(x)) { toast('A name can’t have / \\ : * ? " < > |'); return; }
+    if (!(await fsNeed())) return;
+    let to = null; try { to = await renameTo(path, x); } catch (e) { console.warn(e); }
+    closeSheet(() => { if (to) { if (after) after(to); refreshFiles(); toast(`Renamed to ${fidx.get(to) ? fidx.get(to).name : x}`); } else toast('Couldn’t rename that'); });
+  } });
+  // only the name is picked out, so typing keeps the extension
+  setTimeout(() => { const i = $('#askIn'); if (!i) return; const dot = r.kind === 'file' ? r.name.lastIndexOf('.') : -1; i.focus(); i.setSelectionRange(0, dot > 0 ? dot : r.name.length); }, 420); // after the sheet's own select-all
+}
+async function renameTo(path, name) {
+  const stamp = agStamp(), to = await fsMoveOne(path, parentOf(path), name), r = fidx.get(to);
+  if (to !== path) await fileLog(stamp, [{ k: 'file:' + path, op: 'move', path, to, label: r ? r.name : name, what: `renamed from “${path.slice(path.lastIndexOf('/') + 1)}”` }]);
+  return to;
+}
+function newFolderSheet(dir, after) {
+  askSheet({ title: 'New folder', max: 255, sub: esc(['My Files', ...(dir ? dir.split('/') : [])].join(' › ')), placeholder: 'Folder name', btn: 'Create', done: async x => {
+    if (badName(x)) { toast('A name can’t have / \\ : * ? " < > |'); return; }
+    if (!(await fsNeed())) return;
+    let path = null;
+    try {
+      const name = await freeName(dir, x); await (await fsDir(dir)).getDirectoryHandle(name, { create: true });
+      path = fsJoin(dir, name); const r = { path, kind: 'dir', name, dir }; fidx.set(path, r); fchanged(); await fstore.put('files', [r]).catch(storageFail);
+    } catch (e) { console.warn(e); }
+    closeSheet(() => { if (!path) { toast('Couldn’t make that folder'); return; } refreshFiles(); if (after) after(path); });
+  } });
+}
+/* moving: full folder pages (pick B2), only folders shown, "Move here" at the bottom */
+function startMove(paths) {
+  if (!paths.length) return;
+  const M = { paths, from: parentOf(paths[0]) };
+  newPage({ kind: 'files', dir: '', moving: M });
+}
+const movingPages = M => pages.filter(p => p.moving === M);
+function movingBar(v) {
+  const M = v.moving, n = M.paths.length, here = M.paths.every(p => parentOf(p) === v.dir);
+  return `<div class="pbar"><button class="iconbtn" data-p="mcancel" aria-label="Stop moving">${ICON.close}</button>
+    <div class="ptitle"><span class="selcount" style="flex:none">Moving ${n === 1 ? esc(fidx.get(M.paths[0]) ? fidx.get(M.paths[0]).name : '1 file') : plural(n, 'file')}</span></div></div>`
+    + `<div class="mvbar"><span class="to">To: ${esc(fname(v.dir))}</span><button class="btn" data-p="mnew">New folder</button><button class="btn primary" data-p="mhere" ${here ? 'disabled' : ''}>Move here</button></div>`;
+}
+async function onMovingClick(b, v) {
+  const M = v.moving, p = b.dataset.p;
+  if (p === 'mcancel') back(null, movingPages(M).length);
+  else if (p === 'mnew') newFolderSheet(v.dir, path => newPage({ kind: 'files', dir: path, moving: M }));
+  else if (b.dataset.fd != null) { if (!M.paths.includes(b.dataset.fd)) newPage({ kind: 'files', dir: b.dataset.fd, moving: M }); }
+  else if (p === 'mhere') {
+    if (!(await fsNeed())) return;
+    progressSheet('Moving', plural(M.paths.length, 'file'));
+    let out = []; try { out = await fsMove(M.paths, v.dir); } catch (e) { console.warn(e); }
+    const to = fname(v.dir);
+    closeSheet(() => back(() => { refreshFiles(); toast(out.length ? `Moved ${out.length === 1 ? fidx.get(out[0]).name : plural(out.length, 'file')} to ${to}` : 'Couldn’t move that'); }, movingPages(M).length));
+  }
+}
+/* editing a text file: Plex Mono like Notes, saved with Save and when you leave */
+function openTextEdit(path) {
+  const r = fidx.get(path); if (!r) return;
+  newPage({ kind: 'ftext', path, title: r.name, onClose: v => { if (v.text != null && v.box && v.box.value !== v.text) saveText(v, true); } });
+}
+function renderTextEdit(v) {
+  if (v.box) return;
+  v.el.innerHTML = `<div class="home">${pageBar(v, '<button class="textbtn" data-p="tsave">Save</button>')}<textarea class="fedit" spellcheck="false" aria-label="Text" placeholder="Opening…" disabled></textarea></div>`;
+  v.box = $('.fedit', v.el);
+  fsNeed().then(async ok => {
+    if (!ok) { v.box.placeholder = 'Agora needs My Files to open this'; return; }
+    try { v.text = await (await fileOf(v.path)).text(); v.box.value = v.text; v.box.disabled = false; v.box.placeholder = ''; }
+    catch { v.box.placeholder = 'Couldn’t open this file'; }
+  });
+}
+async function saveText(v, leaving) {
+  const t = v.box.value; if (t === v.text) { if (!leaving) toast('No changes'); return; }
+  try { await fsWriteText(v.path, t); v.text = t; toast('Saved · the earlier copy is in Previous versions'); if (FV) showFile(FV.i, 0); }
+  catch (e) { console.warn(e); toast('Couldn’t save the file'); }
+}
+function onTextClick(e, v) {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.p === 'back') back();
+  else if (b.dataset.p === 'tsave') saveText(v);
+}
+
 /* ================= start ================= */
 async function seed() {
   const m = await store.get('meta', 'seeded').catch(() => null);
@@ -4924,7 +5856,7 @@ async function seed() {
 (async () => {
   // if the cards take more than a moment (another copy of Agora holding the database), say so instead of a black screen
   const slow = setTimeout(() => { $('#home').innerHTML = '<p class="empty">Opening your cards…</p><p class="note">If Agora is also open in a Chrome tab, close that tab and Agora will carry on.</p>'; }, 2500);
-  try { mainDB = await openDB(); store = idbStore(mainDB); } catch (e) { console.warn('IndexedDB unavailable, using memory', e); }
+  try { mainDB = await openDB(); store = tracked(idbStore(mainDB), 'main'); } catch (e) { console.warn('IndexedDB unavailable, using memory', e); }
   clearTimeout(slow);
   try { decks = await store.all('decks'); cards = await store.all('cards'); } catch { decks = []; cards = []; }
   cards.forEach(c => { if (!c.defIds || !c.defIds.length) c.defIds = [c.defId]; });
@@ -4940,12 +5872,18 @@ async function seed() {
   try { renderHome(); }
   catch (e) { console.error(e); $('#home').innerHTML = `<p class="empty">Agora couldn’t show your decks. Close it and open it again.</p><p class="note">${esc(e.message)}</p>`; }
   // the files index loads after the decks are on screen, so My Files can never hold them up
-  loadFiles().then(renderHome, e => console.warn(e));
-  loadStudy().then(refreshPages, e => console.warn(e));
-  loadHistory().catch(e => console.warn(e));
-  // bookmarks too; a link shared into Agora opens its save sheet once they are in
-  loadMarks().then(() => { renderHome(); takeShared(); }, e => console.warn(e));
-  loadNotes().then(renderHome, e => console.warn(e));
+  const loads = [
+    loadFiles().then(renderHome, e => console.warn(e)),
+    loadStudy().then(refreshPages, e => console.warn(e)),
+    loadHistory().catch(e => console.warn(e)),
+    // bookmarks too; a link shared into Agora opens its save sheet once they are in
+    loadMarks().then(() => { renderHome(); takeShared(); }, e => console.warn(e)),
+    loadNotes().then(renderHome, e => console.warn(e)),
+    loadSync().catch(e => console.warn(e))];
+  // then the Agora folder: on a computer it may still be allowed, on a phone it waits for a tap
+  Promise.all(loads).then(() => { agPaint(); if (FX.ready) agLink(); });
+  // leaving the app: save what waits while the folder is still allowed
+  document.addEventListener('visibilitychange', () => { if (document.hidden) agFlush(); });
   // tiles whose scene changed since their picture was made are redrawn once the app has settled
   setTimeout(refreshTiles, 1500);
   if (!decks.length) { await seed(); renderHome(); }

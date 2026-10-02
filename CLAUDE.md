@@ -57,6 +57,8 @@ IndexedDB database `agora-files` (v24), version 1, holds My Files: store `files`
 
 IndexedDB database `agora-history` (v27), version 1, holds History: store `visits` (key `id`, the card's id): `{id, at, ans?, ansAt?}`, one entry per card opened in the study view (`ans`: New, Repeat, Tomorrow or Pass when it was studied that day). Not in backups. It loads after the decks are on screen.
 
+IndexedDB database `agora-notes` (v28), version 1, holds Notes (see "Notes"): store `notes` (key `id`, `n-…`): `{id, title, html, imgs: [picture ids], createdAt, updatedAt}`; store `images` (key `id`, `ni-…`): `{id, blob}`, each picture at its original size plus a 480-px copy `<id>-t` for the list. It loads after the decks are on screen.
+
 IndexedDB database `agora-study` (v25), version 1, holds Study progress (see "Study"): store `cards` (key `id`, the card's id): `{id, step, due, first, last, at, done?}` for a card studied at least once, or `{id, front, at}` for a new card brought to the front of the queue; store `meta` (key `k`): `daily` `{v}` new cards a day (default 20), `extra` `{day, n}` more new cards asked for today. Days are whole local days starting at 4 am (`dayNo`). It loads after the decks are on screen.
 
 - `localStorage` only remembers small things under `agora.` keys (older `subtext.` keys are still read), such as `hinted2` (the first-run gesture hint has been seen), `files.view` (`list` / `grid`) and `files.sort`.
@@ -106,6 +108,7 @@ IndexedDB database `agora-study` (v25), version 1, holds Study progress (see "St
   - **Sort** (`SORTS`, `storySort`, `sortOf`): "Order of appearance" only when every card (in a source or a made deck) is from one show, film, book or YouTube video (episode then `sceneTime`; a book by `shotAt`, which follows reading order; one video by `ref.t`), otherwise newest first. Also Newest first, Oldest first, A to Z. A choice sticks per deck and source (`localStorage` `sort.<deckId>.<sourceKey>`).
   - The study view opened from page 3 shows exactly that page's cards in that order (`openStudy(d, id, order)`); no review-first.
 - **My Files** (v23): see "My Files" below. Its tile sits after the decks, before "New deck".
+- **Notes** (v28): see "Notes" below. Its tile sits after My Files.
 - **Browse cards:** a thumbnail grid. Select lets the owner move or delete cards; tapping a card opens a preview sheet.
 - **Study view**, the heart of the app:
   - The header band has the word (hold it to rename), ✎ (the edit menu) and tags. The footer band has "i / n".
@@ -138,6 +141,15 @@ The spaced-repetition deck. It sits inside the deck named **Vocabulary** (`study
 - **The queue** (4A + 4B, `openQueue` / `renderQueue`): every new card numbered in the order Study brings them, as a list or a grid (toggle, `queue.view`). Default order (`queueOrder`): oldest `shotAt` first, with each show's, film's or book's cards taking their places in story order (episode, then `sceneTime`). Search (words, meanings, tags; typed text suggests tags to pin), Select all, or hold a card to select (only the boxes, the bar and the count line repaint, and the count line keeps its height, so the list never moves: `paintQueueSel`, `.cline`); **Bring to front** puts them first in their order (a later batch goes ahead of an earlier one, `front`).
 - **Removed in v25:** "Mark for review" (hold, ✎ menu, select menu, Browse cards' card sheet) and every blue "N to review" count; review marks no longer move cards to the front of a deck.
 - **Backups** carry `study: {daily, cards: [records]}`; import takes a record only when it is newer (`at`) than the phone's, so a re-import changes nothing.
+
+## Notes (v28)
+
+A very simple notebook. The owner asked for only this much and will ask for more when they need it: build only what they ask for.
+- **Home tile** "Notes" after My Files: logo 1A (a white page with a blue title line, `LOGO_NOTES`), "N notes". Its ⋯: New note.
+- **The Notes page** (`renderNotes`, kind `notes` in `pages`; pick 2A, a list only): the locked bar "< Notes" with + (new note), "N notes · last edited first", then each note: its title (or its first line), the lines after it joined with " · " (two lines at most), the date (the time if today), and a 56-px picture when it has one. Hold a note to select (× N selected, Delete, asks first).
+- **Writing** (`openNote` / `renderNote`, kind `note`): a title line (22px) and the text (Plex Mono 15px/1.65, pick 3A), saved half a second after typing stops and on Back; a note left empty is never kept, and pictures taken out of a note are deleted when it closes. One row of tools above the keyboard (`ntools`, bottom `--kb`): Heading, Bold, Italic, Underline, Bullets, Numbers, Checklist (tap the box to tick), Quote, Picture; a tool lights up blue where the cursor is. Pasted text comes in plain; a pasted picture is added like a picked one. ⋯: Add a picture, Delete note. The page keeps the phone's copy and paste menu (no `contextmenu` block).
+- A note's text is HTML from a short list (`cleanNoteHTML`: p, h2, b, i, u, s, ul (class `checks`), ol, li (class `done`), blockquote, img `data-img`); everything else is dropped, so an imported note can't carry a script. Chrome sometimes puts a new list inside its paragraph; `unnestLists` lifts it out.
+- **Backups** carry `notes: {items: [{id, title, html, createdAt, updatedAt, images: ['notes/<picture id>.jpg']}]}` with the pictures in `notes/`. Import takes a note only when it is newer (`updatedAt`) than the phone's, so a re-import changes nothing.
 
 ## My Files (v23)
 
@@ -186,6 +198,8 @@ The only way cards get in and out of the app.
 - **Rules:** never break older zips or backups. New fields are optional. An import must be safe to repeat.
 
 ## Design system (keep it unless the owner changes it)
+
+**Previews:** send each option as its own full-size phone screenshot in `/mnt/project-files/<topic>/` and link each one in the reply; the owner found one combined sheet too small.
 
 **My Files choices (v23, picked from numbered previews):** A1 tile after the decks; B1 list + B2 grid with a toggle in the bar; B4 path above the count; C2 cards then files in search; D1 hold-to-select + tag sheet and D3 quick tagging; E1 one quiet "Connect My Files" line; F viewer like the study view. **Home tile logos (v26, the owner's pick 2B):** Vocabulary is "Aa" in Plex Mono Light 46px, the "A" white and the "a" blue; My Files is a white outlined folder with a solid blue tab (`LOGO_VOCAB`, `LOGO_FILES`). Folders inside My Files are a grey outlined folder; files without a picture are a grey page with the extension (no colours per file type).
 
@@ -237,6 +251,7 @@ python3 tools/app-test/harness.py . --zips tools/app-test/fixtures/test-library.
 - Always check: the Back behaviour, re-importing the zip reports "already up to date", and there are no JavaScript errors.
 - Merriweather italics look upright in test screenshots (the test font has no true italic); the phone shows real italics.
 - Don't commit `shots/`.
+- **Notes (v28):** `python3 tools/app-test/test_notes.py . --out shots/notes/`. It writes notes with every kind of formatting and a made-up picture, and checks the tile, the list, saving, reloading, select and delete, Back, the backup on a fresh phone, re-imports, and that an imported note can't carry a script.
 - **v27 (History, names, tiles, headings):** `python3 tools/app-test/test_history.py . --out shots/history/`.
 - **Study:** `python3 tools/app-test/test_study.py . --out shots/study/`. It turns the test library into one 30-card "Vocabulary" deck (made-up copies) and checks the banner, today's 20, the queue order, list/grid, search and Bring to front, Continue / Repeat / Tomorrow / Pass and the gaps, no swiping past a card, Done for today and Learn 10 more, that browsing changes nothing, Back, and the backup.
 - **My Files:** `python3 tools/app-test/test_files.py . --out shots/files/`. The folder picker can't be clicked in a test, so it fills the origin private file system (`navigator.storage.getDirectory()`) with made-up folders and files and hands it to the app as My Files (`window.showDirectoryPicker = async () => dir`). It checks the index, list and grid, the path, tagging (sheet and quick tagging), `.agora/file-tags.json`, search, the viewer, Share (stubbed), a moved file keeping its tags, Back, the backup, re-imports, and updating from older versions: the new version must open the cards while v22 is still open in another tab (the v23 black screen), and must carry over a My Files index v23 saved. Never put real files in the repo.
@@ -270,5 +285,7 @@ python3 tools/app-test/harness.py . --zips tools/app-test/fixtures/test-library.
 
 - **v26:** a single tap in the study view hides the header and footer, and the next tap brings them back; the pages stay where they were.
 - **v27:** "Your decks" smaller (1C); the count sits right under every page title (2A); search says "Search anything" with no "words saved" line; History on Vocabulary's page (4A, database `agora-history`); New cards no longer jumps when a card is held; a card's name is its dictionary headword everywhere; tiles of text and magazine cards are redrawn from what the card shows.
+
+- **v28 (Notes):** a Notes tile after My Files opens a simple notebook (list, last edited first; 1A logo, 2A list, 3A Plex Mono); notes have headings, bold, italic, underline, lists, checklists, quotes and pictures; database `agora-notes`; backups carry notes.
 
 Add a line here with every version you ship.

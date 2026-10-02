@@ -542,22 +542,13 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 .nlist{display:flex;flex-direction:column;margin-top:14px;user-select:none;-webkit-user-select:none}
 .nrow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:14px;align-items:center;width:100%;padding:14px 0;border-top:1px solid var(--line);-webkit-touch-callout:none;text-align:left}
 .nrow:first-child{border-top:0}
+.nrow .fic{grid-column:2}
+.nrow .fbox{grid-column:3}
 .nrow:active{background:rgba(255,255,255,.03)}
 .nmain{display:flex;flex-direction:column;min-width:0}
-.nrow .nt,.ncard .nt{font-size:15px;line-height:1.3;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nrow .nt{font-size:15px;line-height:1.3;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nrow .np{font-size:13px;line-height:1.45;color:var(--muted);margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
 .nd{font-size:12px;color:var(--faint);margin-top:6px}
-/* the grid: two across, each note a dark card with the start of its text */
-.ngrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:20px;align-items:start;user-select:none;-webkit-user-select:none}
-@media (min-width:640px){.ngrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
-.ncard{position:relative;display:flex;flex-direction:column;min-width:0;padding:14px;border-radius:12px;background:var(--surface);text-align:left;-webkit-touch-callout:none;overflow:hidden}
-.ncard.on{box-shadow:inset 0 0 0 1.5px var(--gold)}
-.ncard .npic{display:block;margin:-14px -14px 12px;aspect-ratio:16/10;background:var(--raised);overflow:hidden}
-.ncard .npic img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .25s}
-.ncard .npic img.in{opacity:1}
-.ncard .nt{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.ncard .np{font-size:12.5px;line-height:1.5;color:var(--muted);margin-top:6px;white-space:pre-line;display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
-.ncard .fbox{position:absolute;top:10px;right:10px}
 /* writing: the title, the text, and one row of formatting above the keyboard */
 .notepage{touch-action:auto}
 .notepage .home{padding-bottom:calc(var(--kb,0px) + 120px);user-select:text;-webkit-user-select:text}
@@ -4232,19 +4223,13 @@ function noteDate(t) {
 /* a note without a title is named by its first line, like a message */
 function noteHead(n) {
   const lines = noteLines(n);
-  return n.title ? { t: n.title, p: lines.join('\n') } : { t: lines[0] || (n.imgs && n.imgs.length ? 'Picture' : 'New note'), p: lines.slice(1).join('\n') };
+  return n.title ? { t: n.title, p: lines.join(' · ') } : { t: lines[0] || (n.imgs && n.imgs.length ? 'Picture' : 'New note'), p: lines.slice(1).join(' · ') };
 }
-const notesGrid = () => ls.get('notes.view') === 'grid';
 function noteRowHTML(n, on) {
   const h = noteHead(n), pic = n.imgs && n.imgs[0];
   return `<button class="nrow${on ? ' on' : ''}" data-note="${n.id}"><span class="nmain"><span class="nt">${esc(h.t)}</span>
-    ${h.p ? `<span class="np">${esc(h.p.replace(/\n/g, ' · '))}</span>` : ''}<span class="nd num">${noteDate(n.updatedAt)}</span></span>
+    ${h.p ? `<span class="np">${esc(h.p)}</span>` : ''}<span class="nd num">${noteDate(n.updatedAt)}</span></span>
     ${pic ? `<span class="fic"><img alt="" data-nimg="${pic}-t"></span>` : ''}${CHECK_BOX}</button>`;
-}
-function noteCardHTML(n, on) {
-  const h = noteHead(n), pic = n.imgs && n.imgs[0];
-  return `<button class="ncard${on ? ' on' : ''}" data-note="${n.id}">${pic ? `<span class="npic"><img alt="" data-nimg="${pic}-t"></span>` : ''}
-    <span class="nt">${esc(h.t)}</span>${h.p ? `<span class="np">${esc(h.p)}</span>` : ''}<span class="nd num">${noteDate(n.updatedAt)}</span>${CHECK_BOX}</button>`;
 }
 /* the home tile, after My Files */
 function notesTile() {
@@ -4258,17 +4243,15 @@ function openNotes() { if (NT.loaded) newPage({ kind: 'notes' }); }
 function notesBar(v) {
   if (v.sel) return `<div class="pbar"><button class="iconbtn" data-p="unsel" aria-label="Stop selecting">${ICON.close}</button>
     <span class="selcount num">${v.sel.size} selected</span><button class="textbtn qfront" data-p="ndel" ${v.sel.size ? '' : 'disabled'}>Delete</button></div>`;
-  const grid = notesGrid();
-  return pageBar(v, `<button class="iconbtn" data-p="nview" aria-label="${grid ? 'Show as a list' : 'Show as a grid'}">${grid ? ICON_LIST : ICON_GRID}</button>`
-    + `<button class="iconbtn" data-p="nnew" aria-label="New note">${svg('<path d="M12 5v14M5 12h14"/>')}</button>`);
+  return pageBar(v, `<button class="iconbtn" data-p="nnew" aria-label="New note">${svg('<path d="M12 5v14M5 12h14"/>')}</button>`);
 }
 function renderNotes(v) {
-  const top = v.el.scrollTop, list = notesList(), grid = notesGrid();
+  const top = v.el.scrollTop, list = notesList();
   v.title = 'Notes'; v.list = list;
   if (v.sel) [...v.sel].forEach(id => { if (!NT.notes.has(id)) v.sel.delete(id); });
   v.el.innerHTML = `<div class="home${v.sel ? ' selecting' : ''}">${notesBar(v)}
     <p class="summary num">${list.length ? `${plural(list.length, 'note')} · last edited first` : 'Nothing written yet'}</p>
-    ${list.length ? `<div class="${grid ? 'ngrid' : 'nlist'}">${list.map(n => (grid ? noteCardHTML : noteRowHTML)(n, !!(v.sel && v.sel.has(n.id)))).join('')}</div>`
+    ${list.length ? `<div class="nlist">${list.map(n => noteRowHTML(n, !!(v.sel && v.sel.has(n.id)))).join('')}</div>`
       : '<p class="empty">Tap + to write your first note.</p>'}</div>`;
   notePics(v.el); v.el.scrollTop = top; markScrolled(v);
 }
@@ -4287,7 +4270,6 @@ function onNotesClick(e, v) {
   const b = e.target.closest('button'); if (!b || b.disabled) return;
   const p = b.dataset.p;
   if (p === 'back' || p === 'unsel') back();
-  else if (p === 'nview') { ls.set('notes.view', notesGrid() ? 'list' : 'grid'); renderNotes(v); }
   else if (p === 'nnew') openNote(null);
   else if (p === 'ndel') { const ids = [...v.sel]; deleteNotesSheet(ids, () => back(() => renderNotes(v))); }
   else if (b.dataset.note) {

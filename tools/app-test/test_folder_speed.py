@@ -1,16 +1,17 @@
-"""The first copy into My Files › Agora (v34): fast even when each folder step is slow, as on Android.
+"""The first copy into My Files › Agora (v34; one folder per deck since v35): fast even when each folder step is slow, as on Android.
 
     python3 tools/app-test/test_folder_speed.py . --out shots/folder-speed/
 
 Adds 60 made-up copies of the test cards, half of them sharing a name, slows every folder operation by 40 ms
 (Android's folder access takes about that long per step), then connects a made-up My Files and times the copy.
-Checks: everything is copied, each card has its own folder, same-named cards get "candor 2" and so on, it runs
+Checks: everything is copied, each card is in its deck's cards.json under its own name, same-named cards get "candor 2", it runs
 far faster than one card at a time did (46 cards a minute in v33), and no JavaScript errors.
 """
-import argparse, asyncio, os, sys, time
+import argparse, asyncio, json, os, sys, time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from harness import Phone
+from test_folder import READ
 
 KIT = os.path.dirname(os.path.abspath(__file__))
 fails = []
@@ -42,10 +43,12 @@ async def main(app, out):
         dirs = await pg.evaluate("""async () => { const out = {}; const walk = async (d, p) => { for await (const [n, h] of d.entries()) {
             if (h.kind === 'directory') await walk(h, p + n + '/'); else out[p + n] = 1; } };
           await walk(await (await navigator.storage.getDirectory()).getDirectoryHandle('Agora'), ''); return Object.keys(out); }""")
-        cardDirs = {p.rsplit('/', 1)[0] for p in dirs if p.endswith('/card.json')}
         n = await pg.evaluate("T.cards.length")
-        check(len(cardDirs) == n, f'each of the {n} cards has its own folder: {len(cardDirs)}')
-        check(any(d.endswith('/candor 2') for d in cardDirs), 'a card sharing a name gets "candor 2"')
+        names = []
+        for p in [p for p in dirs if p.endswith('/cards.json')]:
+            names += [e['name'] for e in json.loads(await pg.evaluate(READ, p))['cards']]
+        check(len(names) == n and len({x.lower() for x in names}) == n, f'each of the {n} cards is in cards.json under its own name: {len(names)}')
+        check('Cards/Example Show/Pictures/candor 2 scene.jpg' in dirs, 'a card sharing a name gets "candor 2"')
         per_min = n / dt * 60
         check(per_min > 300, f'{per_min:.0f} cards a minute with slow folder steps (one at a time managed 46)')
         await ph.shot(f'{out}/home.png')

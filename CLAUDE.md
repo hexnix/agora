@@ -59,7 +59,7 @@ IndexedDB database `agora-history` (v27), version 1, holds History: store `visit
 
 IndexedDB database `agora-study` (v25), version 1, holds Study progress (see "Study"): store `cards` (key `id`, the card's id): `{id, step, due, first, last, at, done?}` for a card studied at least once, or `{id, front, at}` for a new card brought to the front of the queue; store `meta` (key `k`): `daily` `{v}` new cards a day (default 20), `extra` `{day, n}` more new cards asked for today. Days are whole local days starting at 4 am (`dayNo`). It loads after the decks are on screen.
 
-IndexedDB database `agora-bookmarks` (v28), version 1, holds Bookmarks: store `marks` (key `id`, `bm-…`): `{id, url, title, site, tags, addedAt, at}`, or `{id, gone: true, at}` for a deleted one (so an older backup can't bring it back). It loads after the decks are on screen.
+IndexedDB database `agora-bookmarks` (v29), version 1, holds Bookmarks: store `marks` (key `id`, `bm-…`): `{id, url, title, site, tags, addedAt, at}`, or `{id, gone: true, at}` for a deleted one (so an older backup can't bring it back). It loads after the decks are on screen.
 
 - `localStorage` only remembers small things under `agora.` keys (older `subtext.` keys are still read), such as `hinted2` (the first-run gesture hint has been seen), `files.view` (`list` / `grid`) and `files.sort`.
 - **Never upgrade `subtext`** (no version bump, no new stores there). A new kind of data gets a new database of its own, opened after the decks are on screen. **Never drop or rewrite the owner's data.** They have over a thousand cards on the phone and only a backup zip.
@@ -93,7 +93,7 @@ IndexedDB database `agora-bookmarks` (v28), version 1, holds Bookmarks: store `m
   - The ⋯ menu on a tile: Study, Add cards, Browse cards, Rename, Cover image, Merge into another deck, Delete deck.
   - **Merge into another deck** (`mergeSheet` / `doMerge`, v18) moves every card (tags, review marks and progress kept) into a chosen deck or a new one, then removes the empty deck.
   - **Decks are kinds of content, not sources.** All vocabulary lives in one deck, "Vocabulary"; the source (show, film, channel, book) is in the tags. The owner plans to grow Agora into a place to find anything in their digital life, with more decks over time (a finance tracker, concepts with detailed explanations, pictures and files).
-  - The title "Your decks" is 24px, weight 500 (v27, pick 1C).
+  - The title "Your decks" is 24px, weight 500 (v27, pick 1C), at the same height as every page title with its count right under it (v28).
   - The top ⋯ menu is Backup: "Back up everything" (one zip), "Import a backup", "Remove screenshots behind text".
   - Search covers words, meanings and tags; its box says "Search anything" and an empty search shows nothing (v27); tapping a tag in the study view opens search pinned to that tag. The search bar (v20) is one grey pill: Back, the pinned tags as soft-blue filled chips (tap one to remove it), the field, and × to clear all.
 - **Deck pages (v19–v20):** tapping a deck tile opens its decks (page 2), then a deck's cards (page 3), then the study view; Back steps out one page at a time (`openDeck`, `pages`, `renderPage`).
@@ -102,17 +102,19 @@ IndexedDB database `agora-bookmarks` (v28), version 1, holds Bookmarks: store `m
     - **Decks the owner makes** (`d.subs = [{id, name, cards: [ids], createdAt}]`): a fixed list of cards, made from search ("Create deck" beside the result count, `deckFromSearch`) or from selected cards ("Add to deck › New deck…"). New matching cards don't join on their own.
     - Each tile's ⋯ (`srcMenu`): "Rename", "Delete deck only" (cards stay; a source is hidden via `d.srcHidden`, a renamed source is in `d.srcNames`), "Delete deck and cards" (asks first).
     - A deck with one source, nothing made and nothing hidden, skips page 2.
-  - **The top bar** (v21, `pageBar`) on pages 2 and 3: "<", then the title (20px), locked at the top while the page scrolls (a hairline appears under it once scrolled). The count ("7 decks · 22 cards", "2 cards · order of appearance") sits right under the title, starting where the title's text does (32px in; v27, pick 2A), and scrolls away. The same goes for Study, New cards, History and My Files folders (the path line too). While selecting, the bar becomes "× N selected ⋯".
+    - **Search inside a deck** (v28): the first page a deck opens on (page 2, or page 3 when page 2 is skipped) has a search icon. It opens the usual search limited to that deck's cards (`openSearch(pins, deck)`): "Search Vocabulary", "N cards in Vocabulary", each row showing the card's tags instead of the deck name, no files.
+  - **The top bar** (v21, `pageBar`) on pages 2 and 3: "<", then the title (20px), locked at the top while the page scrolls (a hairline appears under it once scrolled). The count ("7 decks · 22 cards", "2 cards · order of appearance") sits right under the title, starting where the title's text does (32px in; v27, pick 2A), and scrolls away. The same goes for Study, New cards, History and My Files folders (the path line too). While selecting, the bar becomes "× N selected ☑ ⋯".
+  - **Select all is an icon** (v28, the owner's pick 1): a box with a tick (`ICON_ALL`, `allBtn`) in the selection bar of every page that selects (a deck's cards, My Files, New cards, History, Browse cards). It turns solid blue when everything is selected, and a tap then clears the selection (`toggleAll`, `selPool`). It is no longer in the ⋯ menus. In New cards with a search open, it sits on the count line until a card is selected.
   - **Names in parts:** a deck made from tags is named "The 48 Laws of Power · Law 1" by default. Its tile reads "The 48 Laws of Power | Law 1"; page 3's bar shows "The 48 Laws of Power" with a small "Law 1" tag beside it (`nameHTML`, `pageBar`). This applies to any name with " · ".
   - **Page 3, a deck's cards:** a gallery, two across, no other view; the sort icon at the top right, the sort in grey under the title. **Hold a card** to select: small boxes appear on every card (selecting only repaints the boxes and the bar, `paintSel`, so nothing flickers); the bar shows × , "N selected" and ⋯ (`selMenu`): Select all, Add to deck, Move to deck and Remove from deck (in a made deck), Delete cards.
   - **Sort** (`SORTS`, `storySort`, `sortOf`): "Order of appearance" only when every card (in a source or a made deck) is from one show, film, book or YouTube video (episode then `sceneTime`; a book by `shotAt`, which follows reading order; one video by `ref.t`), otherwise newest first. Also Newest first, Oldest first, A to Z. A choice sticks per deck and source (`localStorage` `sort.<deckId>.<sourceKey>`).
   - The study view opened from page 3 shows exactly that page's cards in that order (`openStudy(d, id, order)`); no review-first.
 - **My Files** (v23): see "My Files" below. Its tile sits after the decks, before "New deck".
-- **Bookmarks** (v28, the owner's picks 1, A, C): a tile after the decks, before My Files, with its logo (a white page with a solid blue ribbon, `LOGO_MARKS`) and "N bookmarks".
+- **Bookmarks** (v29, the owner's picks 1, A, C): a tile after the decks, before My Files, with its logo (a white page with a solid blue ribbon, `LOGO_MARKS`) and "N bookmarks".
   - **Sharing a link in:** `manifest.webmanifest` has a `share_target` (GET, `./?title=…&text=…&url=…`), so Agora is in Android's share menu. `SHARED` reads the link (from `url` or inside `text`) and clears the address; `takeShared` opens the Bookmarks page and the save sheet.
   - **The save sheet** (`markSheet`): the title (a YouTube link without one gets it from YouTube's oEmbed when online), the tags, "Add a tag", then "Your tags". Suggested tags (`suggestTags`: the site's own tag from `SITES`, the tags that site's earlier links got, tags in use that the title or link mentions) **start out added** (pick C), so saving in a hurry is one tap. Sharing a saved link again edits it ("saved on …"), never a copy.
   - **The page** (`renderMarks`, kind `marks` in `pages`): "N bookmarks · newest first"; tools: search inside Bookmarks, the list/grid toggle (`marks.view`), ⋯ (Add a link, Select bookmarks). **List** (pick A): a 56-px picture (a YouTube link shows its video's picture from i.ytimg.com, other links a grey link glyph), the title on up to two lines, "site · 2 Oct", up to two tag pills and "+N". **Grid**: two across, the site's name on links without a picture, tags as blue text.
-  - Tapping a bookmark opens its link. Hold to select; ⋯ (`markSelMenu`): Select all, Edit (one), Add tags, Share, Delete.
+  - Tapping a bookmark opens its link. Hold to select; the bar has the select-all icon, and ⋯ (`markSelMenu`): Edit (one), Add tags, Share, Delete.
   - The main search lists bookmarks after the cards and files (title, link, pinned tags).
 - **Browse cards:** a thumbnail grid. Select lets the owner move or delete cards; tapping a card opens a preview sheet.
 - **Study view**, the heart of the app:
@@ -191,7 +193,7 @@ The only way cards get in and out of the app.
 - A deck entry may also carry `subdecks: [{id, name, cards: [card ids], createdAt}]`, `sourceNames: {key: name}` and `hiddenSources: [keys]` (v20). Import only adds what's missing, never undoes a change made in the app.
 - The manifest may also carry `files: {tags: [{path, name, size, mtime, tags, at, missing?}]}` (v23): the tags of files in My Files, never the files. Import merges them (the newer change wins); tags for files this phone hasn't listed yet wait until My Files is connected. Older zips have no `files` and import exactly as before.
 - A video definition is exported with its `src` (fixed in v23), so re-importing a backup reports "already up to date".
-- The manifest may also carry `bookmarks: [{id, url, title, site, tags, addedAt, at}]` (v28). Import takes one only when it is newer (`at`) than the phone's copy or its deletion.
+- The manifest may also carry `bookmarks: [{id, url, title, site, tags, addedAt, at}]` (v29). Import takes one only when it is newer (`at`) than the phone's copy or its deletion.
 - **Rules:** never break older zips or backups. New fields are optional. An import must be safe to repeat.
 
 ## Design system (keep it unless the owner changes it)
@@ -246,6 +248,7 @@ python3 tools/app-test/harness.py . --zips tools/app-test/fixtures/test-library.
 - Always check: the Back behaviour, re-importing the zip reports "already up to date", and there are no JavaScript errors.
 - Merriweather italics look upright in test screenshots (the test font has no true italic); the phone shows real italics.
 - Don't commit `shots/`.
+- **v28 (home title, select-all icon, deck search):** `python3 tools/app-test/test_v28.py . --out shots/v28/`.
 - **v27 (History, names, tiles, headings):** `python3 tools/app-test/test_history.py . --out shots/history/`.
 - **Study:** `python3 tools/app-test/test_study.py . --out shots/study/`. It turns the test library into one 30-card "Vocabulary" deck (made-up copies) and checks the banner, today's 20, the queue order, list/grid, search and Bring to front, Continue / Repeat / Tomorrow / Pass and the gaps, no swiping past a card, Done for today and Learn 10 more, that browsing changes nothing, Back, and the backup.
 - **Bookmarks:** `python3 tools/app-test/test_bookmarks.py . --out shots/bookmarks/`. Made-up links only. Opens the app at `./?title=…&text=…` the way Android's share menu does (the harness patches `T` in with a query too).
@@ -280,7 +283,8 @@ python3 tools/app-test/harness.py . --zips tools/app-test/fixtures/test-library.
 
 - **v26:** a single tap in the study view hides the header and footer, and the next tap brings them back; the pages stay where they were.
 - **v27:** "Your decks" smaller (1C); the count sits right under every page title (2A); search says "Search anything" with no "words saved" line; History on Vocabulary's page (4A, database `agora-history`); New cards no longer jumps when a card is held; a card's name is its dictionary headword everywhere; tiles of text and magazine cards are redrawn from what the card shows.
+- **v28:** "Your decks" sits where every page title does, with its count right under it; Select all is an icon (a box with a tick) in every selection bar, and tapping it again clears the selection; a search icon on a deck's first page searches only that deck.
 
-- **v28:** Bookmarks: share a link from any app into Agora (it's in Android's share menu), suggested tags already added, one tap Save, edit later; a list or grid page with search; bookmarks in the main search and in backups (database `agora-bookmarks`).
+- **v29:** Bookmarks: share a link from any app into Agora (it's in Android's share menu), suggested tags already added, one tap Save, edit later; a list or grid page with search; bookmarks in the main search and in backups (database `agora-bookmarks`).
 
 Add a line here with every version you ship.

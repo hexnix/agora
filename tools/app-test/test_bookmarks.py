@@ -1,4 +1,4 @@
-"""v28 test: Bookmarks, links shared into Agora.
+"""v29 test: Bookmarks, links shared into Agora.
 
     python3 tools/app-test/test_bookmarks.py . --out shots/bookmarks/
 
@@ -72,6 +72,11 @@ async def main(app, out):
         # hold to select, Edit
         await ph.hold('.bmrow >> nth=2')
         check(await pg.locator('.page .selcount').count() == 1, 'holding a bookmark selects it')
+        await pg.click('.page [data-p="all"]'); await pg.wait_for_timeout(200)
+        check(await pg.locator('.bmrow.on').count() == 4, 'the select-all icon selects every bookmark')
+        await pg.click('.page [data-p="all"]'); await pg.wait_for_timeout(200)
+        check(await pg.locator('.bmrow.on').count() == 0, 'and a second tap clears the selection')
+        await pg.locator('.bmrow').nth(2).click(); await pg.wait_for_timeout(200)
         await pg.click('[data-p="selmenu"]'); await pg.wait_for_timeout(400)
         await pg.click('#sheet [data-act="edit"]'); await pg.wait_for_timeout(600)
         check(await pg.locator('#bmUrl').count() == 1 and 'Edit bookmark' in await pg.inner_text('#sheet h2'), 'Edit opens the sheet with link and title')

@@ -59,6 +59,8 @@ IndexedDB database `agora-history` (v27), version 1, holds History: store `visit
 
 IndexedDB database `agora-study` (v25), version 1, holds Study progress (see "Study"): store `cards` (key `id`, the card's id): `{id, step, due, first, last, at, done?}` for a card studied at least once, or `{id, front, at}` for a new card brought to the front of the queue; store `meta` (key `k`): `daily` `{v}` new cards a day (default 20), `extra` `{day, n}` more new cards asked for today. Days are whole local days starting at 4 am (`dayNo`). It loads after the decks are on screen.
 
+IndexedDB database `agora-bookmarks` (v28), version 1, holds Bookmarks: store `marks` (key `id`, `bm-…`): `{id, url, title, site, tags, addedAt, at}`, or `{id, gone: true, at}` for a deleted one (so an older backup can't bring it back). It loads after the decks are on screen.
+
 - `localStorage` only remembers small things under `agora.` keys (older `subtext.` keys are still read), such as `hinted2` (the first-run gesture hint has been seen), `files.view` (`list` / `grid`) and `files.sort`.
 - **Never upgrade `subtext`** (no version bump, no new stores there). A new kind of data gets a new database of its own, opened after the decks are on screen. **Never drop or rewrite the owner's data.** They have over a thousand cards on the phone and only a backup zip.
 - If the cards' database takes more than 2.5 s to open, the home screen says "Opening your cards… If Agora is also open in a Chrome tab, close that tab and Agora will carry on." instead of staying black.
@@ -106,6 +108,12 @@ IndexedDB database `agora-study` (v25), version 1, holds Study progress (see "St
   - **Sort** (`SORTS`, `storySort`, `sortOf`): "Order of appearance" only when every card (in a source or a made deck) is from one show, film, book or YouTube video (episode then `sceneTime`; a book by `shotAt`, which follows reading order; one video by `ref.t`), otherwise newest first. Also Newest first, Oldest first, A to Z. A choice sticks per deck and source (`localStorage` `sort.<deckId>.<sourceKey>`).
   - The study view opened from page 3 shows exactly that page's cards in that order (`openStudy(d, id, order)`); no review-first.
 - **My Files** (v23): see "My Files" below. Its tile sits after the decks, before "New deck".
+- **Bookmarks** (v28, the owner's picks 1, A, C): a tile after the decks, before My Files, with its logo (a white page with a solid blue ribbon, `LOGO_MARKS`) and "N bookmarks".
+  - **Sharing a link in:** `manifest.webmanifest` has a `share_target` (GET, `./?title=…&text=…&url=…`), so Agora is in Android's share menu. `SHARED` reads the link (from `url` or inside `text`) and clears the address; `takeShared` opens the Bookmarks page and the save sheet.
+  - **The save sheet** (`markSheet`): the title (a YouTube link without one gets it from YouTube's oEmbed when online), the tags, "Add a tag", then "Your tags". Suggested tags (`suggestTags`: the site's own tag from `SITES`, the tags that site's earlier links got, tags in use that the title or link mentions) **start out added** (pick C), so saving in a hurry is one tap. Sharing a saved link again edits it ("saved on …"), never a copy.
+  - **The page** (`renderMarks`, kind `marks` in `pages`): "N bookmarks · newest first"; tools: search inside Bookmarks, the list/grid toggle (`marks.view`), ⋯ (Add a link, Select bookmarks). **List** (pick A): a 56-px picture (a YouTube link shows its video's picture from i.ytimg.com, other links a grey link glyph), the title on up to two lines, "site · 2 Oct", up to two tag pills and "+N". **Grid**: two across, the site's name on links without a picture, tags as blue text.
+  - Tapping a bookmark opens its link. Hold to select; ⋯ (`markSelMenu`): Select all, Edit (one), Add tags, Share, Delete.
+  - The main search lists bookmarks after the cards and files (title, link, pinned tags).
 - **Browse cards:** a thumbnail grid. Select lets the owner move or delete cards; tapping a card opens a preview sheet.
 - **Study view**, the heart of the app:
   - The header band has the word (hold it to rename), ✎ (the edit menu) and tags. The footer band has "i / n".
@@ -183,6 +191,7 @@ The only way cards get in and out of the app.
 - A deck entry may also carry `subdecks: [{id, name, cards: [card ids], createdAt}]`, `sourceNames: {key: name}` and `hiddenSources: [keys]` (v20). Import only adds what's missing, never undoes a change made in the app.
 - The manifest may also carry `files: {tags: [{path, name, size, mtime, tags, at, missing?}]}` (v23): the tags of files in My Files, never the files. Import merges them (the newer change wins); tags for files this phone hasn't listed yet wait until My Files is connected. Older zips have no `files` and import exactly as before.
 - A video definition is exported with its `src` (fixed in v23), so re-importing a backup reports "already up to date".
+- The manifest may also carry `bookmarks: [{id, url, title, site, tags, addedAt, at}]` (v28). Import takes one only when it is newer (`at`) than the phone's copy or its deletion.
 - **Rules:** never break older zips or backups. New fields are optional. An import must be safe to repeat.
 
 ## Design system (keep it unless the owner changes it)
@@ -239,6 +248,7 @@ python3 tools/app-test/harness.py . --zips tools/app-test/fixtures/test-library.
 - Don't commit `shots/`.
 - **v27 (History, names, tiles, headings):** `python3 tools/app-test/test_history.py . --out shots/history/`.
 - **Study:** `python3 tools/app-test/test_study.py . --out shots/study/`. It turns the test library into one 30-card "Vocabulary" deck (made-up copies) and checks the banner, today's 20, the queue order, list/grid, search and Bring to front, Continue / Repeat / Tomorrow / Pass and the gaps, no swiping past a card, Done for today and Learn 10 more, that browsing changes nothing, Back, and the backup.
+- **Bookmarks:** `python3 tools/app-test/test_bookmarks.py . --out shots/bookmarks/`. Made-up links only. Opens the app at `./?title=…&text=…` the way Android's share menu does (the harness patches `T` in with a query too).
 - **My Files:** `python3 tools/app-test/test_files.py . --out shots/files/`. The folder picker can't be clicked in a test, so it fills the origin private file system (`navigator.storage.getDirectory()`) with made-up folders and files and hands it to the app as My Files (`window.showDirectoryPicker = async () => dir`). It checks the index, list and grid, the path, tagging (sheet and quick tagging), `.agora/file-tags.json`, search, the viewer, Share (stubbed), a moved file keeping its tags, Back, the backup, re-imports, and updating from older versions: the new version must open the cards while v22 is still open in another tab (the v23 black screen), and must carry over a My Files index v23 saved. Never put real files in the repo.
 - **When the app learns a new card field,** add a card using it to `tools/app-test/make_test_library.py` and rebuild the zip (`python3 tools/app-test/make_test_library.py`).
 
@@ -270,5 +280,7 @@ python3 tools/app-test/harness.py . --zips tools/app-test/fixtures/test-library.
 
 - **v26:** a single tap in the study view hides the header and footer, and the next tap brings them back; the pages stay where they were.
 - **v27:** "Your decks" smaller (1C); the count sits right under every page title (2A); search says "Search anything" with no "words saved" line; History on Vocabulary's page (4A, database `agora-history`); New cards no longer jumps when a card is held; a card's name is its dictionary headword everywhere; tiles of text and magazine cards are redrawn from what the card shows.
+
+- **v28:** Bookmarks: share a link from any app into Agora (it's in Android's share menu), suggested tags already added, one tap Save, edit later; a list or grid page with search; bookmarks in the main search and in backups (database `agora-bookmarks`).
 
 Add a line here with every version you ship.

@@ -5423,9 +5423,10 @@ function agLine() {
   if (!hasFS || !AG.loaded) return '';
   if (AG.phase === 'read') return `<p class="agline num">Reading My Files › Agora${AG.done ? ` · ${AG.done.toLocaleString('en')} cards` : '…'}</p>`;
   if (AG.phase === 'write' && AG.total > 3) return `<p class="agline num">Saving to My Files · ${Math.min(AG.done, AG.total).toLocaleString('en')} of ${AG.total.toLocaleString('en')}</p>`;
-  if (!agReady() || !AG.dirty.size || AG.run || AG.linking) return '';
+  if (!agReady() || AG.run || AG.linking) return '';
+  // never chosen yet: always offer it (a phone updated from v31 has nothing marked as changed, and still needs the first copy)
   if (!FX.root || !AG.linked) return '<button class="connect" data-ag="1"><span class="dot"></span><b>Keep everything in My Files</b><span>· tap to start</span></button>';
-  if (agOn()) return '';
+  if (!AG.dirty.size || agOn()) return '';
   const n = AG.dirty.size;
   return `<button class="connect" data-ag="1"><span class="dot"></span><b>Save to My Files</b><span class="num">· ${plural(n, 'change')} waiting</span></button>`;
 }

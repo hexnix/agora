@@ -70,6 +70,11 @@ async def main(app, out):
         line = await pg.inner_text('#home .agslot')
         check('Keep everything in My Files' in line, f'home line before the folder is chosen: {line!r}')
         await ph.shot(f'{out}/1-home-before.png')
+        # a phone updated from v31 has nothing marked as changed: the line must show all the same
+        await pg.evaluate("() => { const keep = new Map(T.AG.dirty); T.AG.dirty.clear(); T.agPaint(); window._keep = keep; }")
+        line = await pg.inner_text('#home .agslot')
+        check('Keep everything in My Files' in line, f'home line on a phone updated from v31: {line!r}')
+        await pg.evaluate("() => { window._keep.forEach((v, k) => T.AG.dirty.set(k, v)); T.agPaint(); }")
 
         # choose My Files: everything is copied into Agora/
         await pg.evaluate(CONNECT)

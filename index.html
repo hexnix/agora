@@ -506,6 +506,11 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 .fcard .fn{font-size:14px;line-height:1.25}
 .fcard .fm{margin-top:-4px;font-size:12px}
 .fcard .fm .tg{color:var(--blue-text)}
+/* Bookmarks: a title can take two lines; a YouTube picture is centred */
+.bmt{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
+.bmrow .fic img,.bmcard .fpic img{object-position:center}
+.bmcard .fpic.glyph svg{margin-top:-14px}
+.bmcard .fpic .ext{font-size:11px}
 /* tag pills in sheets: filled when the tag is on, outlined to add */
 .slabel{color:var(--muted);font-size:13px;margin:20px 0 0}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
@@ -635,6 +640,7 @@ function selPool(v) {
   if (v.kind === 'queue') return v.list.map(c => c.id);
   if (v.kind === 'history') return v.list.map(x => x.c.id);
   if (v.kind === 'notes') return v.list.map(n => n.id);
+  if (v.kind === 'marks') return (v.order || []).map(r => r.id);
   return srcFor(v).cards.map(c => c.id);
 }
 const allOn = v => { const ids = selPool(v); return !!(v.sel && ids.length && ids.every(id => v.sel.has(id))); };
@@ -862,6 +868,7 @@ function renderHome() {
       <span class="tools"><button class="iconbtn" id="searchBtn" aria-label="Search words">${ICON.search}</button><button class="iconbtn" id="appMenu" aria-label="Backup and import">${ICON.more}</button></span></div>
     <p class="summary">${list.length ? `${plural(list.length, 'deck')} · ${plural(total, 'card')}` : 'Make a deck for each film or show you watch.'}</p>
     <div class="grid">${tiles}
+      ${marksTile()}
       ${filesTile()}
       ${notesTile()}
       <div class="tile new"><button class="tile-open" data-new="1"><div class="cover">${ICON.plus}</div><div class="tile-name">New deck</div></button></div>
@@ -878,6 +885,8 @@ $('#home').addEventListener('click', e => {
   else if (t.dataset.menu) deckMenu(deck(t.dataset.menu));
   else if (t.dataset.new) nameSheet(null);
   else if (t.dataset.files) openFolder('');
+  else if (t.dataset.marks) openMarks();
+  else if (t.dataset.mmenu) marksMenu(null);
   else if (t.dataset.fmenu) filesMenu(null);
   else if (t.dataset.notes) openNotes();
   else if (t.dataset.nmenu) notesMenu();
@@ -1221,6 +1230,7 @@ function newPage(v) {
   el.addEventListener('scroll', () => markScrolled(v), { passive: true });
   if (v.kind === 'cards') holdToSelect(v);
   else if (v.kind === 'queue') holdToSelect(v, '[data-qc]', b => startQueueSelect(v, b.dataset.qc));
+  else if (v.kind === 'marks') holdToSelect(v, '[data-bm]', b => startMarkSelect(v, b.dataset.bm));
   else if (v.kind === 'files') holdToSelect(v, '[data-fp]', b => startFileSelect(v, b.dataset.fp));
   else if (v.kind === 'history') holdToSelect(v, '.hrow', b => startHistSelect(v, b.dataset.card));
   else if (v.kind === 'notes') holdToSelect(v, '[data-note]', b => startNoteSelect(v, b.dataset.note));
@@ -1249,7 +1259,7 @@ const BOX = '<span class="box">' + svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 14)
 function pageBar(v, tools = '') {
   if (v.sel) return `<div class="pbar"><button class="iconbtn" data-p="unsel" aria-label="Stop selecting">${ICON.close}</button>
     <span class="selcount num">${v.sel.size} selected</span>${allBtn(allOn(v))}
-    <button class="iconbtn" data-p="selmenu" aria-label="Options for the selected ${v.kind === 'files' ? 'files' : 'cards'}" ${v.sel.size ? '' : 'disabled'}>${ICON.more}</button></div>`;
+    <button class="iconbtn" data-p="selmenu" aria-label="Options for the selected ${v.kind === 'files' ? 'files' : v.kind === 'marks' ? 'bookmarks' : 'cards'}" ${v.sel.size ? '' : 'disabled'}>${ICON.more}</button></div>`;
   const [t, ...rest] = nameParts(v.title);
   return `<div class="pbar"><button class="iconbtn" data-p="back" aria-label="Back">${ICON.back}</button>
     <div class="ptitle"><h1 class="pt">${esc(t || v.title)}</h1>${rest.map(x => `<span class="ptag">${esc(x)}</span>`).join('')}</div>
@@ -1260,6 +1270,7 @@ function renderPage(v) {
   if (v.kind === 'study') { renderStudyPage(v); return; }
   if (v.kind === 'queue') { renderQueue(v); return; }
   if (v.kind === 'history') { renderHistory(v); return; }
+  if (v.kind === 'marks') { renderMarks(v); return; }
   if (v.kind === 'notes') { renderNotes(v); return; }
   if (v.kind === 'note') { renderNote(v); return; }
   const d = v.deck, top = v.el.scrollTop;
@@ -1327,6 +1338,7 @@ function startSelect(v, id) {
 }
 function onPageClick(e, v) {
   if (v.kind === 'files') { onFilesClick(e, v); return; }
+  if (v.kind === 'marks') { onMarksClick(e, v); return; }
   if (v.kind === 'queue') { onQueueClick(e, v); return; }
   if (v.kind === 'history') { onHistoryClick(e, v); return; }
   if (v.kind === 'notes') { onNotesClick(e, v); return; }
@@ -2944,6 +2956,7 @@ function openSearch(pins, deck = null) {
       const r = fidx.get(b.dataset.fopen); if (!r) return; input.blur();
       if (r.kind === 'dir') openFolder(r.path); else openViewer((searchView.fhits || []).filter(x => x.kind === 'file'), r.path);
     }
+    else if (b.dataset.bm) { const r = BM.recs.get(b.dataset.bm); if (r) openLink(r); }
     else if (b.dataset.card) { const c = cards.find(x => x.id === b.dataset.card); if (c) { input.blur(); openStudy(decks.find(d => d.id === c.deckId), c.id); } }
   });
   pushLayer(() => { el.remove(); searchView = null; unlockIdle(); });
@@ -2956,8 +2969,10 @@ function renderResults(q) {
   const pool = P.length ? all.filter(c => hasTags(c, P)) : all, n = norm(q);
   // files and folders from My Files sit below the cards, in their own section (not when searching one deck)
   const fpool = D ? [] : P.length ? allFiles().filter(r => hasTags(r, P)) : [...fidx.values()];
+  // and bookmarks below those (not when searching one deck either)
+  const bpool = D ? [] : P.length ? allMarks().filter(r => hasTags(r, P)) : allMarks();
   // tags that match what is typed, shown above the results
-  const tg = n ? allTags([...pool, ...fpool]).filter(x => !P.some(p => norm(p) === x.k) && x.k.includes(n))
+  const tg = n ? allTags([...pool, ...fpool, ...bpool]).filter(x => !P.some(p => norm(p) === x.k) && x.k.includes(n))
     .sort((a, b) => (b.k.startsWith(n) - a.k.startsWith(n)) || b.n - a.n || a.k.localeCompare(b.k)).slice(0, 8) : [];
   sg.hidden = !tg.length;
   sg.innerHTML = tg.map(x => { const i = x.k.indexOf(n);
@@ -2977,22 +2992,22 @@ function renderResults(q) {
   if (!n) {
     if (P.length) {
       const list = [...pool].sort((a, b) => norm(nameOf(a) || '~').localeCompare(norm(nameOf(b) || '~'))), fl = [...fpool].sort(nameCmp);
-      box.innerHTML = list.length || fl.length ? (list.length ? `${mk(list)}<div class="results">${list.map(c => row(c, nameOf(c) ? esc(nameOf(c)) : '<span class="rd">No word yet</span>')).join('')}</div>` : '')
-        + fileResults(fl, r => esc(r.name))
+      box.innerHTML = list.length || fl.length || bpool.length ? (list.length ? `${mk(list)}<div class="results">${list.map(c => row(c, nameOf(c) ? esc(nameOf(c)) : '<span class="rd">No word yet</span>')).join('')}</div>` : '')
+        + fileResults(fl, r => esc(r.name)) + markResults(bpool)
         : `<p class="note">No card${fidx.size && !D ? ' or file' : ''}${D ? ` in ${esc(D.name)}` : ''} has all of these tags.</p>`;
       pics(); return;
     }
     box.innerHTML = ''; // an empty search shows nothing: the field says what it does
     return;
   }
-  const hits = findWords(q, pool), fh = findFiles(q, fpool);
-  if (!hits.length && !fh.length) { box.innerHTML = tg.length ? '' : `<p class="note">Nothing matches “${esc(q.trim())}”${P.length ? ' with these tags' : D ? ` in ${esc(D.name)}` : fidx.size ? ' in your words, definitions or files' : ' in your words or definitions'}.</p>`; return; }
+  const hits = findWords(q, pool), fh = findFiles(q, fpool), bh = findMarks(q, bpool);
+  if (!hits.length && !fh.length && !bh.length) { box.innerHTML = tg.length ? '' : `<p class="note">Nothing matches “${esc(q.trim())}”${P.length ? ' with these tags' : D ? ` in ${esc(D.name)}` : fidx.size ? ' in your words, definitions or files' : ' in your words or definitions'}.</p>`; return; }
   const k = n.length;
   const markName = (w, i) => i < 0 ? esc(w) : `${esc(w.slice(0, i))}<mark>${esc(w.slice(i, i + k))}</mark>${esc(w.slice(i + k))}`;
   box.innerHTML = (hits.length ? mk(hits.map(h => h.c)) + hits.map(({ c, i, snip }) => {
     const w = nameOf(c);
     return row(c, i < 0 ? (w ? esc(w) : '<span class="rd">No word yet</span>') : markName(w, i), snip);
-  }).join('') : '') + fileResults(fh.map(h => h.r), r => markName(r.name, norm(r.name).indexOf(n)));
+  }).join('') : '') + fileResults(fh.map(h => h.r), r => markName(r.name, norm(r.name).indexOf(n))) + markResults(bh);
   pics();
 }
 
@@ -3062,7 +3077,7 @@ async function slimSheet() {
   });
 }
 async function exportAll() {
-  if (!cards.length && !fileTagList().length && !NT.notes.size) { toast('Nothing to back up yet'); return; }
+  if (!cards.length && !fileTagList().length && !NT.notes.size && !BM.recs.size) { toast('Nothing to back up yet'); return; }
   progressSheet('Preparing backup', 'Loading…');
   let JSZip; try { JSZip = await loadZip(); } catch { closeSheet(); toast('Backup needs an internet connection the first time'); return; }
   const zip = new JSZip(), man = { app: 'agora', version: 1, exportedAt: new Date().toISOString(), decks: [] };
@@ -3114,6 +3129,8 @@ async function exportAll() {
   if (fileTagList().length) man.files = { tags: fileTagList() };
   // Study progress: where each card is in its cycle, and the queue's front (optional, like files)
   const st = exportStudy(); if (st) man.study = st;
+  // bookmarks (optional, like files)
+  if (BM.recs.size) man.bookmarks = exportMarks();
   // Notes and their pictures (optional too)
   const nt = await exportNotes(zip); if (nt) man.notes = nt;
   zip.file('manifest.json', JSON.stringify(man, null, 2));
@@ -3127,7 +3144,7 @@ async function exportAll() {
 $('#zipPicker').addEventListener('change', async e => {
   const files = [...e.target.files]; e.target.value = ''; if (!files.length) return;
   progressSheet('Importing', 'Reading the file…');
-  let added = 0, updated = 0, skipped = 0, mismatched = 0, absent = 0, ftagged = 0, fwait = 0, studyN = 0, notesN = 0; const touched = new Set();
+  let added = 0, updated = 0, skipped = 0, mismatched = 0, absent = 0, ftagged = 0, fwait = 0, studyN = 0, notesN = 0, marksN = 0; const touched = new Set();
   try {
     const JSZip = await loadZip();
     for (let fi = 0; fi < files.length; fi++) {
@@ -3305,10 +3322,11 @@ $('#zipPicker').addEventListener('change', async e => {
       }
       if (man.study) studyN += await importStudy(man.study);
       if (man.notes) notesN += await importNotes(man.notes, zip);
+      if (man.bookmarks) marksN += await importMarks(man.bookmarks);
     }
     askPersist(); renderHome(); refreshPages(); closeSheet();
     toast([added ? `Imported ${plural(added, 'card')}` : '', updated ? `Updated ${plural(updated, 'card')}` : '', skipped - mismatched > 0 ? `${skipped - mismatched} already up to date` : '', mismatched ? `${mismatched} skipped: definitions didn’t line up` : '', absent ? `${plural(absent, 'card')} not on this phone` : '',
-      ftagged ? `Tags for ${plural(ftagged, 'file')}` : '', studyN ? `Study progress for ${plural(studyN, 'card')}` : '', notesN ? `${plural(notesN, 'note')}` : '', fwait ? `Tags for ${plural(fwait, 'file')} kept for when My Files is connected` : ''].filter(Boolean).join(' · ') || 'Nothing to import');
+      ftagged ? `Tags for ${plural(ftagged, 'file')}` : '', studyN ? `Study progress for ${plural(studyN, 'card')}` : '', notesN ? `${plural(notesN, 'note')}` : '', marksN ? plural(marksN, 'bookmark') : '', fwait ? `Tags for ${plural(fwait, 'file')} kept for when My Files is connected` : ''].filter(Boolean).join(' · ') || 'Nothing to import');
     if (ftagged) refreshFiles();
     refreshTiles(); // a scene that became text or a magazine page gets a tile to match
   } catch (err) {
@@ -4520,6 +4538,360 @@ async function importNotes(mn, zip) {
   return n;
 }
 
+/* ================= Bookmarks: links shared into Agora ================= */
+/* Share a link to Agora from any app (Android's share menu: the manifest's share_target opens Agora at ./?url=…&title=…&text=…).
+   A sheet suggests tags (the site, the tags its earlier links got, and tags in use that the title mentions); one tap saves it,
+   and it can be edited later. Bookmarks live in a database of their own, "agora-bookmarks" (store `marks`:
+   {id, url, title, site, tags, addedAt, at}), opened after the decks are on screen, so the cards' database is never upgraded. */
+KEYS.marks = 'id';
+const BM = { recs: new Map(), gone: new Map(), loaded: false }; // gone: deleted bookmarks {id, gone: true, at}, so an older backup can't bring them back
+let bstore = memStore(['marks']);
+// the tile's logo (the owner's pick 1), like My Files' (2B): a white page with a solid blue ribbon
+const LOGO_MARKS = '<span class="logo"><svg width="72" height="72" viewBox="0 0 48 48" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">'
+  + '<rect x="9" y="7" width="30" height="34" rx="2" stroke="currentColor"/><path d="M27 7v13l4-3 4 3V7z" style="fill:var(--gold);stroke:var(--gold)"/></svg></span>';
+const ICON_LINK = (s = 24) => svg('<path d="M10 14a4.5 4.5 0 0 0 6.4 0l3.2-3.2a4.5 4.5 0 0 0-6.4-6.4L12 5.6"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3.2 3.2a4.5 4.5 0 0 0 6.4 6.4l1.2-1.2"/>', s);
+function openMarksDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('agora-bookmarks', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('marks', { keyPath: 'id' });
+    r.onsuccess = () => { const db = r.result; db.onversionchange = () => db.close(); res(db); };
+    r.onerror = () => rej(r.error);
+    r.onblocked = () => rej(new Error('blocked'));
+  });
+}
+async function loadMarks() {
+  try { bstore = idbStore(await openMarksDB()); } catch (e) { console.warn('bookmarks storage unavailable, using memory', e); }
+  try { (await bstore.all('marks')).forEach(r => { if (r.gone) BM.gone.set(r.id, r); else if (!BM.recs.has(r.id)) BM.recs.set(r.id, r); }); } catch (e) { console.warn('bookmarks', e); }
+  BM.loaded = true;
+}
+const allMarks = () => [...BM.recs.values()].sort((a, b) => b.addedAt - a.addedAt);
+const saveMarks = list => { list.forEach(r => { BM.recs.set(r.id, r); BM.gone.delete(r.id); }); return bstore.put('marks', list).catch(storageFail); };
+function dropMarks(ids) {
+  const at = Date.now(), gone = ids.map(id => ({ id, gone: true, at }));
+  ids.forEach(id => BM.recs.delete(id)); gone.forEach(g => BM.gone.set(g.id, g));
+  return bstore.put('marks', gone).catch(storageFail);
+}
+const siteOf = u => { try { return new URL(u).hostname.replace(/^(www|m|mobile)\./, ''); } catch { return ''; } };
+/* "nytimes.com" → "nytimes", "bbc.co.uk" → "bbc": the word under a link that has no picture */
+function siteWord(s) {
+  const p = String(s).split('.'); if (p.length > 2 && /^(co|com|org|net|ac|gov|edu)$/.test(p[p.length - 2])) p.pop();
+  return p.length > 1 ? p[p.length - 2] : p[0];
+}
+function ytOf(u) {
+  try {
+    const x = new URL(u), h = x.hostname.replace(/^(www|m|music)\./, '');
+    if (h === 'youtu.be') return x.pathname.slice(1, 12);
+    if (h === 'youtube.com') return x.searchParams.get('v') || (x.pathname.match(/^\/(shorts|live|embed)\/([\w-]{11})/) || [])[2] || '';
+  } catch {}
+  return '';
+}
+// a YouTube link shows its video's picture (loaded from YouTube, so only when online); other links show the site's name
+const markPic = r => { const v = ytOf(r.url); return v ? `https://i.ytimg.com/vi/${v}/mqdefault.jpg` : ''; };
+/* sites whose name is a tag of its own */
+const SITES = { 'youtube.com': 'YouTube', 'youtu.be': 'YouTube', 'x.com': 'X', 'twitter.com': 'X', 'instagram.com': 'Instagram', 'reddit.com': 'Reddit',
+  'medium.com': 'Medium', 'substack.com': 'Substack', 'wikipedia.org': 'Wikipedia', 'github.com': 'GitHub', 'linkedin.com': 'LinkedIn', 'imdb.com': 'IMDb',
+  'goodreads.com': 'Goodreads', 'spotify.com': 'Spotify', 'amazon.com': 'Amazon', 'amazon.in': 'Amazon', 'netflix.com': 'Netflix', 'facebook.com': 'Facebook' };
+const markTagsAll = () => [...allMarks(), ...cards, ...allFiles()];
+const markSpell = t => { t = String(t).trim().replace(/\s+/g, ' ').slice(0, 60); const k = allTags(markTagsAll()).find(e => e.k === norm(t)); return k ? k.t : t; };
+const words = s => ' ' + norm(s).replace(/[^\p{L}\p{N}]+/gu, ' ').trim() + ' ';
+function suggestTags(url, title = '') {
+  const out = [], add = t => { if (t && !out.some(x => norm(x) === norm(t))) out.push(markSpell(t)); };
+  const s = siteOf(url), known = Object.keys(SITES).find(k => s === k || s.endsWith('.' + k));
+  if (known) add(SITES[known]);
+  // the tags this site's earlier bookmarks keep getting (after one bookmark, only its first tag: the kind of page)
+  const mine = allMarks().filter(r => r.site === s);
+  if (mine.length === 1) add((mine[0].tags || [])[0]);
+  else allTags(mine).filter(e => e.n >= 2).sort((a, b) => b.n - a.n).slice(0, 3).forEach(e => add(e.t));
+  // tags already in use (bookmarks, cards, files) that the title or the link's path mentions, as whole words
+  let path = ''; try { path = decodeURIComponent(new URL(url).pathname); } catch {}
+  const hay = words(title + ' ' + path);
+  allTags(markTagsAll()).filter(e => e.k.length >= 3 && !/^s\d+ e\d+$/.test(e.k) && hay.includes(words(e.t)))
+    .sort((a, b) => b.k.length - a.k.length || b.n - a.n).slice(0, 4).forEach(e => add(e.t));
+  return out.slice(0, 6);
+}
+/* tags to pick from: the bookmarks' own first, then the cards' and files', most used first */
+function markPool(q = '', skip = new Set()) {
+  const onMarks = new Map(allTags(allMarks()).map(e => [e.k, e.n]));
+  return allTags(markTagsAll()).filter(e => !skip.has(e.k) && (!q || e.k.includes(norm(q))) && !/^s\d+ e\d+$/.test(e.k))
+    .sort((a, b) => (onMarks.get(b.k) || 0) - (onMarks.get(a.k) || 0) || b.n - a.n || a.t.localeCompare(b.t)).slice(0, q ? 12 : 8);
+}
+
+/* what another app shared: Android puts the link in url or in text, often with the page's title around it */
+const SHARED = (() => {
+  try {
+    const q = new URLSearchParams(location.search);
+    if (!['url', 'text', 'title'].some(k => q.get(k))) return null;
+    history.replaceState(null, '', location.pathname); // a reload must not share it again
+    const all = ['url', 'text', 'title'].map(k => q.get(k) || '').join(' ');
+    const url = ((all.match(/https?:\/\/[^\s<>"]+/) || [])[0] || '').replace(/[),.;!?'"]+$/, '');
+    const clean = s => String(s || '').replace(url, '').replace(/\s+/g, ' ').replace(/^[\s\-–—|:]+|[\s\-–—|:]+$/g, '').trim();
+    return { url, title: clean(q.get('title')) || clean(q.get('text')) };
+  } catch { return null; }
+})();
+function takeShared() {
+  if (!SHARED) return;
+  if (!SHARED.url) { toast('That share had no link in it'); return; }
+  openMarks(); markSheet({ url: SHARED.url, title: SHARED.title, tags: [] }, true);
+}
+/* a YouTube link shared without its title gets it from YouTube, when online */
+async function fetchTitle(url) {
+  if (!ytOf(url)) return '';
+  try {
+    const r = await fetch('https://www.youtube.com/oembed?format=json&url=' + encodeURIComponent(url));
+    return r.ok ? String((await r.json()).title || '') : '';
+  } catch { return ''; }
+}
+
+/* the sheet that saves a new link or edits one: title, tags (tap to remove), suggestions and your tags (tap to add) */
+function markSheet(d, isNew) {
+  const old = isNew ? allMarks().find(r => r.url === d.url) : BM.recs.get(d.id);
+  const st = { url: d.url || '', title: old && isNew ? old.title : d.title || '', tags: old ? [...old.tags] : [...(d.tags || [])] };
+  let sug = isNew ? suggestTags(st.url, st.title) : [];
+  // the suggestions start out added (the owner's pick C), so saving in a hurry is one tap
+  if (isNew && !old) sug.forEach(t => { if (!st.tags.some(x => norm(x) === norm(t))) st.tags.push(t); });
+  const askUrl = !st.url; // added by hand: the link comes first
+  const dropped = new Set(); // suggestions taken off by hand stay off
+  const draw = sh => {
+    if (!sh || !$('.bon', sh)) return;
+    const q = $('#bmTag', sh).value, onK = new Set(st.tags.map(norm));
+    const offer = q ? [] : sug.filter(t => !onK.has(norm(t))).map(t => ({ t, k: norm(t) }));
+    const pool = markPool(q, new Set([...onK, ...offer.map(e => e.k)]));
+    $('.bsug', sh).innerHTML = offer.map(e => `<button type="button" class="chip" data-act="add" data-tag="${esc(e.t)}"><span>${esc(e.t)}</span></button>`).join('');
+    $('.bsugL', sh).hidden = !offer.length;
+    $('.bon', sh).innerHTML = st.tags.length ? st.tags.map(t => `<button type="button" class="chip on" data-act="rm" data-tag="${esc(t)}"><span>${esc(t)}</span></button>`).join('')
+      : '<span class="sub">None yet</span>';
+    $('.bpool', sh).innerHTML = pool.map(e => `<button type="button" class="chip" data-act="add" data-tag="${esc(e.t)}"><span>${esc(e.t)}</span></button>`).join('');
+    $('.bpoolL', sh).hidden = !pool.length;
+  };
+  const add = t => { t = markSpell(t); if (!st.tags.some(x => norm(x) === norm(t))) st.tags.push(t); const i = $('#bmTag'); if (i) i.value = ''; draw($('#sheet')); };
+  const save = f => {
+    const url = askUrl || !isNew ? $('#bmUrl', f).value.trim() : st.url;
+    const href = /^https?:\/\//i.test(url) ? url : url && /^[\w-]+(\.[\w-]+)+/.test(url) ? 'https://' + url : '';
+    if (!href) { toast('Add the link first'); $('#bmUrl', f).focus(); return; }
+    const typed = $('#bmTag', f).value.trim(); if (typed) add(typed);
+    const now = Date.now(), dup = allMarks().find(r => r.url === href && r !== old);
+    const base = old || dup || { id: 'bm-' + uid(), addedAt: now };
+    const title = $('#bmTitle', f).value.trim();
+    const r = Object.assign({}, base, { url: href, site: siteOf(href), title: title || siteOf(href), tags: [...st.tags], at: now });
+    saveMarks([r]); closeSheet(); refreshMarks(); renderHome();
+    toast(isNew && !old && !dup ? 'Saved to Bookmarks' : 'Saved');
+  };
+  const sub = old && isNew ? `${esc(old.site)} · saved on ${fdate(old.addedAt)}` : esc(siteOf(st.url));
+  sheet(`<form class="bmsheet"><h2>${isNew && !old ? 'Save bookmark' : 'Edit bookmark'}</h2>${st.url ? `<p class="sub">${sub}</p>` : ''}
+    ${askUrl || !isNew ? `<div class="field"><input id="bmUrl" type="url" inputmode="url" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="next" value="${esc(st.url)}" placeholder="Link" aria-label="Link"></div>` : ''}
+    <div class="field"><input id="bmTitle" type="text" maxlength="200" autocomplete="off" enterkeyhint="done" value="${esc(st.title)}" placeholder="Title" aria-label="Title"></div>
+    <p class="slabel">Tags · tap to remove</p><div class="chips bon"></div>
+    <div class="field"><input id="bmTag" type="text" maxlength="60" autocomplete="off" autocapitalize="words" enterkeyhint="done" placeholder="Add a tag" aria-label="Add a tag"></div>
+    <p class="slabel bsugL">Suggested · tap to add</p><div class="chips bsug"></div>
+    <p class="slabel bpoolL">Your tags · tap to add</p><div class="chips bpool"></div>
+    <div class="askbtns"><button type="button" class="textbtn quiet" data-act="cancel">Cancel</button><button type="button" class="textbtn" data-act="save">Save</button></div></form>`, {
+    rm: b => { st.tags = st.tags.filter(x => norm(x) !== norm(b.dataset.tag)); dropped.add(norm(b.dataset.tag)); draw($('#sheet')); },
+    add: b => add(b.dataset.tag),
+    // Enter in the tag field adds the tag; in the other fields it moves on
+    submit: f => { const a = document.activeElement; if (a && a.id === 'bmTag' && a.value.trim()) add(a.value); else if (a && a.id === 'bmUrl') $('#bmTitle', f).focus(); else a && a.blur(); },
+    cancel: () => closeSheet(),
+    save: b => save(b.closest('form'))
+  }, sh => {
+    sh.classList.add('ftagsheet');
+    draw(sh);
+    $('#bmTag', sh).addEventListener('input', () => draw(sh));
+    // a form with several fields and no submit button never submits on Enter: the tag field adds its tag itself
+    $('#bmTag', sh).addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); const t = e.target.value.trim(); if (t) add(t); else e.target.blur(); } });
+    const u = $('#bmUrl', sh);
+    if (u) u.addEventListener('change', () => {
+      if (!isNew) return;
+      st.url = u.value.trim(); sug = suggestTags(/^https?:/i.test(st.url) ? st.url : 'https://' + st.url, $('#bmTitle', sh).value);
+      if (!old) sug.forEach(t => { if (!dropped.has(norm(t)) && !st.tags.some(x => norm(x) === norm(t))) st.tags.push(t); });
+      draw(sh);
+    });
+    if (askUrl) setTimeout(() => u && u.focus(), 360);
+    // a YouTube link shared without a title: fill it in, unless something was typed meanwhile
+    if (isNew && !st.title && st.url) fetchTitle(st.url).then(t => {
+      const i = $('#bmTitle'); if (!t || !i || i.value || !sheetOpen) return;
+      i.value = t; sug = suggestTags(st.url, t);
+      if (!old) sug.forEach(x => { if (!dropped.has(norm(x)) && !st.tags.some(y => norm(y) === norm(x))) st.tags.push(x); });
+      draw($('#sheet'));
+    });
+  });
+}
+
+/* the Bookmarks tile on the home screen, after the decks */
+function marksTile() {
+  if (!BM.loaded) return '';
+  const n = BM.recs.size;
+  return `<div class="tile">
+      <button class="tile-open" data-marks="1" aria-label="Open Bookmarks"><div class="cover">${LOGO_MARKS}</div>
+        <div><div class="tile-name">Bookmarks</div><div class="tile-meta num">${n ? plural(n, 'bookmark') : 'Share a link to save it'}</div></div></button>
+      <button class="more" data-mmenu="1" aria-label="Options for Bookmarks">${ICON.more}</button>
+    </div>`;
+}
+function openMarks() { if (!BM.loaded) return; const top = pages[pages.length - 1]; if (top && top.kind === 'marks') return; newPage({ kind: 'marks' }); }
+const markPages = () => pages.filter(p => p.kind === 'marks');
+function refreshMarks() { markPages().forEach(renderMarks); }
+const marksGrid = () => ls.get('marks.view') === 'grid';
+const markDate = t => new Date(t).toLocaleDateString('en-GB', Object.assign({ day: 'numeric', month: 'short' }, new Date(t).getFullYear() === new Date().getFullYear() ? {} : { year: 'numeric' }));
+const markThumb = (r, cls, extra = '') => { const p = markPic(r);
+  return p ? `<span class="${cls}"><img alt="" src="${esc(p)}" onload="this.classList.add('in')" onerror="this.remove()">${extra}</span>`
+    : cls === 'fpic' ? `<span class="${cls} glyph">${ICON_LINK(30)}<span class="ext">${esc(siteWord(r.site))}</span>${extra}</span>` : `<span class="${cls}">${ICON_LINK(22)}${extra}</span>`; };
+function markRowHTML(r, on) {
+  const t = rankTags(r.tags || []);
+  const tags = t.length ? `<span class="ftags">${t.slice(0, 2).map(x => `<span class="ptag">${esc(x)}</span>`).join('')}${t.length > 2 ? `<span class="fm">+${t.length - 2}</span>` : ''}</span>` : '';
+  return `<button class="frow bmrow${on ? ' on' : ''}" data-bm="${esc(r.id)}">${markThumb(r, 'fic')}<span class="fmain"><span class="fn bmt">${esc(r.title || r.site)}</span><span class="fm num">${esc(r.site)} · ${markDate(r.addedAt)}</span>${tags}</span>${CHECK_BOX}</button>`;
+}
+function markCardHTML(r, on) {
+  const t = rankTags(r.tags || []);
+  return `<button class="fcard bmcard${on ? ' on' : ''}" data-bm="${esc(r.id)}">${markThumb(r, 'fpic', CHECK_BOX)}<span class="fn bmt">${esc(r.title || r.site)}</span>
+    <span class="fm num">${t.length ? t.map(x => `<span class="tg">${esc(x)}</span>`).join(' · ') : esc(r.site)}</span></button>`;
+}
+function markHits(v) {
+  const list = allMarks(); if (!v.search || !norm(v.search.q)) return list;
+  const n = norm(v.search.q);
+  return list.filter(r => norm(r.title).includes(n) || norm(r.url).includes(n) || (r.tags || []).some(t => norm(t).includes(n)));
+}
+function marksTop(v) {
+  if (v.search && !v.sel) return `<div class="searchbar qsearch"><div class="qwrap"><button class="iconbtn" data-p="back" aria-label="Back">${ICON.back}</button>
+    <input id="bq" type="search" value="${esc(v.search.q)}" placeholder="Search bookmarks" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="search" aria-label="Search bookmarks">
+    <button class="iconbtn qclear" data-p="clear" aria-label="Clear the search" ${v.search.q ? '' : 'hidden'}>${ICON.close}</button></div></div>`;
+  const grid = marksGrid();
+  return pageBar(v, `<button class="iconbtn" data-p="bsearch" aria-label="Search bookmarks">${ICON.search}</button>`
+    + `<button class="iconbtn" data-p="view" aria-label="${grid ? 'Show as a list' : 'Show as a grid'}">${grid ? ICON_LIST : ICON_GRID}</button>`
+    + `<button class="iconbtn" data-p="bmore" aria-label="Bookmarks options">${ICON.more}</button>`);
+}
+function marksBody(v) {
+  const list = markHits(v), grid = marksGrid(), on = r => !!(v.sel && v.sel.has(r.id));
+  v.order = list;
+  if (v.sel) [...v.sel].forEach(id => { if (!BM.recs.has(id)) v.sel.delete(id); });
+  const all = BM.recs.size;
+  const sum = v.search ? (norm(v.search.q) ? `${plural(list.length, 'bookmark')} found` : plural(all, 'bookmark')) : all ? `${plural(all, 'bookmark')} · newest first` : 'Nothing saved yet';
+  const empty = !all ? '<p class="empty">In any app, tap Share and pick Agora. The link lands here with suggested tags.</p>'
+    : list.length ? '' : `<p class="empty">No bookmark matches “${esc(v.search.q.trim())}”.</p>`;
+  return `<p class="summary num">${sum}</p>${list.length ? `<div class="${grid ? 'fgrid' : 'flist'}">${list.map(r => (grid ? markCardHTML : markRowHTML)(r, on(r))).join('')}</div>` : ''}${empty}`;
+}
+function renderMarks(v) {
+  const top = v.el.scrollTop; v.title = 'Bookmarks';
+  v.el.innerHTML = `<div class="home${v.sel ? ' selecting' : ''}">${marksTop(v)}<div class="bbody">${marksBody(v)}</div></div>`;
+  const inp = $('#bq', v.el);
+  if (inp) inp.addEventListener('input', () => { v.search.q = inp.value; $('.bbody', v.el).innerHTML = marksBody(v); $('.qclear', v.el).hidden = !inp.value; });
+  v.el.scrollTop = top; markScrolled(v);
+}
+function onMarksClick(e, v) {
+  const b = e.target.closest('button'); if (!b || b.disabled) return;
+  const p = b.dataset.p;
+  if (p === 'back' || p === 'unsel') back();
+  else if (p === 'view') { ls.set('marks.view', marksGrid() ? 'list' : 'grid'); refreshMarks(); }
+  else if (p === 'bmore') marksMenu(v);
+  else if (p === 'selmenu') markSelMenu(v);
+  else if (p === 'all') { toggleAll(v); paintMarkSel(v); }
+  else if (p === 'bsearch') {
+    v.search = { q: '' }; v.el.scrollTop = 0; renderMarks(v); $('#bq', v.el).focus();
+    pushLayer(() => { v.search = null; if (v.el.isConnected) renderMarks(v); });
+  }
+  else if (p === 'clear') { v.search.q = ''; renderMarks(v); $('#bq', v.el).focus(); }
+  else if (b.dataset.bm) {
+    const r = BM.recs.get(b.dataset.bm); if (!r) return;
+    if (v.sel) { v.sel.has(r.id) ? v.sel.delete(r.id) : v.sel.add(r.id); paintMarkSel(v); }
+    else openLink(r);
+  }
+}
+function openLink(r) { const i = $('#bq'); if (i) i.blur(); window.open(r.url, '_blank', 'noopener'); }
+function startMarkSelect(v, id) {
+  const q = $('#bq', v.el); if (q) q.blur();
+  // while searching the bar changes from the search field to the count, so the page is redrawn; otherwise only the boxes and the bar
+  const paint = () => v.search ? renderMarks(v) : paintMarkSel(v);
+  v.sel = new Set(id ? [id] : []); paint();
+  pushLayer(() => { v.sel = null; if (v.el.isConnected) paint(); });
+}
+/* selecting only changes the boxes and the bar */
+function paintMarkSel(v) {
+  const home = $('.home', v.el); if (!home) return;
+  home.classList.toggle('selecting', !!v.sel);
+  $$('[data-bm]', home).forEach(b => b.classList.toggle('on', !!(v.sel && v.sel.has(b.dataset.bm))));
+  const bar = $('.pbar', home); if (bar) bar.outerHTML = marksTop(v);
+  markScrolled(v);
+}
+function marksMenu(v) {
+  const n = BM.recs.size;
+  sheet(`<h2>Bookmarks</h2><p class="sub num">${n ? plural(n, 'bookmark') : 'Share a link from any app and pick Agora'}</p>
+    <div class="list">
+      ${item('add', 'Add a link', '', '', 'Paste or type a link')}
+      ${v && v.order && v.order.length ? item('select', 'Select bookmarks', '', '', 'Or hold a bookmark') : ''}
+    </div>`, {
+    add: () => markSheet({ url: '', title: '', tags: [] }, true),
+    select: () => closeSheet(() => startMarkSelect(v))
+  });
+}
+function markSelMenu(v) {
+  const ids = [...v.sel], n = ids.length, one = n === 1 && BM.recs.get(ids[0]);
+  sheet(`<h2>${plural(n, 'bookmark')} selected</h2>
+    <div class="list">${one ? item('edit', ico('edit', 'Edit')) : ''}${item('tag', ico('tag', 'Add tags'))}${item('share', ico('share', 'Share'))}${item('del', ico('trash', n === 1 ? 'Delete bookmark' : `Delete ${n} bookmarks`), '', 'danger')}</div>`, {
+    edit: () => back(() => markSheet(one, false), 2),
+    tag: () => markTagSheet(v, ids),
+    share: async () => {
+      const rs = ids.map(id => BM.recs.get(id)).filter(Boolean); closeSheet();
+      try { await navigator.share(rs.length === 1 ? { title: rs[0].title, url: rs[0].url } : { text: rs.map(r => `${r.title}\n${r.url}`).join('\n\n') }); }
+      catch (e) { if (!e || e.name !== 'AbortError') toast('Sharing isn’t available here'); }
+    },
+    del: () => sheet(`<h2>Delete ${plural(n, 'bookmark')}?</h2><p class="note">Only the bookmark${n === 1 ? ' is' : 's are'} removed from Agora; the pages stay where they are.</p>
+      <div class="btns"><button class="btn" data-act="keep">Keep</button><button class="btn danger" data-act="yes">Delete</button></div>`, {
+      keep: () => closeSheet(),
+      yes: async () => {
+        await dropMarks(ids);
+        back(() => { refreshMarks(); renderHome(); toast(n === 1 ? 'Deleted the bookmark' : `Deleted ${n} bookmarks`); }, 2);
+      }
+    })
+  });
+}
+/* tags for several bookmarks at once: the ones they have (tap to remove from all), your tags (tap to add to all) */
+function markTagSheet(v, ids) {
+  const recs = () => ids.map(id => BM.recs.get(id)).filter(Boolean), n = ids.length;
+  const set = fn => { const now = Date.now(); saveMarks(recs().map(r => Object.assign({}, r, { tags: fn(r.tags || []), at: now }))); draw($('#sheet')); refreshMarks(); };
+  const draw = sh => {
+    if (!sh || !$('.bon', sh)) return;
+    const rs = recs(), q = $('#bmTag', sh).value, on = allTags(rs).sort((a, b) => b.n - a.n || a.t.localeCompare(b.t)), onK = new Set(on.map(e => e.k));
+    $('.bon', sh).innerHTML = on.length ? on.map(e => `<button type="button" class="chip on" data-act="rm" data-tag="${esc(e.t)}"><span>${esc(e.t)}</span>${rs.length > 1 && e.n < rs.length ? `<i>${e.n} of ${rs.length}</i>` : ''}</button>`).join('') : '<span class="sub">None yet</span>';
+    const pool = markPool(q, onK);
+    $('.bpool', sh).innerHTML = pool.map(e => `<button type="button" class="chip" data-act="add" data-tag="${esc(e.t)}"><span>${esc(e.t)}</span></button>`).join('');
+    $('.bpoolL', sh).hidden = !pool.length;
+  };
+  const add = t => { set(withTag(markSpell(t))); $('#bmTag').value = ''; draw($('#sheet')); };
+  sheet(`<form><h2>Tag ${plural(n, 'bookmark')}</h2>
+    <div class="field"><input id="bmTag" type="text" maxlength="60" autocomplete="off" autocapitalize="words" enterkeyhint="done" placeholder="Add a tag" aria-label="Add a tag"></div>
+    <p class="slabel">On ${n === 1 ? 'this bookmark' : 'these bookmarks'} · tap to remove</p><div class="chips bon"></div>
+    <p class="slabel bpoolL">Your tags · tap to add${n > 1 ? ` to all ${n}` : ''}</p><div class="chips bpool"></div>
+    <div class="askbtns"><button type="button" class="textbtn" data-act="done">Done</button></div></form>`, {
+    rm: b => set(withoutTag(b.dataset.tag)),
+    add: b => add(b.dataset.tag),
+    submit: f => { const t = $('#bmTag', f).value.trim(); if (t) add(t); else closeSheet(); },
+    done: () => closeSheet()
+  }, sh => { sh.classList.add('ftagsheet'); draw(sh); $('#bmTag', sh).addEventListener('input', () => draw(sh)); });
+}
+/* search finds bookmarks by title, link and tags, under the cards and files */
+function findMarks(q, pool) {
+  const n = norm(q); if (!n) return [];
+  return pool.filter(r => norm(r.title).includes(n) || norm(r.url).includes(n)).slice(0, 40);
+}
+function markResults(list) {
+  if (!searchView || !list.length) return '';
+  return `<div class="rhead fhead"><span class="num">${plural(list.length, 'bookmark')}</span></div>`
+    + list.map(r => { const p = markPic(r);
+      return `<button class="res" data-bm="${esc(r.id)}">${p ? `<img alt="" src="${esc(p)}">` : `<span class="gly">${ICON_LINK(22)}</span>`}
+      <span><span class="rw">${esc(r.title || r.site)}</span><span class="rd">${esc(r.site)}</span></span></button>`; }).join('');
+}
+/* backups carry the bookmarks; an import takes one only when it is newer than the phone's, so re-importing changes nothing */
+const exportMarks = () => allMarks().map(r => ({ id: r.id, url: r.url, title: r.title, site: r.site, tags: r.tags || [], addedAt: r.addedAt, at: r.at }));
+async function importMarks(list) {
+  const take = [];
+  for (const x of Array.isArray(list) ? list : []) {
+    if (!x || !x.id || typeof x.url !== 'string' || !/^https?:\/\//i.test(x.url)) continue;
+    const have = BM.recs.get(String(x.id)) || BM.gone.get(String(x.id)), at = +x.at || +x.addedAt || 0;
+    if (have && (have.at || 0) >= at) continue;
+    take.push({ id: String(x.id), url: x.url, title: String(x.title || ''), site: siteOf(x.url), tags: (Array.isArray(x.tags) ? x.tags : []).map(t => String(t).trim()).filter(Boolean),
+      addedAt: +x.addedAt || at || Date.now(), at });
+  }
+  if (take.length) await saveMarks(take);
+  return take.length;
+}
+
 /* ================= start ================= */
 async function seed() {
   const m = await store.get('meta', 'seeded').catch(() => null);
@@ -4554,6 +4926,8 @@ async function seed() {
   loadFiles().then(renderHome, e => console.warn(e));
   loadStudy().then(refreshPages, e => console.warn(e));
   loadHistory().catch(e => console.warn(e));
+  // bookmarks too; a link shared into Agora opens its save sheet once they are in
+  loadMarks().then(() => { renderHome(); takeShared(); }, e => console.warn(e));
   loadNotes().then(renderHome, e => console.warn(e));
   // tiles whose scene changed since their picture was made are redrawn once the app has settled
   setTimeout(refreshTiles, 1500);

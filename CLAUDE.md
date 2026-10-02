@@ -30,7 +30,7 @@ This repo is the app. `main` is published by GitHub Pages at https://hexnix.gith
 - `index.html`: everything. CSS in one `<style>`, all code in one `<script>` that runs as a single closure `(() => { … })()`. About 130 KB: grep for section markers (`/* ===== … ===== */`) and function names, then read only the parts you need.
 - `sw.js`: the service worker that keeps the app working offline.
 - `manifest.webmanifest`, `icon-192.png`, `icon-512.png`, `maskable-512.png`, `apple-touch-icon.png`.
-- `tools/app-test/`: the phone-view test kit (not part of the app; the service worker never loads it). `test_files.py` tests My Files.
+- `tools/app-test/`: the phone-view test kit (not part of the app; the service worker never loads it). `test_files.py` tests My Files, `test_study.py` the Study deck.
 
 **Outside libraries** (loaded only when needed):
 - From cdnjs: JSZip 3.10.1 (backup and import) and pdf.js 3.11.174 (magazine pages; its worker is made from a blob URL fetched through the service worker).
@@ -55,6 +55,8 @@ IndexedDB database `subtext` holds the cards. It keeps the app's old name on pur
 
 IndexedDB database `agora-files` (v24), version 1, holds My Files: store `files` (key `path`, the index, see "My Files") and store `meta` (key `k`: `filesRoot` `{h}` the folder handle, `fileTagsPending` `{v: [entries]}` tags of files not found right now, `moved` the v23 index has been copied over). It loads after the decks are on screen, so My Files can never hold them up.
 
+IndexedDB database `agora-study` (v25), version 1, holds Study progress (see "Study"): store `cards` (key `id`, the card's id): `{id, step, due, first, last, at, done?}` for a card studied at least once, or `{id, front, at}` for a new card brought to the front of the queue; store `meta` (key `k`): `daily` `{v}` new cards a day (default 20), `extra` `{day, n}` more new cards asked for today. Days are whole local days starting at 4 am (`dayNo`). It loads after the decks are on screen.
+
 - `localStorage` only remembers small things under `agora.` keys (older `subtext.` keys are still read), such as `hinted2` (the first-run gesture hint has been seen), `files.view` (`list` / `grid`) and `files.sort`.
 - **Never upgrade `subtext`** (no version bump, no new stores there). A new kind of data gets a new database of its own, opened after the decks are on screen. **Never drop or rewrite the owner's data.** They have over a thousand cards on the phone and only a backup zip.
 - If the cards' database takes more than 2.5 s to open, the home screen says "Opening your cards… If Agora is also open in a Chrome tab, close that tab and Agora will carry on." instead of staying black.
@@ -75,13 +77,13 @@ IndexedDB database `agora-files` (v24), version 1, holds My Files: store `files`
     - `{src, kind: 'youtube', video: {vid, title}}`: a video explaining the word. Shows the thumbnail (the definition image) and title, and opens the video when tapped.
 - Source (swipe down): `ref`, one of `{kind: 'transcript', lines: [{text, hit?}]}`, `{kind: 'video', vid, t, title, thumbId?}`, `{kind: 'article', title, site, url}`.
 - `tags[]`: stored in path order.
-- Review: `review` (marked for review), `streak`, `peeks` (times the meaning was opened), `seen`, `lastSeen`.
+- Review: `peeks` (times the meaning was opened), `seen`, `lastSeen`. The old `review` mark and `streak` stay in the data (and in backups) but the app no longer shows or uses them (v25); Study progress lives in `agora-study`, not on the card.
 - `sceneKind(c)`: `pdf` if `c.pdf`, otherwise `art` if `sceneText`, otherwise `img` (with a caption if `sceneCaption`).
 
 ## Screens
 
 - **Home:** "Your decks", a grid with the newest deck first.
-  - Each tile has a cover (a chosen photo, a chosen card, or the deck's first card) and "N cards · N to review".
+  - Each tile has a cover (a chosen photo, a chosen card, or the deck's first card) and "N cards".
   - The ⋯ menu on a tile: Study, Add cards, Browse cards, Rename, Cover image, Merge into another deck, Delete deck.
   - **Merge into another deck** (`mergeSheet` / `doMerge`, v18) moves every card (tags, review marks and progress kept) into a chosen deck or a new one, then removes the empty deck.
   - **Decks are kinds of content, not sources.** All vocabulary lives in one deck, "Vocabulary"; the source (show, film, channel, book) is in the tags. The owner plans to grow Agora into a place to find anything in their digital life, with more decks over time (a finance tracker, concepts with detailed explanations, pictures and files).
@@ -95,25 +97,41 @@ IndexedDB database `agora-files` (v24), version 1, holds My Files: store `files`
     - A deck with one source, nothing made and nothing hidden, skips page 2.
   - **The top bar** (v21, `pageBar`) on pages 2 and 3: "<", then the title (20px), locked at the top while the page scrolls (a hairline appears under it once scrolled). The count ("7 decks · 22 cards", "2 cards · order of appearance") sits just below and scrolls away. While selecting, the bar becomes "× N selected ⋯".
   - **Names in parts:** a deck made from tags is named "The 48 Laws of Power · Law 1" by default. Its tile reads "The 48 Laws of Power | Law 1"; page 3's bar shows "The 48 Laws of Power" with a small "Law 1" tag beside it (`nameHTML`, `pageBar`). This applies to any name with " · ".
-  - **Page 3, a deck's cards:** a gallery, two across, no other view; the sort icon at the top right, the sort in grey under the title. **Hold a card** to select: small boxes appear on every card (selecting only repaints the boxes and the bar, `paintSel`, so nothing flickers); the bar shows × , "N selected" and ⋯ (`selMenu`): Select all, Add to deck, Move to deck and Remove from deck (in a made deck), Mark for review / Clear review mark, Delete cards.
+  - **Page 3, a deck's cards:** a gallery, two across, no other view; the sort icon at the top right, the sort in grey under the title. **Hold a card** to select: small boxes appear on every card (selecting only repaints the boxes and the bar, `paintSel`, so nothing flickers); the bar shows × , "N selected" and ⋯ (`selMenu`): Select all, Add to deck, Move to deck and Remove from deck (in a made deck), Delete cards.
   - **Sort** (`SORTS`, `storySort`, `sortOf`): "Order of appearance" only when every card (in a source or a made deck) is from one show, film, book or YouTube video (episode then `sceneTime`; a book by `shotAt`, which follows reading order; one video by `ref.t`), otherwise newest first. Also Newest first, Oldest first, A to Z. A choice sticks per deck and source (`localStorage` `sort.<deckId>.<sourceKey>`).
   - The study view opened from page 3 shows exactly that page's cards in that order (`openStudy(d, id, order)`); no review-first.
 - **My Files** (v23): see "My Files" below. Its tile sits after the decks, before "New deck".
 - **Browse cards:** a thumbnail grid. Select lets the owner move or delete cards; tapping a card opens a preview sheet.
 - **Study view**, the heart of the app:
-  - The header band has the word (hold it to rename), ✎ (the edit menu) and tags. The footer band has "i / n" and the blue "Review" mark.
+  - The header band has the word (hold it to rename), ✎ (the edit menu) and tags. The footer band has "i / n".
   - Pages sit in the band between them (`.stage`, sized by `--hd` / `--ft`).
   - Layers: `-1` is the source page, `0` the scene, `1…n` the definitions. `openLevel` / `openRef` / `go` / `beginMove` / `dragMove` / `finishMove` move between them. The incoming page's content starts right at the band edge and follows the finger 1:1; the outgoing page fades.
   - Swipe left or right changes card.
   - **A single tap does nothing.** The old "bare mode" was removed on purpose. Double-tap or pinch zooms the scene; a PDF page zooms and scrolls.
-  - **Hold** the scene or a definition to mark or unmark it for review. Opening the meaning only counts a "peek"; it never marks a card by itself.
-  - ✎ edit menu (`studyEditSheet`): Replace scene/definition image, Add tag, Mark for review, Delete card.
+  - Holding the scene or a definition does nothing (the hold-to-mark-for-review was removed in v25). Opening the meaning only counts a "peek".
+  - ✎ edit menu (`studyEditSheet`): Replace scene/definition image, Add tag, Delete card.
+  - Opened from a deck page, search or the queue, the study view is for looking only: it never moves a card along its Study cycle.
   - Tags show in path order (category, source, episode, chatbot product; `tagRank`). Three are visible and the rest sit behind a **"+N ›"** text link (`‹` when open). Hold a tag to show a × on each plus a **+** pill to add one; tapping a tag opens search for it.
-- **Deck order** (`defaultOrder` / `buildOrder`): a deck that is mostly TV or Movie cards **from one show or film** goes by episode (the `S01 E03` tag), then `sceneTime`. Other decks, including a mixed deck like Vocabulary, show the newest `shotAt` first. Cards marked for review always come first.
+- **Deck order** (`defaultOrder` / `buildOrder`): a deck that is mostly TV or Movie cards **from one show or film** goes by episode (the `S01 E03` tag), then `sceneTime`. Other decks, including a mixed deck like Vocabulary, show the newest `shotAt` first.
 - **Android Back button:** every overlay (sheet, study view, page layer, search) calls `pushLayer(onPop)` and closes through `back()`, so Back undoes one step at a time. New overlays must do the same.
 - **UI helpers:** `sheet(html, actions)` for bottom sheets (with `item(...)` rows), `askSheet({...})` for one line of text (a floating card: grey field with a blue underline, "Cancel" / blue text button), `toast(msg)`, `progressSheet` / `progress`.
 - **The keyboard** doesn't resize the page on Android; `--kb` (from `visualViewport`) lifts every sheet above it.
 - **No pull-to-refresh** (`html{overscroll-behavior:none}`, and pages are always a pixel scrollable): a reload dropped the owner on the home screen.
+
+## Study (v25)
+
+The spaced-repetition deck. It sits inside the deck named **Vocabulary** (`studyDeck`), as a wide banner (the owner's pick 1B) above the sources on its page; Vocabulary always opens on that page.
+- **The cycle:** a card is new, waiting in the queue and never overdue, until the day it is first studied. Then it comes back after 1, 3, 7, 14, 30, 60 and 120 days (`GAPS`), each gap counted from the day it was passed, and then it is done (`done: true`). `step` is how many gaps it has passed.
+- **Each day** (A2): 20 new cards (`SD.daily`, "New cards a day" in the Study ⋯) plus every review that is due, overdue first (`studyToday`). "Learn 10 more new cards" adds 10 for today (`learnMore`, meta `extra`). A day starts at 4 am.
+- **Answers** (3C, one bar under the card, each button saying when the card returns; `showAnswer` / `answer`):
+  - a new card: **Continue** only ("back in 1 day"), which starts its cycle;
+  - a card seen before: **Repeat** (to the end of today's list; nothing saved, its place in the cycle stays), **Tomorrow** (due tomorrow, same step), **Pass** (next step; "done" after the 120-day gap).
+  - The buttons show at once, on every page of the card. In a session a card can't be swiped past (`S.drill`); up and down still open meaning and source. No gesture hint there.
+- **The Study page** (2B, `renderStudyPage`): "12 of 46 left today · 1,032 new in queue", a blue Start / Continue (or "Learn 10 more new cards" when done), then today's cards in study order: done ones dimmed, the rest labelled Review or New. Tapping one starts there; a done one just opens to look at. Tools: the queue icon and ⋯ (New cards in queue, New cards a day, Learn 10 more).
+- **Done for today** (`studyOver`): "N cards · N repeated", "Tomorrow: N cards", "Learn 10 more new cards".
+- **The queue** (4A + 4B, `openQueue` / `renderQueue`): every new card numbered in the order Study brings them, as a list or a grid (toggle, `queue.view`). Default order (`queueOrder`): oldest `shotAt` first, with each show's, film's or book's cards taking their places in story order (episode, then `sceneTime`). Search (words, meanings, tags; typed text suggests tags to pin), Select all, or hold a card to select; **Bring to front** puts them first in their order (a later batch goes ahead of an earlier one, `front`).
+- **Removed in v25:** "Mark for review" (hold, ✎ menu, select menu, Browse cards' card sheet) and every blue "N to review" count; review marks no longer move cards to the front of a deck.
+- **Backups** carry `study: {daily, cards: [records]}`; import takes a record only when it is newer (`at`) than the phone's, so a re-import changes nothing.
 
 ## My Files (v23)
 
@@ -213,6 +231,7 @@ python3 tools/app-test/harness.py . --zips tools/app-test/fixtures/test-library.
 - Always check: the Back behaviour, re-importing the zip reports "already up to date", and there are no JavaScript errors.
 - Merriweather italics look upright in test screenshots (the test font has no true italic); the phone shows real italics.
 - Don't commit `shots/`.
+- **Study:** `python3 tools/app-test/test_study.py . --out shots/study/`. It turns the test library into one 30-card "Vocabulary" deck (made-up copies) and checks the banner, today's 20, the queue order, list/grid, search and Bring to front, Continue / Repeat / Tomorrow / Pass and the gaps, no swiping past a card, Done for today and Learn 10 more, that browsing changes nothing, Back, and the backup.
 - **My Files:** `python3 tools/app-test/test_files.py . --out shots/files/`. The folder picker can't be clicked in a test, so it fills the origin private file system (`navigator.storage.getDirectory()`) with made-up folders and files and hands it to the app as My Files (`window.showDirectoryPicker = async () => dir`). It checks the index, list and grid, the path, tagging (sheet and quick tagging), `.agora/file-tags.json`, search, the viewer, Share (stubbed), a moved file keeping its tags, Back, the backup, re-imports, and updating from older versions: the new version must open the cards while v22 is still open in another tab (the v23 black screen), and must carry over a My Files index v23 saved. Never put real files in the repo.
 - **When the app learns a new card field,** add a card using it to `tools/app-test/make_test_library.py` and rebuild the zip (`python3 tools/app-test/make_test_library.py`).
 
@@ -238,5 +257,7 @@ python3 tools/app-test/harness.py . --zips tools/app-test/fixtures/test-library.
 
 - **v23:** My Files: a tile after the decks opens the phone's My Files folder (list or grid, path, sort); tag files one at a time, many at once, or with Quick tagging; search finds files and folders under the cards; images, PDFs, text, video and audio open inside Agora, and Share / Open with… sends any file to another app. Database version 2 adds the `files` store; file tags are also kept in `.agora/file-tags.json` and in backups. Backups keep a video definition's `src`. (Opened to a black screen when an older copy was open in a Chrome tab: the database upgrade waited for it.)
 - **v24:** fix for the v23 black screen: the cards' database is opened as it is and never upgraded; My Files moves to its own database `agora-files` (a v23 index is copied over) and loads after the decks show; a plain message replaces a black screen if the cards ever take long to open.
+
+- **v25:** Study: a Study deck inside Vocabulary with 20 new cards a day plus reviews on a 1-3-7-14-30-60-120 day cycle; Continue, then Repeat / Tomorrow / Pass; a queue of new cards (list or grid, search, Bring to front). Progress in its own database `agora-study` and in backups. "Mark for review" and the "to review" counts are gone.
 
 Add a line here with every version you ship.

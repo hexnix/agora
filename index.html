@@ -281,6 +281,9 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 .chrome{position:absolute;left:0;right:0;top:0;z-index:3;display:flex;flex-wrap:wrap;row-gap:0;align-items:center;justify-content:space-between;gap:10px;
   padding:calc(env(safe-area-inset-top,0px) + 8px) 10px 8px}
 .chrome > .iconbtn{margin-right:2px}
+/* a single tap hides the header and footer, and the next brings them back; the pages keep their place between the bands */
+.chrome{transition:opacity .25s var(--ease)}
+.study.bare .chrome,.study.bare .foot{opacity:0;pointer-events:none}
 .foot{position:absolute;left:0;right:0;bottom:0;z-index:3;display:flex;align-items:center;gap:14px;height:var(--ft);
   padding:0 20px env(safe-area-inset-bottom,0px);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;transition:opacity .25s;pointer-events:none}
 /* Study: Continue, or Repeat / Tomorrow / Pass, in one bar under the card, with when the card comes back */
@@ -1868,11 +1871,12 @@ function fling(el, v, vx = 0) {
 
 /* gestures: every page follows the finger; release decides by distance or speed, like a photo gallery */
 const pts = new Map();
-let g = null, pinch = null, holdUntilUp = false, lastTap = null, holdTimer = 0;
+let g = null, pinch = null, holdUntilUp = false, lastTap = null, holdTimer = 0, tapTimer = 0;
 const tagHold = { t: 0, x: 0, y: 0, fired: false };
 function cancelHold() { clearTimeout(holdTimer); holdTimer = 0; }
 function onDown(e) {
-  if (S && !e.target.closest('.tags') && $('.tags', S.el).classList.contains('editing')) endTagEdit();
+  if (S) S.skipTap = false;
+  if (S && !e.target.closest('.tags') && $('.tags', S.el).classList.contains('editing')) { endTagEdit(); S.skipTap = true; } // that tap only ends editing
   if (modalOpen) { const w = S && $('.wordedit', S.el); if (w && e.target !== w) w.blur(); return; }
   if (!S || S.over || e.target.closest('button') || (e.pointerType === 'mouse' && e.button !== 0)) return;
   pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -2005,8 +2009,9 @@ function handleTap(x, y) {
     const a = document.elementFromPoint(x, y), h = a && a.closest('[data-href]');
     if (h && h.dataset.href) { try { window.open(h.dataset.href, '_blank', 'noopener'); } catch {} return; }
   }
+  if (S.skipTap) { S.skipTap = false; lastTap = null; return; }
   if (lastTap && now - lastTap.t < 320 && Math.hypot(x - lastTap.x, y - lastTap.y) < 40) {
-    lastTap = null;
+    lastTap = null; clearTimeout(tapTimer); // a double tap zooms, so the first tap doesn't hide the bands
     if (!canZoom()) return;
     if (S.pdf) { const f = framePt({ x, y }); pdfZoomTo(S.pdf, zoomed() ? 1 : 2.6, f.x, f.y); }
     else if (zoomed()) resetZ(true);
@@ -2014,6 +2019,10 @@ function handleTap(x, y) {
     return;
   }
   lastTap = { t: now, x, y };
+  // a single tap shows or hides the header and footer, once it's clear a second tap isn't coming
+  clearTimeout(tapTimer);
+  const el = S.el;
+  tapTimer = setTimeout(() => { if (S && S.el === el && !modalOpen && !sheetOpen) el.classList.toggle('bare'); }, 320);
 }
 addEventListener('resize', () => { if (S) { fitBands(); refitScene(); } });
 addEventListener('keydown', e => {

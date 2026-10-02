@@ -25,7 +25,10 @@ Use from your own script:
         print(ph.errors)
 
 Inside the page, `T` exposes: T.cards, T.decks, T.S (study state), T.openStudy(deck, cardId),
-T.layer(L), T.extent(L), T.back().  Fonts: Plex Mono is exact; the Merriweather test font has no true italic, so italic text shows upright
+T.layer(L), T.extent(L), T.back(); for My Files: T.FX, T.fidx, T.FV, T.pages, T.connectFiles, T.rescan, T.openFolder,
+T.openViewer, T.openSearch, T.setFileTags, T.saveTagsFile, T.store, T.blobURL. The phone's folder picker can't be clicked
+in a test: fill the origin private file system (navigator.storage.getDirectory()) with made-up files and hand it to the
+app as "My Files" with  window.showDirectoryPicker = async () => dir; await T.connectFiles(true)  (see test_files.py).  Fonts: Plex Mono is exact; the Merriweather test font has no true italic, so italic text shows upright
 in test screenshots (the phone shows real italics).
 Setup once per workspace:
     pip install playwright --break-system-packages   (Chromium is usually preinstalled)
@@ -86,7 +89,10 @@ class Phone:
         async def page(r):  # expose the app's internals as window.T (the app is one closure)
             html = open(os.path.join(self.app_dir, 'index.html'), encoding='utf-8').read()
             i = html.rindex('})();')
-            html = html[:i] + "window.T={get cards(){return cards},get decks(){return decks},openStudy,get S(){return S},layer,extent,back};\n" + html[i:]
+            html = html[:i] + ("window.T={get cards(){return cards},get decks(){return decks},openStudy,get S(){return S},layer,extent,back,"
+                               # My Files: the index, the folder and its screens
+                               # (getters, so an older index.html without these still loads)
+                               "get FX(){return FX},get fidx(){return fidx},get FV(){return FV},get pages(){return pages},get connectFiles(){return connectFiles},get rescan(){return rescan},get openFolder(){return openFolder},get openViewer(){return openViewer},get openSearch(){return openSearch},get setFileTags(){return setFileTags},get saveTagsFile(){return saveTagsFile},get store(){return store},get blobURL(){return blobURL}};\n") + html[i:]
             await r.fulfill(body=html, content_type='text/html')
         await ctx.route(self.base, page)
         await ctx.route(self.base + 'index.html', page)

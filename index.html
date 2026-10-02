@@ -340,6 +340,10 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 /* the result count, with Create deck beside it */
 .rhead{display:flex;align-items:center;justify-content:space-between;color:var(--muted);font-size:14px;margin:4px 0 2px}
 .rhead .textbtn{margin-right:-6px}
+.fhead:not(:first-child){margin-top:26px}
+.res .gly{width:76px;aspect-ratio:16/10;border-radius:6px;background:var(--surface);display:grid;place-items:center;color:var(--muted)}
+.res img.fth{object-position:top}
+.ftagsheet .field input{border:0;background:var(--raised);caret-color:var(--gold);box-shadow:inset 0 -2px 0 var(--gold)}
 .sugg{display:flex;flex-wrap:wrap;gap:8px;padding:4px 0 14px}
 .sugg button{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px;border-radius:999px;border:1px solid rgba(0,134,255,.55);color:#4DA8FF;font-size:13.5px}
 .sugg button i{font-style:normal;color:var(--muted);font-size:12px}
@@ -377,6 +381,87 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 .item .lbl:has(.ico) .desc{padding-left:38px}
 .toast::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 4px rgba(0,134,255,.18);flex:none}
 .toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* ---------- My Files ---------- */
+/* the home tile: the newest pictures as a mosaic, or a folder */
+.mosaic{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:2px;width:100%;height:100%}
+.cover .fglyph{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted)}
+.fsoff{color:var(--muted);font-size:13.5px;margin-top:30px;max-width:40ch}
+/* the path above the count: My Files › Documents › Bank */
+.crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:0 2px;margin:4px 0 0;color:var(--muted);font-size:13.5px}
+.crumbs button{padding:4px 2px;color:var(--muted)}
+.crumbs b{font-weight:400;color:var(--text);padding:4px 2px}
+.crumbs i{font-style:normal;color:var(--faint);padding:0 2px}
+.crumbs + .summary{margin-top:0}
+/* the one quiet line that asks for the folder */
+.connect{display:flex;align-items:center;gap:10px;margin-top:10px;padding:6px 0;font-size:14.5px;text-align:left}
+.connect .dot{flex:none}
+.connect b{font-weight:500;color:var(--blue-text)}
+.connect span{color:var(--muted);font-size:13px}
+/* list view: a small picture, the name, kind · size · date, the tags */
+.flist{display:flex;flex-direction:column;margin-top:14px;user-select:none;-webkit-user-select:none}
+.frow{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:14px;align-items:center;width:100%;padding:10px 0;border-top:1px solid var(--line);-webkit-touch-callout:none}
+.frow:first-child{border-top:0}
+.frow:active{background:rgba(255,255,255,.03)}
+.fic{width:56px;height:56px;border-radius:8px;background:var(--surface);display:grid;place-items:center;overflow:hidden;color:var(--muted);position:relative}
+.fic img,.fpic img{width:100%;height:100%;object-fit:cover;object-position:top;display:block;opacity:0;transition:opacity .25s;pointer-events:none}
+.fic img.in,.fpic img.in{opacity:1}
+.fic .ext,.fpic .ext{position:absolute;left:0;right:0;bottom:7px;text-align:center;font-size:9px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+.fic.glyph svg{margin-top:-9px}
+.fmain{display:flex;flex-direction:column;min-width:0}
+.fn{font-size:15px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fm{font-size:12.5px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ftags{display:flex;gap:6px;margin-top:6px;overflow:hidden;align-items:center}
+.ftags .ptag{flex:none}
+.ftags .fm{margin:0}
+.frow .go{color:var(--faint)}
+.fbox{display:none;width:22px;height:22px;border-radius:6px;border:1.5px solid rgba(255,255,255,.85);background:rgba(0,0,0,.35);place-items:center;color:transparent}
+.selecting .fbox,.tagging .fbox{display:grid}
+.selecting .on .fbox,.tagging .on .fbox{background:var(--gold);border-color:var(--gold);color:#fff}
+.selecting .frow .go,.tagging .frow .go{visibility:hidden}
+/* grid view: two across, like a deck's cards */
+.fgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 12px;margin-top:20px;user-select:none;-webkit-user-select:none}
+@media (min-width:640px){.fgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.fcard{display:flex;flex-direction:column;gap:8px;min-width:0;text-align:left;-webkit-touch-callout:none}
+.fpic{aspect-ratio:16/10;border-radius:10px;overflow:hidden;background:var(--surface);display:grid;place-items:center;color:var(--muted);position:relative}
+.fpic .ext{bottom:10px;font-size:10px}
+.fpic.glyph svg{margin-top:-10px}
+.fpic .fbox{position:absolute;top:8px;right:8px}
+.fcard .fn{font-size:14px;line-height:1.25}
+.fcard .fm{margin-top:-4px;font-size:12px}
+.fcard .fm .tg{color:var(--blue-text)}
+/* tag pills in sheets: filled when the tag is on, outlined to add */
+.slabel{color:var(--muted);font-size:13px;margin:20px 0 0}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.chip{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px;border-radius:999px;border:1px solid rgba(0,134,255,.55);color:var(--blue-text);font-size:13.5px;white-space:nowrap;max-width:100%}
+.chip.on{background:rgba(0,134,255,.2);border-color:transparent;color:#8CC6FF}
+.chip:active{background:rgba(0,134,255,.12)}
+.chip i{font-style:normal;color:var(--muted);font-size:12px}
+.chip span{overflow:hidden;text-overflow:ellipsis}
+.pbar .chip{flex:none;margin-left:2px}
+/* opening a file: name and tags on top, the file in the middle, position and Share at the bottom */
+.fview{position:fixed;inset:0;z-index:40;background:#000;overflow:hidden;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;animation:fadein .25s ease;--vh:104px;--vf:calc(env(safe-area-inset-bottom,0px) + 56px)}
+.fview .chrome .vt{flex:1;min-width:0;padding:8px 6px;font-size:18px;font-weight:500;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vstage{position:absolute;left:0;right:0;top:var(--vh);bottom:var(--vf);overflow:hidden;touch-action:none}
+.vslide{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;will-change:transform,opacity;transition:transform .3s var(--ease),opacity .3s var(--ease)}
+.vslide.drag{transition:none}
+.vslide img.full{max-width:100%;max-height:100%;object-fit:contain;display:block;transform-origin:50% 50%;will-change:transform;pointer-events:none;-webkit-user-drag:none}
+.vslide video{max-width:100%;max-height:100%}
+.vslide audio{width:calc(100% - 40px)}
+.vtext{position:absolute;inset:0;overflow:auto;padding:4px 20px 20px;touch-action:pan-y;overscroll-behavior:contain}
+.vtext pre{margin:0;font:300 14px/1.65 var(--sans);color:#E4E4E4;white-space:pre-wrap;overflow-wrap:anywhere;user-select:text;-webkit-user-select:text}
+.vpdf{position:absolute;inset:0;overflow:auto;overscroll-behavior:contain;touch-action:pan-y}
+.vpdf.zoomed{touch-action:pan-x pan-y}
+.vpages{transform-origin:0 0;padding:4px 0 12px}
+.vpage{position:relative;background:#f4f4f2;margin:0 auto}
+.vpage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.vother{display:flex;flex-direction:column;align-items:center;gap:6px;padding:0 30px;text-align:center;color:var(--muted)}
+.vother .fn{color:var(--text);font-size:17px;white-space:normal;overflow-wrap:anywhere;margin-top:14px}
+.vother .btn{margin-top:22px;flex:none}
+.vwait{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);font-size:12px;color:var(--muted);background:rgba(0,0,0,.7);padding:5px 12px;border-radius:999px}
+.vslide .connect{position:absolute;left:20px;right:20px;bottom:6px;justify-content:center;background:rgba(0,0,0,.75);border-radius:14px;padding:10px}
+.vfoot{position:absolute;left:0;right:0;bottom:0;height:var(--vf);display:flex;align-items:center;gap:14px;padding:0 10px env(safe-area-inset-bottom,0px) 20px;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.vfoot .textbtn{margin-left:auto;display:inline-flex;align-items:center;gap:8px;font-size:15px}
 
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important}}
 </style>
@@ -426,8 +511,8 @@ const ICON = {
 const ico = (name, label) => `<span class="ico">${ICON[name]}<span>${label}</span></span>`;
 
 /* ================= storage ================= */
-const STORES = ['decks', 'cards', 'blobs', 'meta'];
-const KEYS = { decks: 'id', cards: 'id', blobs: 'id', meta: 'k' };
+const STORES = ['decks', 'cards', 'blobs', 'meta', 'files'];
+const KEYS = { decks: 'id', cards: 'id', blobs: 'id', meta: 'k', files: 'path' };
 function idbStore(db) {
   const done = t => new Promise((res, rej) => { t.oncomplete = () => res(); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error); });
   const req = r => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
@@ -450,15 +535,19 @@ function memStore() {
 function openDB() {
   return new Promise((res, rej) => {
     // the database keeps its first name from when the app was called Subtext: renaming it would leave every saved card behind
-    const r = indexedDB.open('subtext', 1);
-    r.onupgradeneeded = () => {
+    // version 2 (v23) only adds the "files" store (the index of My Files); every older store and record stays as it is
+    const r = indexedDB.open('subtext', 2);
+    r.onupgradeneeded = e => {
       const d = r.result;
-      d.createObjectStore('decks', { keyPath: 'id' });
-      d.createObjectStore('cards', { keyPath: 'id' }).createIndex('deckId', 'deckId');
-      d.createObjectStore('blobs', { keyPath: 'id' });
-      d.createObjectStore('meta', { keyPath: 'k' });
+      if (e.oldVersion < 1) {
+        d.createObjectStore('decks', { keyPath: 'id' });
+        d.createObjectStore('cards', { keyPath: 'id' }).createIndex('deckId', 'deckId');
+        d.createObjectStore('blobs', { keyPath: 'id' });
+        d.createObjectStore('meta', { keyPath: 'k' });
+      }
+      if (!d.objectStoreNames.contains('files')) d.createObjectStore('files', { keyPath: 'path' });
     };
-    r.onsuccess = () => res(r.result);
+    r.onsuccess = () => { const db = r.result; db.onversionchange = () => db.close(); res(db); };
     r.onerror = () => rej(r.error);
   });
 }
@@ -567,6 +656,9 @@ addEventListener('popstate', e => {
 });
 try { if (history.state && (history.state.agora || history.state.subtext)) history.replaceState(null, ''); } catch {}
 
+/* the page underneath stops scrolling while anything covers it */
+function unlockIdle() { if (!pages.length && !cardsView && !searchView && !S && !FV) document.body.classList.remove('locked'); }
+
 /* ================= toast ================= */
 let toastTimer;
 function toast(msg) {
@@ -635,8 +727,9 @@ function renderHome() {
       <span class="tools"><button class="iconbtn" id="searchBtn" aria-label="Search words">${ICON.search}</button><button class="iconbtn" id="appMenu" aria-label="Backup and import">${ICON.more}</button></span></div>
     <p class="summary">${list.length ? `${plural(list.length, 'deck')} · ${plural(total, 'card')}${due ? ` · <span class="due">${due} to review</span>` : ''}` : 'Make a deck for each film or show you watch.'}</p>
     <div class="grid">${tiles}
+      ${filesTile()}
       <div class="tile new"><button class="tile-open" data-new="1"><div class="cover">${ICON.plus}</div><div class="tile-name">New deck</div></button></div>
-    </div>`;
+    </div>${fsOffLine()}`;
   $$('img[data-blob]', el).forEach(img => {
     thumbIds.add(img.dataset.blob);
     blobURL(img.dataset.blob).then(u => { if (!u) return; img.onload = () => img.classList.add('in'); img.src = u; });
@@ -648,6 +741,8 @@ $('#home').addEventListener('click', e => {
   if (t.dataset.open) openDeck(deck(t.dataset.open));
   else if (t.dataset.menu) deckMenu(deck(t.dataset.menu));
   else if (t.dataset.new) nameSheet(null);
+  else if (t.dataset.files) openFolder('');
+  else if (t.dataset.fmenu) filesMenu(null);
   else if (t.id === 'appMenu') appMenu();
   else if (t.id === 'searchBtn') openSearch();
 });
@@ -813,7 +908,7 @@ function openCards(d) {
   cardsView = { deck: d, el, select: null };
   renderCards();
   el.addEventListener('click', onCardsClick);
-  pushLayer(() => { el.remove(); cardsView = null; document.body.classList.remove('locked'); renderHome(); });
+  pushLayer(() => { el.remove(); cardsView = null; unlockIdle(); renderHome(); });
 }
 function refreshCards() { if (cardsView) renderCards(); }
 function renderCards() {
@@ -985,9 +1080,10 @@ function newPage(v) {
   el.addEventListener('contextmenu', e => e.preventDefault());
   el.addEventListener('scroll', () => markScrolled(v), { passive: true });
   if (v.kind === 'cards') holdToSelect(v);
+  else if (v.kind === 'files') holdToSelect(v, '[data-fp]', b => startFileSelect(v, b.dataset.fp));
   pushLayer(() => {
     el.remove(); pages = pages.filter(p => p !== v);
-    if (!pages.length && !cardsView && !searchView && !S) document.body.classList.remove('locked');
+    unlockIdle();
     refreshPages(); renderHome();
   });
   renderPage(v);
@@ -1016,6 +1112,7 @@ function pageBar(v, tools = '') {
     ${tools ? `<span class="tools">${tools}</span>` : ''}</div>`;
 }
 function renderPage(v) {
+  if (v.kind === 'files') { renderFiles(v); return; }
   const d = v.deck, top = v.el.scrollTop;
   if (v.kind === 'sources') {
     const gs = sourcesOf(d), total = deckCards(d.id).length, due = dueCount(d.id);
@@ -1058,13 +1155,13 @@ function paintSel(v) {
   markScrolled(v);
 }
 /* hold a card to start selecting; while selecting, a tap adds or removes a card, and Back stops */
-function holdToSelect(v) {
+function holdToSelect(v, pick = '.gcard', start = b => startSelect(v, b.dataset.card)) {
   const h = { t: 0, x: 0, y: 0, fired: false };
   v.el.addEventListener('pointerdown', e => {
-    const b = e.target.closest('.gcard'); h.fired = false; clearTimeout(h.t);
-    if (!b || v.sel) return;
+    const b = e.target.closest(pick); h.fired = false; clearTimeout(h.t);
+    if (!b || v.sel || FX.mode) return;
     h.x = e.clientX; h.y = e.clientY;
-    h.t = setTimeout(() => { h.fired = true; buzz(); startSelect(v, b.dataset.card); }, 480);
+    h.t = setTimeout(() => { h.fired = true; buzz(); start(b); }, 480);
   });
   v.el.addEventListener('pointermove', e => { if (Math.hypot(e.clientX - h.x, e.clientY - h.y) > 8) clearTimeout(h.t); });
   ['pointerup', 'pointercancel'].forEach(k => v.el.addEventListener(k, () => clearTimeout(h.t)));
@@ -1077,6 +1174,7 @@ function startSelect(v, id) {
   pushLayer(() => { v.sel = null; if (v.el.isConnected) paintSel(v); });
 }
 function onPageClick(e, v) {
+  if (v.kind === 'files') { onFilesClick(e, v); return; }
   const b = e.target.closest('button'); if (!b || b.disabled) return;
   const p = b.dataset.p;
   if (p === 'back' || p === 'unsel') back();
@@ -1301,7 +1399,7 @@ function closeStudy() {
   document.body.classList.remove('in-study');
   el.style.transition = 'opacity .2s'; el.style.opacity = '0';
   setTimeout(() => { el.remove(); releaseFull(); }, 220);
-  if (!searchView && !cardsView && !pages.length) document.body.classList.remove('locked');
+  unlockIdle();
   renderHome(); refreshCards(); refreshPages();
   // back on a deck page: keep the last card you looked at in view
   const top = pages[pages.length - 1], b = top && seen && $(`[data-card="${seen.id}"]`, top.el);
@@ -2097,11 +2195,12 @@ function allTags(pool) { // distinct tags (any case) with how many cards in pool
   return [...m.values()];
 }
 const hasTags = (c, pins) => { const mine = tagsOf(c).map(norm); return pins.every(p => mine.includes(norm(p))); };
+const searchHint = () => fidx.size ? 'Search words, meanings and files' : 'Search words and meanings';
 function openSearch(pins) {
   if (searchView) { if (pins) { searchView.pins = [...pins]; searchView.draw(); } return; }
   const el = document.createElement('div'); el.className = 'page search';
   el.innerHTML = `<div class="searchbar"><div class="qwrap"><button class="iconbtn" data-q="back" aria-label="Back">${ICON.back}</button>
-      <div class="pins"></div><input id="q" type="search" placeholder="Search words and meanings" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="search" aria-label="Search your words">
+      <div class="pins"></div><input id="q" type="search" placeholder="${searchHint()}" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="search" aria-label="Search your words">
       <button class="iconbtn qclear" data-q="clear" aria-label="Clear the search" hidden>${ICON.close}</button></div></div>
     <div class="home"><div class="sugg" id="sugg" hidden></div><div class="results" id="results"></div></div>`;
   document.body.appendChild(el); document.body.classList.add('locked');
@@ -2110,7 +2209,7 @@ function openSearch(pins) {
   searchView.draw = () => {
     const P = searchView.pins;
     $('.pins', el).innerHTML = P.map((t, k) => `<button class="pin" data-unpin="${k}" aria-label="Remove tag ${esc(t)}"><b>${esc(t)}</b></button>`).join('');
-    input.placeholder = P.length ? '' : 'Search words and meanings'; // with tags in the bar, the cursor is enough
+    input.placeholder = P.length ? '' : searchHint(); // with tags in the bar, the cursor is enough
     const pb = $('.pins', el); pb.scrollLeft = pb.scrollWidth;
     renderResults(input.value);
   };
@@ -2127,17 +2226,23 @@ function openSearch(pins) {
     else if (b.dataset.unpin != null) { searchView.pins.splice(+b.dataset.unpin, 1); searchView.draw(); }
     else if (b.dataset.q === 'clear') { searchView.pins = []; input.value = ''; searchView.draw(); input.focus(); }
     else if (b.dataset.q === 'mkdeck') { input.blur(); deckFromSearch(); }
+    else if (b.dataset.fopen != null) {
+      const r = fidx.get(b.dataset.fopen); if (!r) return; input.blur();
+      if (r.kind === 'dir') openFolder(r.path); else openViewer((searchView.fhits || []).filter(x => x.kind === 'file'), r.path);
+    }
     else if (b.dataset.card) { const c = cards.find(x => x.id === b.dataset.card); if (c) { input.blur(); openStudy(decks.find(d => d.id === c.deckId), c.id); } }
   });
-  pushLayer(() => { el.remove(); searchView = null; if (!S && !pages.length && !cardsView) document.body.classList.remove('locked'); });
+  pushLayer(() => { el.remove(); searchView = null; unlockIdle(); });
   searchView.draw();
   if (!searchView.pins.length) input.focus();
 }
 function renderResults(q) {
   const box = $('#results'), sg = $('#sugg'); if (!box || !searchView) return;
   const P = searchView.pins, pool = P.length ? cards.filter(c => hasTags(c, P)) : cards, n = norm(q);
+  // files and folders from My Files sit below the cards, in their own section
+  const fpool = P.length ? allFiles().filter(r => hasTags(r, P)) : [...fidx.values()];
   // tags that match what is typed, shown above the results
-  const tg = n ? allTags(pool).filter(x => !P.some(p => norm(p) === x.k) && x.k.includes(n))
+  const tg = n ? allTags([...pool, ...fpool]).filter(x => !P.some(p => norm(p) === x.k) && x.k.includes(n))
     .sort((a, b) => (b.k.startsWith(n) - a.k.startsWith(n)) || b.n - a.n || a.k.localeCompare(b.k)).slice(0, 8) : [];
   sg.hidden = !tg.length;
   sg.innerHTML = tg.map(x => { const i = x.k.indexOf(n);
@@ -2148,7 +2253,7 @@ function renderResults(q) {
       <span class="rd">${esc(d ? d.name : '')}${c.review ? ' · <span class="due">review</span>' : ''}</span>${snip ? `<span class="rd">${snip}</span>` : ''}</span></button>`; };
   const pics = () => $$('img[data-blob]', box).forEach(img => { thumbIds.add(img.dataset.blob); blobURL(img.dataset.blob).then(u => { if (u) img.src = u; }); });
   $('.qclear', searchView.el).hidden = !(P.length || q);
-  searchView.hits = [];
+  searchView.hits = []; searchView.fhits = [];
   // what was found can become a deck of its own
   const mk = list => {
     searchView.hits = list;
@@ -2156,22 +2261,24 @@ function renderResults(q) {
   };
   if (!n) {
     if (P.length) {
-      const list = [...pool].sort((a, b) => norm(a.word || '~').localeCompare(norm(b.word || '~')));
-      box.innerHTML = list.length ? `${mk(list)}<div class="results">${list.map(c => row(c, c.word ? esc(c.word) : '<span class="rd">No word yet</span>')).join('')}</div>`
-        : `<p class="note">No card has all of these tags.</p>`;
+      const list = [...pool].sort((a, b) => norm(a.word || '~').localeCompare(norm(b.word || '~'))), fl = [...fpool].sort(nameCmp);
+      box.innerHTML = list.length || fl.length ? (list.length ? `${mk(list)}<div class="results">${list.map(c => row(c, c.word ? esc(c.word) : '<span class="rd">No word yet</span>')).join('')}</div>` : '')
+        + fileResults(fl, r => esc(r.name))
+        : `<p class="note">No card${fidx.size ? ' or file' : ''} has all of these tags.</p>`;
       pics(); return;
     }
-    const named = cards.filter(c => c.word).length, unnamed = cards.length - named;
-    box.innerHTML = `<p class="note">${plural(named, 'word')} saved.${unnamed ? ` ${plural(unnamed, 'card')} ${unnamed === 1 ? 'has' : 'have'} no word yet, so search can’t find ${unnamed === 1 ? 'it' : 'them'}. Add words from a deck’s Browse cards.` : ''}</p>`;
+    const named = cards.filter(c => c.word).length, unnamed = cards.length - named, nf = allFiles().length;
+    box.innerHTML = `<p class="note">${plural(named, 'word')} saved${nf ? `, and ${plural(nf, 'file')} in My Files` : ''}.${unnamed ? ` ${plural(unnamed, 'card')} ${unnamed === 1 ? 'has' : 'have'} no word yet, so search can’t find ${unnamed === 1 ? 'it' : 'them'}. Add words from a deck’s Browse cards.` : ''}</p>`;
     return;
   }
-  const hits = findWords(q, pool);
-  if (!hits.length) { box.innerHTML = tg.length ? '' : `<p class="note">Nothing matches “${esc(q.trim())}”${P.length ? ' in these cards' : ' in your words or definitions'}.</p>`; return; }
+  const hits = findWords(q, pool), fh = findFiles(q, fpool);
+  if (!hits.length && !fh.length) { box.innerHTML = tg.length ? '' : `<p class="note">Nothing matches “${esc(q.trim())}”${P.length ? ' with these tags' : fidx.size ? ' in your words, definitions or files' : ' in your words or definitions'}.</p>`; return; }
   const k = n.length;
-  box.innerHTML = mk(hits.map(h => h.c)) + hits.map(({ c, i, snip }) => {
+  const markName = (w, i) => i < 0 ? esc(w) : `${esc(w.slice(0, i))}<mark>${esc(w.slice(i, i + k))}</mark>${esc(w.slice(i + k))}`;
+  box.innerHTML = (hits.length ? mk(hits.map(h => h.c)) + hits.map(({ c, i, snip }) => {
     const w = c.word || '';
-    return row(c, i < 0 ? (w ? esc(w) : '<span class="rd">No word yet</span>') : `${esc(w.slice(0, i))}<mark>${esc(w.slice(i, i + k))}</mark>${esc(w.slice(i + k))}`, snip);
-  }).join('');
+    return row(c, i < 0 ? (w ? esc(w) : '<span class="rd">No word yet</span>') : markName(w, i), snip);
+  }).join('') : '') + fileResults(fh.map(h => h.r), r => markName(r.name, norm(r.name).indexOf(n)));
   pics();
 }
 
@@ -2241,7 +2348,7 @@ async function slimSheet() {
   });
 }
 async function exportAll() {
-  if (!cards.length) { toast('Nothing to back up yet'); return; }
+  if (!cards.length && !fileTagList().length) { toast('Nothing to back up yet'); return; }
   progressSheet('Preparing backup', 'Loading…');
   let JSZip; try { JSZip = await loadZip(); } catch { closeSheet(); toast('Backup needs an internet connection the first time'); return; }
   const zip = new JSZip(), man = { app: 'agora', version: 1, exportedAt: new Date().toISOString(), decks: [] };
@@ -2258,7 +2365,8 @@ async function exportAll() {
       const f = await store.get('blobs', c.frameId);
       const ids = defIdsOf(c);
       const dfs = await Promise.all(ids.map(id => id ? store.get('blobs', id) : null));
-      const texts = ids.map((_, i) => textOf(c, i) || (vidOf(c, i) ? { kind: 'youtube', video: vidOf(c, i) } : null));
+      // a video definition keeps its src, so re-importing the backup finds the card unchanged
+      const texts = ids.map((_, i) => textOf(c, i) || (vidOf(c, i) ? { src: c.defText[i].src || '', kind: 'youtube', video: vidOf(c, i) } : null));
       if (!f || !ids.some((_, i) => dfs[i] || texts[i])) continue;
       const fp = `images/${c.id}-scene.${EXT[f.blob.type] || 'jpg'}`;
       const dps = dfs.map((df, i) => df ? `images/${c.id}-definition${i ? '-' + (i + 1) : ''}.${EXT[df.blob.type] || 'jpg'}` : null);
@@ -2288,6 +2396,8 @@ async function exportAll() {
     }
     man.decks.push(out);
   }
+  // the tags of files in My Files (not the files themselves); optional, so older versions simply ignore it
+  if (fileTagList().length) man.files = { tags: fileTagList() };
   zip.file('manifest.json', JSON.stringify(man, null, 2));
   const blob = await zip.generateAsync({ type: 'blob', compression: 'STORE' }, m => progress('Packing…', 0.6 + m.percent / 250));
   const name = `agora-backup-${new Date().toISOString().slice(0, 10)}.zip`;
@@ -2299,7 +2409,7 @@ async function exportAll() {
 $('#zipPicker').addEventListener('change', async e => {
   const files = [...e.target.files]; e.target.value = ''; if (!files.length) return;
   progressSheet('Importing', 'Reading the file…');
-  let added = 0, updated = 0, skipped = 0, mismatched = 0, absent = 0; const touched = new Set();
+  let added = 0, updated = 0, skipped = 0, mismatched = 0, absent = 0, ftagged = 0, fwait = 0; const touched = new Set();
   try {
     const JSZip = await loadZip();
     for (let fi = 0; fi < files.length; fi++) {
@@ -2469,9 +2579,17 @@ $('#zipPicker').addEventListener('change', async e => {
         }
         await takeCover(); await takeSubs();
       }
+      // file tags from a backup: a newer change wins; files this phone hasn't listed yet get theirs when My Files is connected
+      if (man.files && Array.isArray(man.files.tags)) {
+        const { changed, wait } = mergeTagEntries(man.files.tags);
+        if (changed.length) { await store.put('files', changed); ftagged += changed.length; tagsChanged(); }
+        fwait += await addPending(wait);
+      }
     }
     askPersist(); renderHome(); closeSheet();
-    toast([added ? `Imported ${plural(added, 'card')}` : '', updated ? `Updated ${plural(updated, 'card')}` : '', skipped - mismatched > 0 ? `${skipped - mismatched} already up to date` : '', mismatched ? `${mismatched} skipped: definitions didn’t line up` : '', absent ? `${plural(absent, 'card')} not on this phone` : ''].filter(Boolean).join(' · ') || 'Nothing to import');
+    toast([added ? `Imported ${plural(added, 'card')}` : '', updated ? `Updated ${plural(updated, 'card')}` : '', skipped - mismatched > 0 ? `${skipped - mismatched} already up to date` : '', mismatched ? `${mismatched} skipped: definitions didn’t line up` : '', absent ? `${plural(absent, 'card')} not on this phone` : '',
+      ftagged ? `Tags for ${plural(ftagged, 'file')}` : '', fwait ? `Tags for ${plural(fwait, 'file')} kept for when My Files is connected` : ''].filter(Boolean).join(' · ') || 'Nothing to import');
+    if (ftagged) refreshFiles();
   } catch (err) {
     console.error(err);
     askPersist(); renderHome(); closeSheet();
@@ -2479,6 +2597,839 @@ $('#zipPicker').addEventListener('change', async e => {
     toast(added ? `Imported ${plural(added, 'card')}, then stopped: ${msg}` : msg);
   }
 });
+
+/* ================= My Files: the index, the folder, the tags ================= */
+/* Agora keeps its own index of the phone's "My Files" folder in the "files" store (names, sizes, dates, tags, small pictures),
+   so browsing and search work at once, even before the folder is connected. Android asks for the folder again each time the app
+   opens, so only an action that needs it (refresh, open, share, writing the tags into the folder) asks, with one tap.
+   Agora never moves, renames, changes or deletes the owner's files: the only thing it writes is .agora/file-tags.json, a second copy of the tags.
+   A record: {path (inside the folder), kind: 'dir' | 'file', name, dir (its folder's path), size, mtime, ext, tags, tagsAt, thumbId, thumbKey} */
+const hasFS = typeof window.showDirectoryPicker === 'function';
+const fidx = new Map(); // path → record
+const FX = { root: null, ready: false, scanning: null, scanned: false, found: 0, mode: null, pending: [], lastJson: null, handles: null };
+const IMG_EXT = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'avif']);
+const TXT_EXT = new Set(['txt', 'md', 'csv', 'json', 'log']);
+const VID_EXT = new Set(['mp4', 'webm', 'mov', 'm4v', '3gp']);
+const AUD_EXT = new Set(['mp3', 'm4a', 'aac', 'ogg', 'opus', 'wav', 'flac']);
+const FMIME = { pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', gif: 'image/gif', txt: 'text/plain', md: 'text/plain', csv: 'text/csv', json: 'application/json',
+  mp4: 'video/mp4', webm: 'video/webm', mov: 'video/quicktime', mp3: 'audio/mpeg', m4a: 'audio/mp4', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  xls: 'application/vnd.ms-excel', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', ppt: 'application/vnd.ms-powerpoint', pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', zip: 'application/zip' };
+const fext = n => { const m = /\.([^.]+)$/.exec(n); return m ? m[1].toLowerCase() : ''; };
+const fkind = r => IMG_EXT.has(r.ext) ? 'img' : r.ext === 'pdf' ? 'pdf' : TXT_EXT.has(r.ext) ? 'txt' : VID_EXT.has(r.ext) ? 'vid' : AUD_EXT.has(r.ext) ? 'aud' : 'other';
+const kindLabel = r => (r.ext || 'file').toUpperCase().slice(0, 5);
+const fileTags = r => tagsOf(r);
+const fsize = n => n < 1024 ? `${n} B` : n < 1048576 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1048576).toFixed(n < 10485760 ? 1 : 0)} MB`;
+const fdate = t => t ? new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+const fname = dir => dir ? dir.slice(dir.lastIndexOf('/') + 1) : 'My Files';
+const ICON_FOLDER = (s = 26) => svg('<path d="M3.5 7.5V18a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5V9.5A1.5 1.5 0 0 0 19 8h-7.2L9.6 5.5H5A1.5 1.5 0 0 0 3.5 7v.5z"/>', s);
+const ICON_DOC = (s = 24) => svg('<path d="M6.5 3.5h7.5l4.5 4.5v12.5h-12z"/><path d="M14 3.5V8h4.5"/>', s);
+const ICON_SHARE = svg('<path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 12v7.5h14V12"/>', 20);
+const ICON_GRID = svg('<rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/>', 20);
+const ICON_LIST = svg('<path d="M9 6.5h11M9 12h11M9 17.5h11"/><circle cx="4.8" cy="6.5" r=".9"/><circle cx="4.8" cy="12" r=".9"/><circle cx="4.8" cy="17.5" r=".9"/>', 20);
+
+/* who sits in which folder, worked out once after each change; deep counts every file below a folder */
+let kids = null, deep = null;
+function fchanged() { kids = null; deep = null; }
+function kidsOf(dir) {
+  if (!kids) {
+    kids = new Map(); deep = new Map();
+    for (const r of fidx.values()) {
+      if (!kids.has(r.dir)) kids.set(r.dir, []);
+      kids.get(r.dir).push(r);
+      if (r.kind === 'file') for (let d = r.dir; ; d = d.includes('/') ? d.slice(0, d.lastIndexOf('/')) : '') { deep.set(d, (deep.get(d) || 0) + 1); if (!d) break; }
+    }
+  }
+  return kids.get(dir) || [];
+}
+const deepCount = dir => { kidsOf(dir); return deep.get(dir) || 0; };
+const allFiles = () => [...fidx.values()].filter(r => r.kind === 'file');
+
+async function loadFiles() {
+  try {
+    (await store.all('files')).forEach(r => fidx.set(r.path, r));
+    const m = await store.get('meta', 'filesRoot'); if (m && m.h) FX.root = m.h;
+    const p = await store.get('meta', 'fileTagsPending'); if (p && Array.isArray(p.v)) FX.pending = p.v;
+    // no asking at start: on a phone this is "not yet" until a tap; on a computer the folder may still be allowed
+    if (FX.root) FX.ready = await fsPerm(FX.root, false);
+  } catch (e) { console.warn('files index', e); }
+  fchanged();
+}
+async function fsPerm(h, ask) {
+  if (!h) return false;
+  const o = { mode: 'readwrite' };
+  try {
+    if (!h.queryPermission) return true;
+    if ((await h.queryPermission(o)) === 'granted') return true;
+    return ask ? (await h.requestPermission(o)) === 'granted' : false;
+  } catch { return false; }
+}
+/* call this straight from a tap: Android only lets a tap ask for the folder. pick: choose the folder again */
+async function connectFiles(pick) {
+  if (FX.ready && !pick) { if (!FX.scanned) rescan(); return true; }
+  let h = pick ? null : FX.root;
+  if (h) {
+    if (!(await fsPerm(h, true))) { toast('Agora needs My Files for that'); return false; }
+  } else {
+    if (!hasFS) { toast('My Files needs Chrome'); return false; }
+    try { h = await window.showDirectoryPicker({ id: 'agora-my-files', mode: 'readwrite' }); }
+    catch { return false; } // the picker was closed
+  }
+  FX.root = h; FX.ready = true; FX.handles = null; FX.lastJson = null;
+  store.put('meta', [{ k: 'filesRoot', h, name: h.name }]).catch(e => console.warn(e));
+  filesRepaint();
+  rescan();
+  return true;
+}
+/* the whole folder is walked in the background; the screen stays usable, the count updates as it goes */
+function rescan() {
+  if (FX.scanning) return FX.scanning;
+  if (!FX.root || !FX.ready) return Promise.resolve();
+  FX.scanning = (async () => {
+    const seen = new Map(), handles = new Map();
+    let n = 0;
+    FX.found = 0; filesRepaint();
+    const walk = async (dh, dir) => {
+      for await (const [name, h] of dh.entries()) {
+        if (name.startsWith('.')) continue; // hidden files, and Agora's own .agora folder
+        const path = dir ? `${dir}/${name}` : name;
+        if (h.kind === 'directory') { seen.set(path, { path, kind: 'dir', name, dir }); await walk(h, path); }
+        else {
+          let f; try { f = await h.getFile(); } catch { continue; }
+          seen.set(path, { path, kind: 'file', name, dir, size: f.size, mtime: f.lastModified, ext: fext(name) });
+          handles.set(path, h);
+        }
+        if (++n % 50 === 0) { FX.found = n; filesRepaint(true); await sleep(0); }
+      }
+    };
+    try {
+      await walk(FX.root, '');
+      FX.handles = handles;
+      await reconcile(seen);
+      await readTagsFile();
+      await applyPending();
+      FX.scanned = true;
+      await saveTagsFile();
+    } catch (e) {
+      console.warn('scan stopped', e);
+      FX.ready = await fsPerm(FX.root, false);
+      toast(FX.ready ? 'Couldn’t read all of My Files' : 'Agora lost access to My Files');
+    }
+    FX.scanning = null; FX.found = 0;
+    filesRepaint(); renderHome();
+    thumbsLater();
+  })();
+  return FX.scanning;
+}
+const tkey = r => `${r.size}:${r.mtime}`;
+/* compare the walk with the index: keep tags and pictures, follow renamed and moved files, drop what is gone */
+async function reconcile(seen) {
+  const old = new Map(fidx), put = [], dropThumbs = [];
+  const keep = (r, o) => {
+    if (fileTags(o).length || o.tagsAt) { r.tags = fileTags(o); if (o.tagsAt) r.tagsAt = o.tagsAt; }
+    if (o.thumbKey === tkey(r)) { if (o.thumbId) r.thumbId = o.thumbId; else if (o.noThumb) r.noThumb = true; r.thumbKey = o.thumbKey; return true; }
+    return false;
+  };
+  const fresh = [];
+  for (const [p, r] of seen) {
+    const o = old.get(p);
+    if (o && o.kind === r.kind) {
+      old.delete(p);
+      if (r.kind === 'file' && !keep(r, o) && o.thumbId) dropThumbs.push(o.thumbId);
+      if (JSON.stringify(r) !== JSON.stringify(o)) put.push(r);
+    } else { put.push(r); if (r.kind === 'file') fresh.push(r); }
+  }
+  // a renamed or moved file keeps its tags and picture: same name, size and date; else same name and size; else same size and date
+  const lost = [...old.values()].filter(o => o.kind === 'file'), used = new Set(), done = new Set();
+  for (const same of [(a, b) => a.name === b.name && a.size === b.size && a.mtime === b.mtime, (a, b) => a.name === b.name && a.size === b.size, (a, b) => a.size === b.size && a.mtime === b.mtime]) {
+    for (const r of fresh) {
+      if (done.has(r)) continue;
+      const m = lost.filter(o => !used.has(o) && same(o, r));
+      if (m.length !== 1 || fresh.filter(x => !done.has(x) && same(m[0], x)).length !== 1) continue;
+      used.add(m[0]); done.add(r);
+      if (keep(r, m[0])) m[0].thumbId = null;
+    }
+  }
+  // a tagged file that has gone is set aside with its tags, so they come back if the file does
+  const aside = lost.filter(o => !used.has(o) && fileTags(o).length);
+  if (aside.length) await addPending(aside.map(tagEntry));
+  lost.forEach(o => { if (o.thumbId) dropThumbs.push(o.thumbId); });
+  const dels = [...old.keys()];
+  dels.forEach(p => fidx.delete(p)); put.forEach(r => fidx.set(r.path, r)); fchanged();
+  for (let i = 0; i < dels.length; i += 500) await store.del('files', dels.slice(i, i + 500));
+  for (let i = 0; i < put.length; i += 500) await store.put('files', put.slice(i, i + 500));
+  if (dropThumbs.length) forget(dropThumbs);
+}
+const tagEntry = r => ({ path: r.path, name: r.name, size: r.size || 0, mtime: r.mtime || 0, tags: fileTags(r), at: r.tagsAt || 0 });
+/* tags from the folder's own copy, a backup, or the set-aside list: the newer change wins; a file not in the index yet waits aside */
+function mergeTagEntries(list) {
+  const changed = [], wait = [], byKey = new Map();
+  // the same three ways a renamed or moved file is recognised during a refresh (a key two files share matches neither)
+  const keys = e => [`a|${e.name}|${e.size}|${e.mtime}`, `b|${e.name}|${e.size}`, `c|${e.size}|${e.mtime}`];
+  for (const r of fidx.values()) if (r.kind === 'file') keys(r).forEach(k => byKey.set(k, byKey.has(k) ? null : r));
+  for (const e of Array.isArray(list) ? list : []) {
+    if (!e || typeof e !== 'object' || !Array.isArray(e.tags)) continue;
+    const ent = { path: String(e.path || ''), name: String(e.name || ''), size: +e.size || 0, mtime: +e.mtime || 0, tags: e.tags.map(t => String(t).trim()).filter(Boolean), at: +e.at || 1 };
+    let r = fidx.get(ent.path); if (r && r.kind !== 'file') r = null;
+    if (!r) r = keys(ent).map(k => byKey.get(k)).find(Boolean) || null;
+    if (!r) { if (ent.tags.length) wait.push(ent); continue; }
+    if (ent.at > (r.tagsAt || 0) && JSON.stringify(ent.tags) !== JSON.stringify(fileTags(r))) { r.tags = ent.tags; r.tagsAt = ent.at; changed.push(r); }
+  }
+  return { changed, wait };
+}
+/* returns how many entries were new or newer */
+async function addPending(list) {
+  let n = 0;
+  for (const e of list) {
+    const i = FX.pending.findIndex(x => x.path === e.path);
+    if (i < 0) { FX.pending.push(e); n++; }
+    else if ((e.at || 0) > (FX.pending[i].at || 0)) { FX.pending[i] = e; n++; }
+  }
+  if (n) { FX.pending = FX.pending.slice(-5000); await store.put('meta', [{ k: 'fileTagsPending', v: FX.pending }]).catch(storageFail); }
+  return n;
+}
+async function applyPending() {
+  if (!FX.pending.length) return;
+  const { changed, wait } = mergeTagEntries(FX.pending);
+  if (changed.length) await store.put('files', changed);
+  if (wait.length !== FX.pending.length) { FX.pending = wait; await store.put('meta', [{ k: 'fileTagsPending', v: wait }]).catch(storageFail); }
+}
+async function agoraDir(create) { try { return await FX.root.getDirectoryHandle('.agora', { create }); } catch { return null; } }
+async function readTagsFile() {
+  const d = await agoraDir(false); if (!d) return;
+  try {
+    const txt = await (await (await d.getFileHandle('file-tags.json')).getFile()).text();
+    FX.lastJson = txt;
+    const { changed, wait } = mergeTagEntries(JSON.parse(txt).files);
+    if (changed.length) await store.put('files', changed);
+    if (wait.length) await addPending(wait);
+  } catch (e) { console.warn('file-tags.json', e); }
+}
+const fileTagList = () => [...allFiles().filter(r => fileTags(r).length).map(tagEntry), ...FX.pending.filter(e => e.tags.length).map(e => ({ ...e, missing: true }))];
+const tagsJson = () => JSON.stringify({ app: 'agora', kind: 'file-tags', version: 1, files: fileTagList() }, null, 1);
+/* one small file, written in one go; while the folder isn't connected the index holds the tags and the file catches up on the next connect */
+let tagSaving = Promise.resolve();
+function saveTagsFile() {
+  tagSaving = tagSaving.then(async () => {
+    if (!FX.ready || !FX.root) return;
+    const txt = tagsJson();
+    if (txt === FX.lastJson) return;
+    if (!fileTagList().length && !(await agoraDir(false))) return; // nothing tagged yet: no .agora folder needed
+    try {
+      const fh = await (await agoraDir(true)).getFileHandle('file-tags.json', { create: true });
+      const w = await fh.createWritable(); await w.write(txt); await w.close();
+      FX.lastJson = txt;
+    } catch (e) { console.warn('couldn’t write file-tags.json', e); }
+  });
+  return tagSaving;
+}
+let tagTimer = 0;
+function tagsChanged() { clearTimeout(tagTimer); tagTimer = setTimeout(saveTagsFile, 700); }
+/* change the tags of some files; fn gets a file's tags and returns the new list */
+function setFileTags(paths, fn) {
+  const now = Date.now(), changed = [];
+  for (const p of paths) {
+    const r = fidx.get(p); if (!r || r.kind !== 'file') continue;
+    const t = fn(fileTags(r));
+    if (JSON.stringify(t) === JSON.stringify(fileTags(r))) continue;
+    r.tags = t; r.tagsAt = now; changed.push(r);
+  }
+  if (changed.length) { store.put('files', changed).catch(storageFail); tagsChanged(); }
+  return changed.length;
+}
+const spellTag = t => { t = String(t).trim().replace(/\s+/g, ' ').slice(0, 60); const k = allTags([...allFiles(), ...cards]).find(e => e.k === norm(t)); return k ? k.t : t; };
+/* tags to pick from: the ones used on files first, then the cards' tags, most used first */
+function tagPool(q = '', skip = new Set()) {
+  const onFiles = new Map(allTags(allFiles()).map(e => [e.k, e.n]));
+  return allTags([...allFiles(), ...cards]).filter(e => !skip.has(e.k) && (!q || e.k.includes(norm(q))))
+    .sort((a, b) => (onFiles.get(b.k) || 0) - (onFiles.get(a.k) || 0) || b.n - a.n || a.t.localeCompare(b.t)).slice(0, 24);
+}
+const withTag = t => tags => tags.some(x => norm(x) === norm(t)) ? tags : [...tags, t];
+const withoutTag = t => tags => tags.filter(x => norm(x) !== norm(t));
+
+/* the original file, read only when it is opened, shared or made into a small picture */
+async function handleOf(path) {
+  if (FX.handles && FX.handles.has(path)) return FX.handles.get(path);
+  const parts = path.split('/'); let d = FX.root;
+  for (const p of parts.slice(0, -1)) d = await d.getDirectoryHandle(p);
+  return d.getFileHandle(parts[parts.length - 1]);
+}
+const fileOf = async path => (await handleOf(path)).getFile();
+
+/* small pictures of images and of a PDF's first page, made one at a time in the background; the folder on screen goes first */
+let thumbRun = null;
+function thumbsLater() { if (!thumbRun) thumbRun = makeFileThumbs().catch(e => console.warn(e)).finally(() => { thumbRun = null; renderHome(); }); }
+const wantsThumb = r => r.kind === 'file' && !r.thumbId && !r.noThumb && (fkind(r) === 'img' || fkind(r) === 'pdf') && r.size < 40e6;
+async function makeFileThumbs() {
+  const queue = allFiles().filter(wantsThumb).sort((a, b) => b.mtime - a.mtime);
+  let qi = 0;
+  const next = () => { for (; qi < queue.length; qi++) { const x = queue[qi]; if (fidx.get(x.path) === x && wantsThumb(x)) return x; } return null; };
+  while (FX.ready && !FX.scanning) {
+    const top = pages.filter(p => p.kind === 'files').pop();
+    const r = (top && kidsOf(top.dir).find(wantsThumb)) || next();
+    if (!r) return;
+    try {
+      const f = await fileOf(r.path);
+      const blob = fkind(r) === 'pdf' ? await pdfThumb(f) : await makeThumb(f, 400);
+      if (!blob || blob === f) throw new Error('no picture');
+      const id = 'ft-' + uid();
+      await store.put('blobs', [{ id, blob }]);
+      if (fidx.get(r.path) !== r) { forget([id]); continue; }
+      r.thumbId = id;
+    } catch { r.noThumb = true; }
+    r.thumbKey = tkey(r);
+    await store.put('files', [r]).catch(() => {});
+    paintThumb(r);
+    await sleep(30);
+  }
+}
+async function pdfThumb(f) {
+  const lib = await loadPdfLib();
+  const doc = await lib.getDocument({ data: new Uint8Array(await f.arrayBuffer()), isEvalSupported: false }).promise;
+  try {
+    const page = await doc.getPage(1), vp = page.getViewport({ scale: 400 / page.getViewport({ scale: 1 }).width });
+    const c = document.createElement('canvas'); c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+    const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+    await page.render({ canvasContext: ctx, viewport: vp }).promise;
+    return await new Promise(res => c.toBlob(res, 'image/jpeg', 0.8));
+  } finally { doc.destroy(); }
+}
+
+/* ================= My Files: the home tile and the folder pages ================= */
+ICON.share = ICON_SHARE;
+const CHECK_BOX = '<span class="fbox">' + svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 14) + '</span>';
+function filesTile() {
+  if (!hasFS && !fidx.size) return '';
+  const fs = allFiles(), dirs = kidsOf('').filter(r => r.kind === 'dir').length;
+  const pics = fs.filter(r => r.thumbId && fkind(r) === 'img').sort((a, b) => b.mtime - a.mtime).slice(0, 4);
+  const cover = pics.length === 4 ? `<div class="mosaic">${pics.map(r => `<img alt="" data-blob="${r.thumbId}">`).join('')}</div>`
+    : pics.length ? `<img alt="" data-blob="${pics[0].thumbId}">` : `<span class="fglyph">${ICON_FOLDER(34)}</span>`;
+  const meta = fidx.size ? [plural(fs.length, 'file'), dirs ? plural(dirs, 'folder') : ''].filter(Boolean).join(' · ') : 'Tap to connect';
+  return `<div class="tile">
+      <button class="tile-open" data-files="1" aria-label="Open My Files"><div class="cover">${cover}</div>
+        <div><div class="tile-name">My Files</div><div class="tile-meta num">${meta}</div></div></button>
+      <button class="more" data-fmenu="1" aria-label="Options for My Files">${ICON.more}</button>
+    </div>`;
+}
+const fsOffLine = () => hasFS ? '' : '<p class="fsoff">My Files needs Chrome: this browser doesn’t let Agora open folders.</p>';
+
+const nameCmp = (a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+const FSORTS = {
+  newest: { label: 'Newest first', fn: (a, b) => (b.mtime - a.mtime) || nameCmp(a, b) },
+  oldest: { label: 'Oldest first', fn: (a, b) => (a.mtime - b.mtime) || nameCmp(a, b) },
+  az: { label: 'A to Z', fn: nameCmp },
+  size: { label: 'Largest first', fn: (a, b) => (b.size - a.size) || nameCmp(a, b) }
+};
+const fsortOf = () => FSORTS[ls.get('files.sort')] ? ls.get('files.sort') : 'newest';
+const gridView = () => ls.get('files.view') === 'grid';
+/* a file's small picture, or a folder, or a page with the file's kind on it */
+function ficHTML(r, cls, extra = '') {
+  const big = cls === 'fpic';
+  if (r.kind === 'dir') return `<span class="${cls}">${ICON_FOLDER(big ? 40 : 26)}</span>`;
+  if (r.thumbId) return `<span class="${cls}"><img alt="" data-blob="${r.thumbId}">${extra}</span>`;
+  return `<span class="${cls} glyph">${ICON_DOC(big ? 34 : 24)}<span class="ext">${esc(kindLabel(r))}</span>${extra}</span>`;
+}
+const fmeta = r => `${esc(kindLabel(r))} · ${fsize(r.size)} · ${fdate(r.mtime)}`;
+function fileRowHTML(r, on) {
+  if (r.kind === 'dir') return `<button class="frow" data-fd="${esc(r.path)}">${ficHTML(r, 'fic')}<span class="fmain"><span class="fn">${esc(r.name)}</span><span class="fm num">${plural(deepCount(r.path), 'file')}</span></span><span class="go">${ICON.chev}</span></button>`;
+  const t = rankTags(fileTags(r));
+  const tags = t.length ? `<span class="ftags">${t.slice(0, 2).map(x => `<span class="ptag">${esc(x)}</span>`).join('')}${t.length > 2 ? `<span class="fm">+${t.length - 2}</span>` : ''}</span>` : '';
+  return `<button class="frow${on ? ' on' : ''}" data-fp="${esc(r.path)}">${ficHTML(r, 'fic')}<span class="fmain"><span class="fn">${esc(r.name)}</span><span class="fm num">${fmeta(r)}</span>${tags}</span>${CHECK_BOX}</button>`;
+}
+function fileCardHTML(r, on) {
+  if (r.kind === 'dir') return `<button class="fcard" data-fd="${esc(r.path)}">${ficHTML(r, 'fpic')}<span class="fn">${esc(r.name)}</span><span class="fm num">${plural(deepCount(r.path), 'file')}</span></button>`;
+  const t = rankTags(fileTags(r));
+  return `<button class="fcard${on ? ' on' : ''}" data-fp="${esc(r.path)}">${ficHTML(r, 'fpic', CHECK_BOX)}<span class="fn">${esc(r.name)}</span>
+    <span class="fm num">${t.length ? t.map(x => `<span class="tg">${esc(x)}</span>`).join(' · ') : fsize(r.size)}</span></button>`;
+}
+const onOf = (v, r) => FX.mode ? fileTags(r).some(t => norm(t) === norm(FX.mode)) : !!(v.sel && v.sel.has(r.path));
+const filePages = () => pages.filter(p => p.kind === 'files');
+function refreshFiles() { filePages().forEach(renderFiles); }
+/* while the folder is read, only the count changes; the pages redraw once at the end */
+let repaintAt = 0;
+function filesRepaint(light) {
+  if (!light) { refreshFiles(); return; }
+  if (Date.now() - repaintAt < 250) return; repaintAt = Date.now();
+  filePages().forEach(v => { const s = $('.fsum', v.el); if (s) s.textContent = `Refreshing… ${FX.found} found`; });
+}
+function filesBar(v) {
+  if (FX.mode) return `<div class="pbar"><button class="iconbtn" data-p="endmode" aria-label="Stop tagging">${ICON.close}</button>
+    <div class="ptitle"><span class="selcount" style="flex:none">Tagging</span><span class="chip on"><span>${esc(FX.mode)}</span></span></div></div>`;
+  const grid = gridView();
+  return pageBar(v, `<button class="iconbtn" data-p="view" aria-label="${grid ? 'Show as a list' : 'Show as a grid'}">${grid ? ICON_LIST : ICON_GRID}</button>`
+    + `<button class="iconbtn" data-p="fsort" aria-label="Sort: ${FSORTS[fsortOf()].label}">${ICON_SORT}</button><button class="iconbtn" data-p="fmore" aria-label="My Files options">${ICON.more}</button>`);
+}
+function filesSummary(v, dirs, files) {
+  if (FX.scanning) return `Refreshing… ${FX.found} found`;
+  if (FX.mode) return `Tap files to add or remove “${esc(FX.mode)}” · ${files.filter(r => onOf(v, r)).length} tagged here`;
+  const parts = [dirs.length ? plural(dirs.length, 'folder') : '', files.length ? plural(files.length, 'file') : ''].filter(Boolean);
+  if (files.length > 1) parts.push(FSORTS[fsortOf()].label.toLowerCase());
+  return parts.join(' · ') || (fidx.size ? 'Empty' : 'Not connected yet');
+}
+function renderFiles(v) {
+  const top = v.el.scrollTop, list = kidsOf(v.dir), grid = gridView();
+  const dirs = list.filter(r => r.kind === 'dir').sort(nameCmp), files = list.filter(r => r.kind === 'file').sort(FSORTS[fsortOf()].fn);
+  v.order = files; v.title = fname(v.dir);
+  if (v.sel) [...v.sel].forEach(p => { if (!files.some(r => r.path === p)) v.sel.delete(p); });
+  const segs = v.dir ? v.dir.split('/') : [];
+  const crumbs = segs.length ? `<p class="crumbs"><button data-crumb="">My Files</button>${segs.map((s, i) => '<i>›</i>' + (i === segs.length - 1 ? `<b>${esc(s)}</b>`
+    : `<button data-crumb="${esc(segs.slice(0, i + 1).join('/'))}">${esc(s)}</button>`)).join('')}</p>` : '';
+  const connect = FX.ready || !hasFS ? '' : `<button class="connect" data-f="connect"><span class="dot"></span><b>Connect My Files</b><span>· ${FX.root ? 'to refresh and open' : 'to choose the folder'}</span></button>`;
+  const item = grid ? fileCardHTML : fileRowHTML;
+  const empty = !fidx.size ? (hasFS ? '<p class="empty">Tap Connect My Files and choose the My Files folder in your phone’s storage. Agora reads it and never moves, renames or deletes your files.</p>' : fsOffLine())
+    : list.length ? '' : '<p class="empty">This folder is empty.</p>';
+  v.el.innerHTML = `<div class="home${v.sel ? ' selecting' : ''}${FX.mode ? ' tagging' : ''}">${filesBar(v)}${crumbs}
+    <p class="summary fsum num">${filesSummary(v, dirs, files)}</p>${connect}
+    ${list.length ? `<div class="${grid ? 'fgrid' : 'flist'}">${dirs.map(r => item(r)).join('')}${files.map(r => item(r, onOf(v, r))).join('')}</div>` : ''}${empty}</div>`;
+  filePics(v); v.el.scrollTop = top; markScrolled(v);
+}
+/* pictures load as they come near the screen: a folder can hold thousands */
+function filePics(v, root = v.el) {
+  if (!v.io) v.io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { v.io.unobserve(e.target); pics(e.target.parentNode); } }), { root: v.el, rootMargin: '800px 0px' });
+  if (root === v.el) v.io.disconnect();
+  $$('img[data-blob]', root).forEach(img => { if (urls.has(img.dataset.blob)) { img.src = urls.get(img.dataset.blob); img.classList.add('in'); } else v.io.observe(img); });
+}
+/* one file changed (a tag, a new picture): only its row is redrawn */
+function repaintFile(path) {
+  const r = fidx.get(path); if (!r) return;
+  filePages().filter(v => v.dir === r.dir).forEach(v => {
+    $$('[data-fp]', v.el).filter(b => b.dataset.fp === path).forEach(b => {
+      const t = document.createElement('div'); t.innerHTML = (b.classList.contains('fcard') ? fileCardHTML : fileRowHTML)(r, onOf(v, r));
+      const nb = t.firstElementChild; b.replaceWith(nb); filePics(v, nb);
+    });
+    if (FX.mode) { const s = $('.fsum', v.el); if (s) s.innerHTML = filesSummary(v, [], v.order); }
+  });
+}
+const paintThumb = r => repaintFile(r.path);
+function openFolder(dir) {
+  newPage({ kind: 'files', dir });
+  pages[pages.length - 1].depth = stack.length;
+  if (FX.ready && !FX.scanned) rescan();
+}
+/* the path above the count: a folder already open underneath is reached with Back, others open on top */
+function goCrumb(dir) {
+  const t = filePages().find(p => p.dir === dir && p.depth);
+  if (t && t !== pages[pages.length - 1] && !FX.mode) back(null, stack.length - t.depth); else if (!t || t !== pages[pages.length - 1]) openFolder(dir);
+}
+function onFilesClick(e, v) {
+  const b = e.target.closest('button'); if (!b || b.disabled) return;
+  const p = b.dataset.p;
+  if (p === 'back' || p === 'unsel' || p === 'endmode') back();
+  else if (p === 'view') { ls.set('files.view', gridView() ? 'list' : 'grid'); refreshFiles(); }
+  else if (p === 'fsort') filesSortSheet();
+  else if (p === 'fmore') filesMenu(v);
+  else if (p === 'selmenu') fileSelMenu(v);
+  else if (b.dataset.f === 'connect') connectFiles();
+  else if (b.dataset.crumb != null) goCrumb(b.dataset.crumb);
+  else if (b.dataset.fd != null) openFolder(b.dataset.fd);
+  else if (b.dataset.fp) {
+    const path = b.dataset.fp, r = fidx.get(path); if (!r) return;
+    if (FX.mode) { setFileTags([path], onOf(v, r) ? withoutTag(FX.mode) : withTag(FX.mode)); buzz(10); repaintFile(path); }
+    else if (v.sel) { v.sel.has(path) ? v.sel.delete(path) : v.sel.add(path); paintFileSel(v); }
+    else openViewer(v.order, path);
+  }
+}
+function startFileSelect(v, path) {
+  v.sel = new Set(path ? [path] : []); paintFileSel(v);
+  pushLayer(() => { v.sel = null; if (v.el.isConnected) paintFileSel(v); });
+}
+/* selecting only changes the boxes and the bar, like a deck's cards */
+function paintFileSel(v) {
+  const home = $('.home', v.el); if (!home) return;
+  home.classList.toggle('selecting', !!v.sel);
+  $$('[data-fp]', home).forEach(b => b.classList.toggle('on', !!(v.sel && v.sel.has(b.dataset.fp))));
+  $('.pbar', home).outerHTML = filesBar(v);
+  markScrolled(v);
+}
+function filesSortSheet() {
+  const cur = fsortOf();
+  sheet(`<h2>Sort files</h2><p class="sub">Folders stay first, A to Z</p>
+    <div class="list">${Object.keys(FSORTS).map(k => item(k, FSORTS[k].label, k === cur ? `<span class="tick">${ICON.check}</span>` : '')).join('')}</div>`,
+    Object.fromEntries(Object.keys(FSORTS).map(k => [k, () => { ls.set('files.sort', k); refreshFiles(); closeSheet(); }])));
+}
+/* the ⋯ on the My Files tile and on a folder page */
+function filesMenu(v) {
+  const n = allFiles().length;
+  sheet(`<h2>My Files</h2><p class="sub num">${FX.root ? `${plural(n, 'file')} · ${FX.ready ? 'connected' : 'not connected'}` : 'Not connected yet'}</p>
+    <div class="list">
+      ${FX.root ? item('refresh', 'Refresh the list', '', '', 'Finds new, renamed and removed files') : item('connect', 'Connect My Files', '', '', 'Choose the My Files folder in your phone’s storage')}
+      ${v && n ? item('quick', 'Quick tagging', '', '', 'Pick a tag, then tap files to add or remove it') : ''}
+      ${v && v.order && v.order.length ? item('select', 'Select files', '', '', 'Or hold a file') : ''}
+      ${FX.root ? item('pick', 'Choose a different folder') : ''}
+    </div>`, {
+    // the tap itself asks for the folder, so these start before the sheet closes
+    refresh: () => { if (FX.ready) { FX.scanned = false; rescan(); } else connectFiles(); closeSheet(); },
+    connect: () => { connectFiles(); closeSheet(); },
+    pick: () => { connectFiles(true); closeSheet(); },
+    quick: () => quickTagSheet(),
+    select: () => closeSheet(() => startFileSelect(v))
+  });
+}
+function fileSelMenu(v) {
+  const paths = [...v.sel], n = paths.length;
+  sheet(`<h2>${plural(n, 'file')} selected</h2>
+    <div class="list">${item('all', 'Select all')}${item('tag', ico('tag', 'Add tags'))}${item('share', ico('share', 'Share / Open with…'))}</div>`, {
+    all: () => { v.order.forEach(r => v.sel.add(r.path)); paintFileSel(v); closeSheet(); },
+    tag: () => fileTagSheet(paths),
+    share: () => { shareFiles(paths); closeSheet(); }
+  });
+}
+/* tags for one file or many: the tags they have (tap to remove), the tags in use (tap to add), or type a new one */
+function fileTagSheet(paths) {
+  const n = paths.length, recs = () => paths.map(p => fidx.get(p)).filter(Boolean);
+  const names = recs().slice(0, 3).map(r => esc(r.name)).join(', ') + (n > 3 ? ` and ${n - 3} more` : '');
+  const byUse = (a, b) => b.n - a.n || a.t.localeCompare(b.t);
+  const draw = sh => {
+    if (!sh) return;
+    const rs = recs(), q = norm($('#ftagIn', sh).value), on = allTags(rs).sort(byUse), onK = new Set(on.map(e => e.k));
+    const pool = tagPool(q, onK);
+    $('.fon', sh).innerHTML = on.length ? on.map(e => `<button type="button" class="chip on" data-act="rm" data-tag="${esc(e.t)}"><span>${esc(e.t)}</span>${rs.length > 1 && e.n < rs.length ? `<i>${e.n} of ${rs.length}</i>` : ''}</button>`).join('')
+      : '<span class="sub">None yet</span>';
+    $('.fpool', sh).innerHTML = pool.map(e => `<button type="button" class="chip" data-act="add" data-tag="${esc(e.t)}"><span>${esc(e.t)}</span></button>`).join('');
+    $('.fpoolL', sh).hidden = !pool.length;
+  };
+  const after = () => { draw($('#sheet')); refreshFiles(); if (FV) showFileHead(); };
+  const add = t => { setFileTags(paths, withTag(spellTag(t))); $('#ftagIn').value = ''; after(); };
+  sheet(`<form><h2>${n === 1 ? 'Tags' : `Tag ${plural(n, 'file')}`}</h2><p class="sub">${names}</p>
+    <div class="field"><input id="ftagIn" type="text" maxlength="60" autocomplete="off" autocapitalize="words" enterkeyhint="done" placeholder="Add a tag" aria-label="Add a tag"></div>
+    <p class="slabel">On ${n === 1 ? 'this file' : 'these files'} · tap to remove</p><div class="chips fon"></div>
+    <p class="slabel fpoolL">Your tags · tap to add${n > 1 ? ` to all ${n}` : ''}</p><div class="chips fpool"></div>
+    <div class="askbtns"><button type="button" class="textbtn" data-act="done">Done</button></div></form>`, {
+    rm: b => { setFileTags(paths, withoutTag(b.dataset.tag)); after(); },
+    add: b => add(b.dataset.tag),
+    submit: f => { const t = $('#ftagIn', f).value.trim(); if (t) add(t); else closeSheet(); },
+    done: () => closeSheet()
+  }, sh => { sh.classList.add('ftagsheet'); draw(sh); $('#ftagIn', sh).addEventListener('input', () => draw(sh)); });
+}
+/* quick tagging: one tag, then each tap on a file adds or removes it */
+function quickTagSheet() {
+  const chips = q => tagPool(q)
+    .map(e => `<button type="button" class="chip" data-act="pick" data-tag="${esc(e.t)}"><span>${esc(e.t)}</span></button>`).join('');
+  const go = t => closeSheet(() => startTagMode(spellTag(t)));
+  sheet(`<form><h2>Quick tagging</h2><p class="sub">Pick a tag, then tap files to add or remove it</p>
+    <div class="field"><input id="qtIn" type="text" maxlength="60" autocomplete="off" autocapitalize="words" enterkeyhint="go" placeholder="Tag" aria-label="Tag"></div>
+    <div class="chips qpool">${chips('')}</div>
+    <div class="askbtns"><button type="button" class="textbtn quiet" data-act="cancel">Cancel</button><button type="submit" class="textbtn">Start</button></div></form>`, {
+    pick: b => go(b.dataset.tag),
+    submit: f => { const t = $('#qtIn', f).value.trim(); if (t) go(t); else $('#qtIn', f).focus(); },
+    cancel: () => closeSheet()
+  }, sh => { sh.classList.add('ftagsheet'); const i = $('#qtIn', sh); i.addEventListener('input', () => { $('.qpool', sh).innerHTML = chips(i.value); }); });
+}
+function startTagMode(t) {
+  FX.mode = t; refreshFiles();
+  pushLayer(() => { FX.mode = null; refreshFiles(); });
+}
+/* sharing hands Android the files themselves, so WhatsApp, Drive or a PDF app can take them */
+async function shareFiles(paths) {
+  if (!navigator.share) { toast('Sharing isn’t available here'); return; }
+  if (!(await connectFiles())) return;
+  try {
+    const files = await Promise.all(paths.map(async p => { const f = await fileOf(p); return new File([f], f.name, { type: f.type || FMIME[fext(f.name)] || 'application/octet-stream', lastModified: f.lastModified }); }));
+    if (navigator.canShare && !navigator.canShare({ files })) { toast('Android can’t share this kind of file'); return; }
+    await navigator.share({ files });
+  } catch (e) {
+    if (e && e.name === 'NotAllowedError') toast('Tap Share once more');
+    else if (!e || e.name !== 'AbortError') { console.warn(e); toast('Couldn’t share that. Refresh My Files and try again.'); }
+  }
+}
+
+/* ================= My Files: opening a file ================= */
+/* Like the study view: the name and tags on top (hold a tag to remove it or add one; tap it to search),
+   the file in the middle (pinch or double-tap to zoom), position and Share at the bottom; swipe for the next file in the list. */
+let FV = null;
+ICON.folder = ICON_FOLDER(22);
+const fileNow = () => FV && (fidx.get(FV.order[FV.i].path) || FV.order[FV.i]);
+function openViewer(list, path) {
+  const order = list.filter(r => r.kind === 'file'); if (!order.length) return;
+  const el = document.createElement('div'); el.className = 'fview';
+  el.innerHTML = `<div class="chrome"><button class="iconbtn" data-v="back" aria-label="Back">${ICON.back}</button><span class="vt"></span>
+      <button class="iconbtn" data-v="more" aria-label="Options for this file">${ICON.more}</button><div class="tags"></div></div>
+    <div class="vstage"></div>
+    <div class="vfoot"><span class="vpos num"></span><span class="vsub num"></span><button class="textbtn" data-v="share">${ICON_SHARE}Share / Open with…</button></div>`;
+  document.body.appendChild(el); document.body.classList.add('locked', 'in-study');
+  FV = { el, order, i: Math.max(0, order.findIndex(r => r.path === path)), stage: $('.vstage', el), slide: null, tagsOpen: false, z: { s: 1, x: 0, y: 0 } };
+  const asks = !FX.ready && FX.root;
+  showFile(FV.i, 0);
+  // the tap that opened the file also connects the folder, so it never takes two taps
+  if (asks) connectFiles().then(ok => { if (ok && FV) loadFull(FV.slide); });
+  el.addEventListener('click', viewerClick);
+  el.addEventListener('contextmenu', e => e.preventDefault());
+  viewerGestures(FV);
+  const tg = $('.tags', el), hold = FV.hold = { t: 0, x: 0, y: 0, fired: false };
+  tg.addEventListener('pointerdown', e => {
+    const b = e.target.closest('.tag'); if (!b || e.target.closest('.x')) return;
+    hold.x = e.clientX; hold.y = e.clientY; hold.fired = false; clearTimeout(hold.t);
+    hold.t = setTimeout(() => { hold.fired = true; if (!FV.tagsOpen && fileTags(fileNow()).length > 3) { FV.tagsOpen = true; showFileHead(); } tg.classList.add('editing'); fitViewer(); buzz(); }, 520);
+  });
+  tg.addEventListener('pointermove', e => { if (Math.hypot(e.clientX - hold.x, e.clientY - hold.y) > 8) clearTimeout(hold.t); });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(k => tg.addEventListener(k, () => clearTimeout(hold.t)));
+  el.addEventListener('pointerdown', e => { if (!e.target.closest('.tags')) tg.classList.remove('editing'); }, true);
+  pushLayer(closeViewer);
+}
+function closeViewer() {
+  if (!FV) return;
+  const el = FV.el; [...FV.stage.children].forEach(dropSlide); FV = null;
+  document.body.classList.remove('in-study');
+  el.style.transition = 'opacity .2s'; el.style.opacity = '0';
+  setTimeout(() => el.remove(), 220);
+  unlockIdle(); refreshFiles();
+}
+function dropSlide(s) {
+  (s.urls || []).forEach(u => URL.revokeObjectURL(u));
+  $$('video,audio', s).forEach(m => m.pause());
+  if (s.P) { if (s.P.io) s.P.io.disconnect(); s.P.doc.destroy(); s.P = null; }
+  s.remove();
+}
+const fitViewer = () => { if (FV) FV.el.style.setProperty('--vh', $('.chrome', FV.el).offsetHeight + 'px'); };
+function showFileHead() {
+  if (!FV) return;
+  const r = fileNow(), el = FV.el, tg = $('.tags', el), all = rankTags(fileTags(r)), hidden = Math.max(0, all.length - 3);
+  $('.vt', el).textContent = r.name;
+  if (!hidden) FV.tagsOpen = false;
+  tg.innerHTML = (FV.tagsOpen ? all : all.slice(0, 3)).map(t => `<button class="tag" data-v="tag" data-tag="${esc(t)}" aria-label="${esc(t)}: show cards and files with this tag, or hold to remove it"><span>${esc(t)}</span><span class="x" data-v="untag" role="button" aria-label="Remove tag ${esc(t)}">${ICON.close}</span></button>`).join('')
+    + (hidden ? `<button class="tagmore" data-v="moretags" aria-label="${FV.tagsOpen ? 'Show fewer tags' : `Show ${plural(hidden, 'more tag')}`}">${FV.tagsOpen ? CHEVRON_LEFT : `+${hidden}${CHEVRON_RIGHT}`}</button>` : '')
+    + `<button class="tagadd" data-v="addtag" aria-label="Add a tag">${ICON.plus}</button>`;
+  $('.vpos', el).textContent = FV.order.length > 1 ? `${FV.i + 1} / ${FV.order.length}` : '';
+  const P = FV.slide && FV.slide.P;
+  $('.vsub', el).textContent = P ? `page ${P.cur} of ${P.n}` : fsize(r.size);
+  $('.vfoot [data-v="share"]', el).hidden = fkind(r) === 'other'; // that page has its own big Share button
+  fitViewer();
+}
+const otherHTML = r => `<div class="vother">${ICON_DOC(56)}<span class="fn">${esc(r.name)}</span><span class="num">${esc(kindLabel(r))} · ${fsize(r.size)}</span>
+  <button class="btn primary" data-v="share">${ICON_SHARE}Share / Open with…</button></div>`;
+function showFile(i, dir) {
+  const old = FV.slide; FV.i = i; FV.z = { s: 1, x: 0, y: 0 };
+  const r = fileNow(), k = fkind(r), s = document.createElement('div');
+  s.className = 'vslide'; s.r = r; s.urls = [];
+  s.innerHTML = k === 'pdf' ? '<div class="vpdf"><div class="vpages"></div></div><div class="vwait">Opening…</div>'
+    : k === 'txt' ? '<div class="vtext"><pre></pre></div>'
+    : k === 'img' ? '<img class="full" alt="">'
+    : k === 'vid' || k === 'aud' ? '<div class="vwait">Opening…</div>' : otherHTML(r);
+  if (dir) { s.style.transition = 'none'; s.style.transform = `translateX(${dir * 100}%)`; s.style.opacity = '0'; }
+  FV.stage.appendChild(s); FV.slide = s;
+  if (old) {
+    old.classList.remove('drag'); s.offsetWidth; s.style.transition = '';
+    old.style.transform = `translateX(${-dir * 100}%)`; old.style.opacity = '0'; s.style.transform = ''; s.style.opacity = '';
+    setTimeout(() => dropSlide(old), 330);
+  }
+  showFileHead(); loadFull(s);
+}
+async function loadFull(s) {
+  if (!s || s.loading || s.loaded || !s.isConnected) return;
+  const r = s.r, k = fkind(r);
+  if (k === 'img' && r.thumbId && !s.thumbShown) { // the small picture shows at once, the original replaces it
+    s.thumbShown = true;
+    blobURL(r.thumbId).then(u => { const im = $('img.full', s); if (u && im && !im.dataset.full) im.src = u; });
+  }
+  if (!FX.ready) {
+    const w = $('.vwait', s); if (w) w.remove();
+    if (!$('.connect', s)) s.insertAdjacentHTML('beforeend', '<button class="connect" data-v="connect"><span class="dot"></span><b>Connect My Files</b><span>· to open</span></button>');
+    return;
+  }
+  const c = $('.connect', s); if (c) c.remove();
+  if (k === 'other') { s.loaded = true; return; } // nothing to read until it is shared
+  s.loading = true;
+  try {
+    const f = await fileOf(r.path);
+    if (!s.isConnected) return;
+    const url = () => { const u = URL.createObjectURL(f); s.urls.push(u); return u; };
+    if (k === 'img') { const im = $('img.full', s); im.onerror = () => { s.innerHTML = otherHTML(r); }; im.dataset.full = '1'; im.src = url(); }
+    else if (k === 'vid') s.innerHTML = `<video controls playsinline preload="metadata" src="${url()}"></video>`;
+    else if (k === 'aud') s.innerHTML = `<audio controls preload="metadata" src="${url()}"></audio>`;
+    else if (k === 'txt') $('pre', s).textContent = f.size > 2e6 ? (await f.slice(0, 2e6).text()) + '\n…' : await f.text();
+    else if (k === 'pdf') await openPdfFile(s, f);
+    s.loaded = true;
+  } catch (e) {
+    console.warn(e);
+    if (s.isConnected) { s.innerHTML = otherHTML(r); toast(navigator.onLine === false && k === 'pdf' ? 'Connect to the internet once to show PDFs' : `Couldn’t open ${r.name}. If it was moved, refresh My Files.`); }
+  } finally { s.loading = false; }
+}
+/* a PDF: every page fits the width and scrolls; pages are drawn as they come into view, sharper after a zoom */
+async function openPdfFile(s, f) {
+  const lib = await loadPdfLib();
+  const doc = await lib.getDocument({ data: new Uint8Array(await f.arrayBuffer()), isEvalSupported: false }).promise;
+  if (!s.isConnected) { doc.destroy(); return; }
+  const v1 = (await doc.getPage(1)).getViewport({ scale: 1 });
+  const P = s.P = { doc, n: doc.numPages, s: 1, cur: 1, ar: Array(doc.numPages).fill(v1.height / v1.width), sc: $('.vpdf', s), wrap: $('.vpages', s) };
+  P.wrap.innerHTML = Array.from({ length: P.n }, (_, i) => `<div class="vpage" data-pg="${i + 1}"></div>`).join('');
+  pdfFit(P);
+  P.io = new IntersectionObserver(es => es.forEach(e => { e.target.vis = e.isIntersecting; if (e.isIntersecting) pdfDraw(P, e.target); }), { root: P.sc, rootMargin: '60% 0px' });
+  $$('.vpage', P.wrap).forEach(d => P.io.observe(d));
+  P.sc.addEventListener('scroll', () => {
+    const mid = P.sc.scrollTop + P.sc.clientHeight / 2; let cur = 1;
+    for (const d of P.wrap.children) { if (d.offsetTop <= mid) cur = +d.dataset.pg; else break; }
+    if (cur !== P.cur) { P.cur = cur; if (FV && FV.slide === s) showFileHead(); }
+  }, { passive: true });
+  pdfPinch(P);
+  const w = $('.vwait', s); if (w) w.remove();
+  if (FV && FV.slide === s) showFileHead();
+}
+function pdfFit(P) {
+  const pw = P.sc.clientWidth * P.s;
+  [...P.wrap.children].forEach((d, i) => { d.style.width = pw + 'px'; d.style.height = pw * P.ar[i] + 'px'; d.style.marginBottom = 8 * P.s + 'px'; });
+  P.sc.classList.toggle('zoomed', P.s > 1.01);
+}
+async function pdfDraw(P, d) {
+  const n = +d.dataset.pg, cssW = d.offsetWidth, dpr = Math.min(3, window.devicePixelRatio || 1);
+  const want = Math.round(Math.min(cssW * dpr, 4096, Math.sqrt(12e6 / P.ar[n - 1])));
+  if (d.pxW && want <= d.pxW * 1.1 && want >= d.pxW * 0.5) return; // sharp enough already
+  const job = d.job = (d.job || 0) + 1;
+  try {
+    const page = await P.doc.getPage(n), base = page.getViewport({ scale: 1 }), ar = base.height / base.width;
+    if (Math.abs(ar - P.ar[n - 1]) > 0.005) { P.ar[n - 1] = ar; d.style.height = d.offsetWidth * ar + 'px'; }
+    const vp = page.getViewport({ scale: want / base.width }), c = document.createElement('canvas');
+    c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+    await page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+    if (job === d.job && d.isConnected) { d.replaceChildren(c); d.pxW = want; }
+  } catch (e) { if (P.doc) console.warn(e); }
+}
+/* zoom about a point (mx, my inside the page area): the spot under the fingers stays put */
+function pdfZoom(P, s2, mx, my, anim) {
+  s2 = Math.min(5, Math.max(1, s2));
+  const k = s2 / P.s, cx = P.sc.scrollLeft + mx, cy = P.sc.scrollTop + my;
+  const commit = () => {
+    if (!P.doc) return;
+    P.wrap.style.transition = ''; P.wrap.style.transform = '';
+    P.s = s2; pdfFit(P); P.sc.scrollLeft = cx * k - mx; P.sc.scrollTop = cy * k - my;
+    clearTimeout(P.rt); P.rt = setTimeout(() => [...P.wrap.children].filter(d => d.vis).forEach(d => pdfDraw(P, d)), 120);
+  };
+  if (!anim) { commit(); return; }
+  P.wrap.style.transformOrigin = `${cx}px ${cy}px`; P.wrap.style.transition = 'transform .24s var(--ease)'; P.wrap.style.transform = `scale(${k})`;
+  setTimeout(commit, 250);
+}
+/* two fingers on a PDF: the pages scale while the fingers move, then settle at the new size */
+function pdfPinch(P) {
+  let pz = null;
+  const two = e => { const [a, b] = e.touches, r = P.sc.getBoundingClientRect(); return { d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), x: (a.clientX + b.clientX) / 2 - r.left, y: (a.clientY + b.clientY) / 2 - r.top }; };
+  P.sc.addEventListener('touchstart', e => {
+    if (e.touches.length !== 2) return;
+    const t = two(e); pz = { d0: t.d, x: t.x, y: t.y, k: 1 };
+    P.wrap.style.transition = ''; P.wrap.style.transformOrigin = `${P.sc.scrollLeft + t.x}px ${P.sc.scrollTop + t.y}px`;
+  }, { passive: true });
+  P.sc.addEventListener('touchmove', e => {
+    if (!pz || e.touches.length !== 2) return;
+    if (e.cancelable) e.preventDefault();
+    pz.k = Math.min(5, Math.max(1, P.s * two(e).d / pz.d0)) / P.s;
+    P.wrap.style.transform = `scale(${pz.k})`;
+  }, { passive: false });
+  const end = e => { if (pz && e.touches.length < 2) { const p = pz; pz = null; pdfZoom(P, P.s * p.k, p.x, p.y, false); if (FV) FV.pinched = Date.now(); } };
+  P.sc.addEventListener('touchend', end); P.sc.addEventListener('touchcancel', end);
+}
+/* pictures: pinch, double tap and drag to look closer; a sideways swipe moves to the next file */
+function viewerGestures(V) {
+  const st = V.stage, pts = new Map();
+  let g = null, lastTap = null;
+  const kind = () => V.slide ? fkind(V.slide.r) : '';
+  const img = () => V.slide && $('img.full', V.slide);
+  const centre = () => { const r = st.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height }; };
+  const clampZ = z => {
+    const im = img(), c = centre(); if (!im || !im.naturalWidth) return { s: 1, x: 0, y: 0 };
+    const fit = Math.min(c.w / im.naturalWidth, c.h / im.naturalHeight), mx = Math.max(0, (im.naturalWidth * fit * z.s - c.w) / 2), my = Math.max(0, (im.naturalHeight * fit * z.s - c.h) / 2);
+    return { s: z.s, x: Math.min(mx, Math.max(-mx, z.x)), y: Math.min(my, Math.max(-my, z.y)) };
+  };
+  const applyZ = anim => { const im = img(); if (!im) return; im.style.transition = anim ? 'transform .25s var(--ease)' : 'none'; im.style.transform = `translate(${V.z.x}px,${V.z.y}px) scale(${V.z.s})`; };
+  const zoomAt = (s, px, py, anim) => { const c = centre(), z = V.z, ux = (px - c.x - z.x) / z.s, uy = (py - c.y - z.y) / z.s; V.z = clampZ({ s, x: px - c.x - ux * s, y: py - c.y - uy * s }); applyZ(anim); };
+  st.addEventListener('pointerdown', e => {
+    if (e.target.closest('video,audio,button')) return;
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pts.size === 2) {
+      const [a, b] = [...pts.values()];
+      g = kind() === 'img' ? { pinch: true, d0: Math.hypot(a.x - b.x, a.y - b.y), s0: V.z.s, m: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } } : { multi: true };
+      if (V.slide) { V.slide.classList.remove('drag'); V.slide.style.transform = ''; V.slide.style.opacity = ''; }
+    } else if (pts.size === 1) g = { x0: e.clientX, y0: e.clientY, t0: Date.now(), z0: { ...V.z }, dir: null };
+  });
+  st.addEventListener('pointermove', e => {
+    if (!pts.has(e.pointerId) || !g) return;
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (g.multi) return;
+    if (g.pinch) {
+      if (pts.size < 2) return;
+      const [a, b] = [...pts.values()], m = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      zoomAt(Math.min(5, Math.max(1, g.s0 * Math.hypot(a.x - b.x, a.y - b.y) / g.d0)), g.m.x, g.m.y, false);
+      V.z = clampZ({ s: V.z.s, x: V.z.x + m.x - g.m.x, y: V.z.y + m.y - g.m.y }); g.m = m; applyZ(false);
+      return;
+    }
+    const dx = e.clientX - g.x0, dy = e.clientY - g.y0;
+    if (V.z.s > 1.01 && kind() === 'img') { V.z = clampZ({ s: V.z.s, x: g.z0.x + dx, y: g.z0.y + dy }); applyZ(false); g.dir = 'pan'; return; }
+    if (!g.dir && Math.hypot(dx, dy) > 10) g.dir = Math.abs(dx) > Math.abs(dy) * 1.2 ? 'x' : 'y';
+    const P = V.slide && V.slide.P;
+    if (g.dir === 'x' && !(P && P.s > 1.01)) { V.slide.classList.add('drag'); V.slide.style.transform = `translateX(${dx}px)`; V.slide.style.opacity = String(1 - Math.min(0.5, Math.abs(dx) / 800)); }
+  });
+  const up = e => {
+    if (!pts.has(e.pointerId)) return;
+    pts.delete(e.pointerId);
+    if (!g) return;
+    if (g.pinch || g.multi) { if (!pts.size) { if (g.pinch && V.z.s < 1.04) { V.z = { s: 1, x: 0, y: 0 }; applyZ(true); } g = null; } return; }
+    const s = V.slide, dx = e.clientX - g.x0, dt = Date.now() - g.t0;
+    if (s && s.classList.contains('drag')) {
+      s.classList.remove('drag');
+      const step = (Math.abs(dx) > 80 || (Math.abs(dx) > 30 && dt < 250)) ? (dx < 0 ? 1 : -1) : 0, j = V.i + step;
+      if (step && j >= 0 && j < V.order.length) showFile(j, step); else { s.style.transform = ''; s.style.opacity = ''; }
+    } else if (!g.dir && dt < 300 && e.type === 'pointerup' && !(V.pinched && Date.now() - V.pinched < 400)) {
+      // a double tap zooms in, and out again
+      const now = Date.now();
+      if (lastTap && now - lastTap.t < 320 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 30) {
+        lastTap = null;
+        const P = s && s.P;
+        if (kind() === 'img') { if (V.z.s > 1.01) { V.z = { s: 1, x: 0, y: 0 }; applyZ(true); } else zoomAt(2.5, e.clientX, e.clientY, true); }
+        else if (P) { const r = P.sc.getBoundingClientRect(); pdfZoom(P, P.s > 1.01 ? 1 : 2.5, e.clientX - r.left, e.clientY - r.top, true); }
+      } else lastTap = { t: now, x: e.clientX, y: e.clientY };
+    }
+    g = null;
+  };
+  st.addEventListener('pointerup', up); st.addEventListener('pointercancel', up);
+}
+function viewerClick(e) {
+  const b = e.target.closest('[data-v]'); if (!b || !FV) return;
+  const v = b.dataset.v, r = fileNow();
+  if (v === 'back') back();
+  else if (v === 'share') shareFiles([r.path]);
+  else if (v === 'more') viewerMenu(r);
+  else if (v === 'connect') connectFiles().then(ok => { if (ok && FV) loadFull(FV.slide); });
+  else if (v === 'untag') { const t = b.closest('.tag').dataset.tag; setFileTags([r.path], withoutTag(t)); showFileHead(); refreshFiles(); toast(`Removed the tag “${t}” from this file`); }
+  else if (v === 'moretags') { FV.tagsOpen = !FV.tagsOpen; showFileHead(); }
+  else if (v === 'addtag') fileTagSheet([r.path]);
+  else if (v === 'tag') {
+    if (FV.hold.fired) { FV.hold.fired = false; return; }
+    const tg = $('.tags', FV.el); if (tg.classList.contains('editing')) { tg.classList.remove('editing'); fitViewer(); return; }
+    const t = b.dataset.tag; back(() => openSearch([t]));
+  }
+}
+function viewerMenu(r) {
+  sheet(`<h2>${esc(r.name)}</h2><p class="sub num">${fmeta(r)}</p>
+    <div class="list">
+      ${item('tag', ico('tag', 'Tags'), '', '', 'Or hold a tag and tap +')}
+      ${item('share', ico('share', 'Share / Open with…'))}
+      ${item('folder', ico('folder', 'Show in folder'), '', '', esc(['My Files', ...(r.dir ? r.dir.split('/') : [])].join(' › ')))}
+    </div>`, {
+    tag: () => fileTagSheet([r.path]),
+    share: () => { shareFiles([r.path]); closeSheet(); },
+    folder: () => {
+      const under = pages[pages.length - 1], there = under && under.kind === 'files' && under.dir === r.dir;
+      back(() => { if (!there) openFolder(r.dir); }, 2); // the sheet and the file
+    }
+  });
+}
+
+/* search: file and folder names, then files whose tags contain the words typed */
+function findFiles(q, pool) {
+  const n = norm(q); if (!n) return [];
+  const out = [];
+  for (const r of pool) {
+    const nm = norm(r.name), i = nm.indexOf(n);
+    if (i >= 0) out.push({ r, i, rank: i === 0 ? 0 : (/[\s\-_.]/.test(nm[i - 1]) ? 1 : 2) });
+    else if (n.length >= 2 && fileTags(r).some(t => norm(t).includes(n))) out.push({ r, i: -1, rank: 3 });
+  }
+  return out.sort((a, b) => a.rank - b.rank || (a.r.kind === 'dir' ? 0 : 1) - (b.r.kind === 'dir' ? 0 : 1) || nameCmp(a.r, b.r)).slice(0, 80);
+}
+function fileResults(list, titleOf) {
+  if (!searchView) return '';
+  searchView.fhits = list;
+  if (!list.length) return '';
+  const nd = list.filter(r => r.kind === 'dir').length, nf = list.length - nd;
+  return `<div class="rhead fhead"><span class="num">${[nd ? plural(nd, 'folder') : '', nf ? plural(nf, 'file') : ''].filter(Boolean).join(' · ')}</span></div>`
+    + list.map(r => `<button class="res" data-fopen="${esc(r.path)}">${r.thumbId ? `<img alt="" class="fth" data-blob="${r.thumbId}">` : `<span class="gly">${r.kind === 'dir' ? ICON_FOLDER(24) : ICON_DOC(22)}</span>`}
+      <span><span class="rw">${titleOf(r)}</span><span class="rd">${r.kind === 'dir' ? `Folder · ${plural(deepCount(r.path), 'file')}` : `${esc(kindLabel(r))} · ${esc(fname(r.dir))}`}</span></span></button>`).join('');
+}
 
 /* ================= start ================= */
 async function seed() {
@@ -2496,6 +3447,7 @@ async function seed() {
   try { store = idbStore(await openDB()); } catch (e) { console.warn('IndexedDB unavailable, using memory', e); }
   try { decks = await store.all('decks'); cards = await store.all('cards'); } catch { decks = []; cards = []; }
   cards.forEach(c => { if (!c.defIds || !c.defIds.length) c.defIds = [c.defId]; });
+  await loadFiles();
   try {
     if (!(await store.get('meta', 'reviewRules2'))) {
       const marked = cards.filter(c => c.review);

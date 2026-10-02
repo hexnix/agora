@@ -1,6 +1,6 @@
 # Agora: notes for Claude
 
-Agora (called Subtext until v22) is a vocabulary flashcard app: a single-file web app (PWA) installed on the owner's Android phone. Every card has a **word**, a **scene** (where the word was met), one or more **definitions**, **tags**, and a **source** page.
+Agora (called Subtext until v22) is a vocabulary flashcard app: a single-file web app (PWA) installed on the owner's Android phone. Every card has a **word**, a **scene** (where the word was met), one or more **definitions**, **tags**, and a **source** page. Since v23 it is also a file manager for the phone's **My Files** folder, with the same tags and search (see "My Files").
 
 This repo is the app. `main` is published by GitHub Pages at https://hexnix.github.io/agora/, so **merging into `main` is what ships a new version** to the phone.
 
@@ -30,7 +30,7 @@ This repo is the app. `main` is published by GitHub Pages at https://hexnix.gith
 - `index.html`: everything. CSS in one `<style>`, all code in one `<script>` that runs as a single closure `(() => { … })()`. About 130 KB: grep for section markers (`/* ===== … ===== */`) and function names, then read only the parts you need.
 - `sw.js`: the service worker that keeps the app working offline.
 - `manifest.webmanifest`, `icon-192.png`, `icon-512.png`, `maskable-512.png`, `apple-touch-icon.png`.
-- `tools/app-test/`: the phone-view test kit (not part of the app; the service worker never loads it).
+- `tools/app-test/`: the phone-view test kit (not part of the app; the service worker never loads it). `test_files.py` tests My Files.
 
 **Outside libraries** (loaded only when needed):
 - From cdnjs: JSZip 3.10.1 (backup and import) and pdf.js 3.11.174 (magazine pages; its worker is made from a blob URL fetched through the service worker).
@@ -43,16 +43,17 @@ This repo is the app. `main` is published by GitHub Pages at https://hexnix.gith
 
 ## Storage
 
-IndexedDB database `subtext`, version 1, with four stores. The database keeps the app's old name on purpose: renaming it would leave every saved card behind.
+IndexedDB database `subtext`, version 2 (v23; version 1 had the first four stores), with five stores. The database keeps the app's old name on purpose: renaming it would leave every saved card behind. The upgrade step only adds `files`; it never touches the other stores.
 
 | Store | Key | Holds |
 |---|---|---|
 | `decks` | `id` | `{id, name, sort, createdAt, coverId?, coverCard?, subs?, srcNames?, srcHidden?}` |
 | `cards` | `id`, index `deckId` | see the card fields below |
-| `blobs` | `id` | `{id, blob}`: every image, thumbnail and PDF |
-| `meta` | `k` | flags: `seeded`, `reviewRules2` |
+| `blobs` | `id` | `{id, blob}`: every image, thumbnail and PDF (file thumbnails are `ft-…`) |
+| `meta` | `k` | flags: `seeded`, `reviewRules2`; `filesRoot` (`{h}`: the My Files folder handle); `fileTagsPending` (`{v: [entries]}`: tags of files not found right now) |
+| `files` | `path` | the index of My Files, one record per file or folder (see "My Files") |
 
-- `localStorage` only remembers small things under `agora.` keys (older `subtext.` keys are still read), such as `hinted2` (the first-run gesture hint has been seen).
+- `localStorage` only remembers small things under `agora.` keys (older `subtext.` keys are still read), such as `hinted2` (the first-run gesture hint has been seen), `files.view` (`list` / `grid`) and `files.sort`.
 - Adding a store means a database version bump plus an upgrade step. **Never drop or rewrite the owner's data.** They have hundreds of cards on the phone and only a backup zip.
 
 **Card fields:**
@@ -94,6 +95,7 @@ IndexedDB database `subtext`, version 1, with four stores. The database keeps th
   - **Page 3, a deck's cards:** a gallery, two across, no other view; the sort icon at the top right, the sort in grey under the title. **Hold a card** to select: small boxes appear on every card (selecting only repaints the boxes and the bar, `paintSel`, so nothing flickers); the bar shows × , "N selected" and ⋯ (`selMenu`): Select all, Add to deck, Move to deck and Remove from deck (in a made deck), Mark for review / Clear review mark, Delete cards.
   - **Sort** (`SORTS`, `storySort`, `sortOf`): "Order of appearance" only when every card (in a source or a made deck) is from one show, film, book or YouTube video (episode then `sceneTime`; a book by `shotAt`, which follows reading order; one video by `ref.t`), otherwise newest first. Also Newest first, Oldest first, A to Z. A choice sticks per deck and source (`localStorage` `sort.<deckId>.<sourceKey>`).
   - The study view opened from page 3 shows exactly that page's cards in that order (`openStudy(d, id, order)`); no review-first.
+- **My Files** (v23): see "My Files" below. Its tile sits after the decks, before "New deck".
 - **Browse cards:** a thumbnail grid. Select lets the owner move or delete cards; tapping a card opens a preview sheet.
 - **Study view**, the heart of the app:
   - The header band has the word (hold it to rename), ✎ (the edit menu) and tags. The footer band has "i / n" and the blue "Review" mark.
@@ -110,6 +112,37 @@ IndexedDB database `subtext`, version 1, with four stores. The database keeps th
 - **The keyboard** doesn't resize the page on Android; `--kb` (from `visualViewport`) lifts every sheet above it.
 - **No pull-to-refresh** (`html{overscroll-behavior:none}`, and pages are always a pixel scrollable): a reload dropped the owner on the home screen.
 
+## My Files (v23)
+
+The owner keeps important files (documents, PDFs, photos, anything) in a folder called **My Files** in the phone's internal storage, in subfolders of their choosing. Agora browses it, tags files, finds them with the cards' search, and opens them.
+
+**Rules that never change:**
+- Agora **never moves, renames, changes or deletes the owner's files.** The only thing it writes in the folder is `.agora/file-tags.json`.
+- **No pop-up on launch.** The app opens without touching the folder. Android asks for the folder again every time the app is reopened (`queryPermission()` says "prompt"), so only an action that needs the folder asks, with one tap: the first connect, Refresh, opening or sharing a file. The tap that opens a file is also the tap that reconnects. When Agora becomes a real Android app, that tap is the only thing that goes away.
+- The **File System Access API** (`showDirectoryPicker`) is in Chrome on Android, not in Brave. Without it the file features hide and the home screen shows one line: "My Files needs Chrome: this browser doesn't let Agora open folders."
+
+**The index** (store `files`, in memory `fidx`): `{path, kind: 'dir' | 'file', name, dir, size, mtime, ext, tags, tagsAt, thumbId, thumbKey, noThumb}`. `path` is inside the folder ("Documents/Bank/x.pdf"), `dir` the folder's path ('' for the top). Browsing and search work from the index alone, before the folder is connected.
+- **Refresh** (`rescan`): walks the whole folder in the background (the count updates on the page; Chrome froze on huge folders, so nothing blocks the screen), skips hidden names (starting with "."), then `reconcile`: new, removed and changed files. A renamed or moved file keeps its tags and picture: same name + size + date, else same name + size, else same size + date (only when exactly one file matches). A tagged file that has gone is kept aside in `fileTagsPending`, so its tags come back if it does.
+- **Thumbnails** (`makeFileThumbs`): 400-px JPEGs of images and of a PDF's first page, made one at a time after a refresh, the folder on screen first; originals are read only when opened or shared.
+- **Tags are saved twice:** in the index at once, and in `.agora/file-tags.json` (`{app: 'agora', kind: 'file-tags', version: 1, files: [{path, name, size, mtime, tags, at, missing?}]}`), written whenever tags change while connected (`tagsChanged` → `saveTagsFile`, one small write) and read back on every connect (`readTagsFile`). In every merge (`mergeTagEntries`: the folder's copy, a backup, the set-aside list) the newer change (`at` / `tagsAt`) wins.
+- **Connecting** (`connectFiles`): must run straight from a tap. The folder handle is kept in `meta.filesRoot`; "Choose a different folder" picks again.
+
+**Screens:**
+- **Home tile** "My Files" after the decks: a mosaic of the four newest pictures (or a folder), "N files · N folders", or "Tap to connect" before the first connect. Its ⋯ (`filesMenu`): Refresh the list / Connect My Files, Choose a different folder.
+- **Folder pages** (`openFolder`, kind `files` in `pages`, `renderFiles`): the same locked bar as deck pages ("<", the folder's name), then the path in grey ("My Files › Documents › Bank", each part tappable, `goCrumb`), then "4 folders · 8 files · newest first". Tools: the **list/grid toggle** (`files.view`), sort (Newest first, Oldest first, A to Z, Largest first; folders always first, A to Z), ⋯ (Refresh, Quick tagging, Select files, Choose a different folder).
+  - **List** (the owner's pick B1): a 56-px picture, the name, "PDF · 1.2 MB · 14 Sep 2026", up to two tags as small blue pills and "+N".
+  - **Grid** (B2): two across like a deck's cards; tags as blue text under the name.
+  - **Connect line** (E1): "• Connect My Files · to refresh and open" (blue, then grey) under the count, only while not connected.
+- **Tagging** (D1 + D3):
+  - **Hold a file** to select (boxes, "× N selected ⋯", like page 3). ⋯ (`fileSelMenu`): Select all, Add tags, Share / Open with…
+  - **The tag sheet** (`fileTagSheet`, also for one file): a field "Add a tag"; "On these files · tap to remove" as filled pills with "1 of 3" when only some have it; "Your tags · tap to add to all 3" as outlined pills (tags used on files first, then the cards' tags). A new tag takes the spelling the cards or files already use (`spellTag`).
+  - **Quick tagging** (⋯ → Quick tagging, `startTagMode`): pick one tag; the bar becomes "× Tagging [Home]"; each tap on a file adds or removes it (boxes show which have it); folders still open. Back steps out of folders, then ends the mode.
+- **Opening a file** (F, `openViewer`), built like the study view: the name, ⋯ and tags on top (three show, "+N ›"; hold a tag for × and +; tap a tag to search it); the file in the middle; "5 / 8", the size or "page 2 of 6", and blue "Share / Open with…" at the bottom. Swipe left or right for the next file in the list it was opened from.
+  - Pictures: pinch, double-tap and drag to zoom. PDFs (pdf.js): all pages, fit the width, scroll, pinch or double-tap to zoom, drawn sharper after a zoom. Text files show as text, videos and audio play. Anything else: its name and a big "Share / Open with…".
+  - **Share / Open with…** (`shareFiles`) uses Web Share with the file itself, so WhatsApp, Drive or a PDF app can take it.
+  - ⋯: Tags, Share / Open with…, Show in folder.
+- **Search** (C2): typing searches file and folder names and file tags as well as cards. Cards come first ("N cards · Create deck"), then "1 folder · 3 files" with a thumbnail, the name and "PDF · Bank". A pinned tag shows the cards and the files with it. Tapping a file opens it, a folder opens its page.
+
 ## Import and export
 
 The only way cards get in and out of the app.
@@ -121,9 +154,14 @@ The only way cards get in and out of the app.
 - A deck is found by id, then by name, and created only if a new card needs it.
 - Export writes the same format, so a backup is also an import file.
 - A deck entry may also carry `subdecks: [{id, name, cards: [card ids], createdAt}]`, `sourceNames: {key: name}` and `hiddenSources: [keys]` (v20). Import only adds what's missing, never undoes a change made in the app.
+- The manifest may also carry `files: {tags: [{path, name, size, mtime, tags, at, missing?}]}` (v23): the tags of files in My Files, never the files. Import merges them (the newer change wins); tags for files this phone hasn't listed yet wait until My Files is connected. Older zips have no `files` and import exactly as before.
+- A video definition is exported with its `src` (fixed in v23), so re-importing a backup reports "already up to date".
 - **Rules:** never break older zips or backups. New fields are optional. An import must be safe to repeat.
 
 ## Design system (keep it unless the owner changes it)
+
+**My Files choices (v23, picked from numbered previews):** A1 tile after the decks; B1 list + B2 grid with a toggle in the bar; B4 path above the count; C2 cards then files in search; D1 hold-to-select + tag sheet and D3 quick tagging; E1 one quiet "Connect My Files" line; F viewer like the study view. Folders are a grey outlined folder; files without a picture are a grey page with the extension (no colours per file type).
+
 
 **Colours:**
 - Black background, white text, grey only for secondary text (`--muted #8D9096`, `--faint`).
@@ -172,6 +210,7 @@ python3 tools/app-test/harness.py . --zips tools/app-test/fixtures/test-library.
 - Always check: the Back behaviour, re-importing the zip reports "already up to date", and there are no JavaScript errors.
 - Merriweather italics look upright in test screenshots (the test font has no true italic); the phone shows real italics.
 - Don't commit `shots/`.
+- **My Files:** `python3 tools/app-test/test_files.py . --out shots/files/`. The folder picker can't be clicked in a test, so it fills the origin private file system (`navigator.storage.getDirectory()`) with made-up folders and files and hands it to the app as My Files (`window.showDirectoryPicker = async () => dir`). It checks the index, list and grid, the path, tagging (sheet and quick tagging), `.agora/file-tags.json`, search, the viewer, Share (stubbed), a moved file keeping its tags, Back, the backup, re-imports and the database upgrade from version 1. Never put real files in the repo.
 - **When the app learns a new card field,** add a card using it to `tools/app-test/make_test_library.py` and rebuild the zip (`python3 tools/app-test/make_test_library.py`).
 
 ## Things that bite
@@ -192,5 +231,7 @@ python3 tools/app-test/harness.py . --zips tools/app-test/fixtures/test-library.
 - **v20:** decks made from search or selected cards; ⋯ on page 2 decks (Rename, Delete deck only, Delete deck and cards); hold to select cards on page 3; page 2 tiles only and page 3 gallery only (no pinch); names in parts ("A · B"); new search bar; name box as a floating card above the keyboard; no pull-to-refresh.
 - **v21:** page titles sit beside "<" in a bar locked at the top; selecting cards no longer flickers (loaded pictures show at once on any redraw).
 - **v22:** the app is renamed from Subtext to Agora (home-screen name, page title, messages, backup file name `agora-backup-…zip`, manifest `app: 'agora'`). The database keeps its old name so every card stays; older Subtext backups and import zips still import.
+
+- **v23:** My Files: a tile after the decks opens the phone's My Files folder (list or grid, path, sort); tag files one at a time, many at once, or with Quick tagging; search finds files and folders under the cards; images, PDFs, text, video and audio open inside Agora, and Share / Open with… sends any file to another app. Database version 2 adds the `files` store; file tags are also kept in `.agora/file-tags.json` and in backups. Backups keep a video definition's `src`.
 
 Add a line here with every version you ship.

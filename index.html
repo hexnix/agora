@@ -607,6 +607,39 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 /* choosing subtitles: a panel from the right while the film stays in view (pick 3A) */
 .pl-panel{position:absolute;top:0;right:0;bottom:0;width:min(340px,86vw);background:#121316;padding:18px 0 calc(18px + var(--sb));padding-right:var(--sr);overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;transform:translateX(100%);transition:transform .25s var(--ease)}
 .pl-panel.open{transform:none}
+/* saving a line for a card (the owner's pick 1A, changed: tap the line, every line the same size, pick the words, an optional question) */
+.pl-note{position:absolute;top:0;right:0;bottom:0;width:min(380px,52vw);background:#121316;display:flex;flex-direction:column;padding-right:var(--sr);transform:translateX(100%);transition:transform .25s var(--ease)}
+.pl-note.open{transform:none}
+.player.noting .pl-sub{right:calc(min(380px,52vw) + 4%)}
+.pl-note .nh{display:flex;align-items:center;padding:16px 22px 4px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.pl-note .nh span{margin-left:auto;letter-spacing:0;text-transform:none;font-variant-numeric:tabular-nums}
+.pl-note .nls{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:2px;padding:4px 22px;touch-action:none;overflow:hidden}
+.pl-note .nl{font:400 15px/1.5 var(--sans);color:#E4E4E4;padding:5px 10px;margin:0 -10px;border-radius:8px;white-space:normal}
+.pl-note .nl.now{background:#1C1D20}
+.pl-note .nw{border-radius:3px}
+.pl-note .nw.on{background:rgba(0,134,255,.85);color:#fff}
+.pl-note .nsp.on{background:rgba(0,134,255,.85)}
+.pl-note .nhint{font-size:12px;color:var(--muted);padding:0 22px 8px}
+.pl-note .nq{margin:0 22px 12px;width:calc(100% - 44px);box-sizing:border-box;border:0;border-bottom:1px solid var(--gold);background:#1C1D20;border-radius:8px 8px 0 0;padding:10px 12px;font:400 14px var(--sans);color:#fff;outline:none;user-select:text;-webkit-user-select:text}
+.pl-note .nq::placeholder{color:var(--muted)}
+.pl-note .nb{display:flex;gap:10px;padding:0 22px calc(16px + var(--sb))}
+.pl-note .nb button{flex:1;height:44px;border-radius:12px;font:500 15px var(--sans);text-align:center;padding:0}
+.pl-note .nb .voc{background:var(--gold);color:#fff} .pl-note .nb .con{border:1px solid var(--gold);color:var(--blue-text)}
+.pl-toast{position:absolute;left:50%;top:calc(18px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:#1C1D20;border-radius:14px;padding:10px 8px 10px 18px;font-size:14px;display:flex;gap:6px;align-items:center;color:#fff;animation:fadein .15s;max-width:80vw}
+.pl-toast span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pl-toast button{color:var(--blue-text);font:500 14px var(--sans);padding:4px 10px}
+/* For cards: a tile per film or book, then its lines (the owner's picks 2 and 3A) */
+.cnlist{margin-top:14px;padding-bottom:96px}
+.cnrow{display:flex;gap:14px;width:100%;padding:11px 0;text-align:left;align-items:flex-start}
+.cnrow .pic{width:56px;height:56px;border-radius:8px;flex:none;overflow:hidden;background:var(--surface)}
+.cnrow .pic img,.srcs .cover img.cnimg{width:100%;height:100%;object-fit:cover;display:block}
+.cnrow .tx{flex:1;min-width:0}
+.cnrow .ln{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;font-size:14.5px;line-height:1.45;color:var(--text)}
+.cnrow .ln b{color:var(--blue-text);font-weight:500}
+.cnrow .mt{color:var(--muted);font-size:12.5px;margin-top:3px}
+.cnrow .mt .k{color:var(--blue-text)}
+.cnrow .qq{color:#C9CBD0;font-size:13px;margin-top:4px;font-style:italic;display:block}
+.cnsend{position:fixed;left:16px;right:16px;bottom:calc(18px + env(safe-area-inset-bottom,0px));height:50px;border-radius:14px;background:var(--gold);color:#fff;font:500 15px var(--sans);z-index:2;text-align:center;padding:0}
 .player.paneled .pl-sub{right:calc(min(340px,86vw) + 4%)}
 .pl-panel h3{margin:0 22px 6px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500}
 .pl-opt{display:flex;align-items:center;gap:14px;width:100%;padding:11px 22px;font-size:15px;text-align:left;color:var(--text)}
@@ -1350,6 +1383,7 @@ function renderPage(v) {
   if (v.kind === 'study') { renderStudyPage(v); return; }
   if (v.kind === 'queue') { renderQueue(v); return; }
   if (v.kind === 'history') { renderHistory(v); return; }
+  if (v.kind === 'cnotes' || v.kind === 'cnlist') { renderCardNotes(v); return; }
   if (v.kind === 'marks') { renderMarks(v); return; }
   if (v.kind === 'notes') { renderNotes(v); return; }
   if (v.kind === 'note') { renderNote(v); return; }
@@ -1360,7 +1394,7 @@ function renderPage(v) {
     const gs = sourcesOf(d), total = deckCards(d.id).length;
     const meta = `${plural(gs.length, 'deck')} · ${plural(total, 'card')}`;
     v.title = d.name;
-    v.el.innerHTML = `<div class="home">${pageBar(v, searchTool(d) + (d === studyDeck() ? `<button class="iconbtn" data-p="history" aria-label="History">${ICON_HISTORY}</button>` : ''))}
+    v.el.innerHTML = `<div class="home">${pageBar(v, searchTool(d) + (d === studyDeck() ? `<button class="iconbtn" data-p="cnotes" aria-label="For cards">${ICON_FORCARDS}</button><button class="iconbtn" data-p="history" aria-label="History">${ICON_HISTORY}</button>` : ''))}
       <p class="summary">${meta}</p>${d === studyDeck() ? studyBanner(d) : ''}
       <div class="srcs">${gs.map(g => {
         const c0 = orderOf(d, g)[0];
@@ -1423,6 +1457,7 @@ function onPageClick(e, v) {
   if (v.kind === 'marks') { onMarksClick(e, v); return; }
   if (v.kind === 'queue') { onQueueClick(e, v); return; }
   if (v.kind === 'history') { onHistoryClick(e, v); return; }
+  if (v.kind === 'cnotes' || v.kind === 'cnlist') { onCardNotesClick(e, v); return; }
   if (v.kind === 'notes') { onNotesClick(e, v); return; }
   if (v.kind === 'note') { onNoteClick(e, v); return; }
   if (v.kind === 'versions') { onVersionsClick(e, v); return; }
@@ -1433,6 +1468,7 @@ function onPageClick(e, v) {
   else if (v.kind === 'study') onStudyClick(b, v);
   else if (p === 'study') { if (SD.loaded) openStudyPage(v.deck); }
   else if (p === 'history') openHistory();
+  else if (p === 'cnotes') openCardNotes();
   else if (p === 'dsearch') openSearch(null, v.deck);
   else if (p === 'all') { toggleAll(v); paintSel(v); }
   else if (b.dataset.src) { const g = sourcesOf(v.deck).find(x => x.key === b.dataset.src); if (g) openSource(v.deck, g); }
@@ -3181,7 +3217,7 @@ async function slimSheet() {
   });
 }
 async function exportAll() {
-  if (!cards.length && !fileTagList().length && !NT.notes.size && !BM.recs.size) { toast('Nothing to back up yet'); return; }
+  if (!cards.length && !fileTagList().length && !NT.notes.size && !BM.recs.size && !CN.recs.size) { toast('Nothing to back up yet'); return; }
   progressSheet('Preparing backup', 'Loading…');
   let JSZip; try { JSZip = await loadZip(); } catch { closeSheet(); toast('Backup needs an internet connection the first time'); return; }
   const zip = new JSZip(), man = { app: 'agora', version: 1, exportedAt: new Date().toISOString(), decks: [] };
@@ -3211,6 +3247,7 @@ async function exportAll() {
       if (tagsOf(c).length) mc.tags = tagsOf(c);
       if (sceneKind(c) === 'art') mc.sceneText = { paras: c.sceneText.paras };
       if (c.sceneCaption) mc.sceneCaption = c.sceneCaption;
+      if (c.fromNote) mc.fromNote = c.fromNote;
       if (c.pdf && c.pdf.id) {
         const pb = await store.get('blobs', c.pdf.id).catch(() => null);
         if (pb) {
@@ -3237,6 +3274,8 @@ async function exportAll() {
   if (BM.recs.size) man.bookmarks = exportMarks();
   // Notes and their pictures (optional too)
   const nt = await exportNotes(zip); if (nt) man.notes = nt;
+  // lines saved for cards and their frames (optional too)
+  const cn = await exportCardNotes(zip); if (cn) man.cardNotes = cn;
   zip.file('manifest.json', JSON.stringify(man, null, 2));
   const blob = await zip.generateAsync({ type: 'blob', compression: 'STORE' }, m => progress('Packing…', 0.6 + m.percent / 250));
   const name = `agora-backup-${new Date().toISOString().slice(0, 10)}.zip`;
@@ -3249,7 +3288,7 @@ $('#zipPicker').addEventListener('change', async e => {
   const files = [...e.target.files]; e.target.value = ''; if (!files.length) return;
   progressSheet('Importing', 'Reading the file…');
   agWhy(files.length > 1 ? `Imported ${files.length} backups` : 'Imported a backup');
-  let added = 0, updated = 0, skipped = 0, mismatched = 0, absent = 0, ftagged = 0, fwait = 0, studyN = 0, notesN = 0, marksN = 0; const touched = new Set();
+  let added = 0, updated = 0, skipped = 0, mismatched = 0, absent = 0, ftagged = 0, fwait = 0, studyN = 0, notesN = 0, marksN = 0, cnN = 0; const touched = new Set();
   try {
     const JSZip = await loadZip();
     for (let fi = 0; fi < files.length; fi++) {
@@ -3379,6 +3418,10 @@ $('#zipPicker').addEventListener('change', async e => {
                 have.ref = r; changed = true;
               }
             }
+            if ('fromNote' in mc) {
+              const f = typeof mc.fromNote === 'string' && mc.fromNote.trim() ? mc.fromNote.trim() : null;
+              if (f !== (have.fromNote || null)) { if (f) have.fromNote = f; else delete have.fromNote; changed = true; }
+            }
             if ('sceneCaption' in mc) {
               const t = typeof mc.sceneCaption === 'string' && mc.sceneCaption.trim() ? mc.sceneCaption.trim() : null;
               if (t !== (have.sceneCaption || null)) { if (t) have.sceneCaption = t; else delete have.sceneCaption; changed = true; }
@@ -3410,6 +3453,7 @@ $('#zipPicker').addEventListener('change', async e => {
           if (Number.isFinite(mc.sceneTime)) extra.sceneTime = mc.sceneTime;
           const st = cleanScene(mc.sceneText); if (st) extra.sceneText = st;
           if (typeof mc.sceneCaption === 'string' && mc.sceneCaption.trim()) extra.sceneCaption = mc.sceneCaption.trim();
+          if (typeof mc.fromNote === 'string' && mc.fromNote.trim()) extra.fromNote = mc.fromNote.trim();
           const pd = await takePdf(mc.pdf); if (pd) extra.pdf = pd;
           const rf = cleanRef(mc.reference);
           if (rf) { const th = rf.kind === 'video' ? await read(mc.reference.thumb) : null; if (th) rf.thumbId = await putImage(th); extra.ref = rf; }
@@ -3428,10 +3472,11 @@ $('#zipPicker').addEventListener('change', async e => {
       if (man.study) studyN += await importStudy(man.study);
       if (man.notes) notesN += await importNotes(man.notes, zip);
       if (man.bookmarks) marksN += await importMarks(man.bookmarks);
+      if (man.cardNotes && Array.isArray(man.cardNotes.notes)) cnN += await importCardNotes(man.cardNotes.notes, async x => x.frame && zip.file(x.frame) ? zip.file(x.frame).async('arraybuffer') : null);
     }
     askPersist(); renderHome(); refreshPages(); closeSheet();
     toast([added ? `Imported ${plural(added, 'card')}` : '', updated ? `Updated ${plural(updated, 'card')}` : '', skipped - mismatched > 0 ? `${skipped - mismatched} already up to date` : '', mismatched ? `${mismatched} skipped: definitions didn’t line up` : '', absent ? `${plural(absent, 'card')} not on this phone` : '',
-      ftagged ? `Tags for ${plural(ftagged, 'file')}` : '', studyN ? `Study progress for ${plural(studyN, 'card')}` : '', notesN ? `${plural(notesN, 'note')}` : '', marksN ? plural(marksN, 'bookmark') : '', fwait ? `Tags for ${plural(fwait, 'file')} kept for when My Files is connected` : ''].filter(Boolean).join(' · ') || 'Nothing to import');
+      ftagged ? `Tags for ${plural(ftagged, 'file')}` : '', studyN ? `Study progress for ${plural(studyN, 'card')}` : '', notesN ? `${plural(notesN, 'note')}` : '', marksN ? plural(marksN, 'bookmark') : '', cnN ? `${plural(cnN, 'line')} for cards` : '', fwait ? `Tags for ${plural(fwait, 'file')} kept for when My Files is connected` : ''].filter(Boolean).join(' · ') || 'Nothing to import');
     if (ftagged) refreshFiles();
     refreshTiles(); // a scene that became text or a magazine page gets a tile to match
   } catch (err) {
@@ -4544,10 +4589,10 @@ const plBright = () => { const v = parseFloat(ls.get('player.bright')); return v
    is 3× the film's own level (+9.5 dB: 2× was too quiet for a film mixed for cinemas, 4× too loud). The film's own level is at 69. */
 const PL_AMAX = 3, plAmp = s => PL_AMAX * (s / 100) ** 3;
 const plVol = () => { const v = parseFloat(ls.get('player.vol2')); return v >= 5 && v <= 100 ? v : 69; };
-function openPlayer(r) {
+function openPlayer(r, at) {
   if (PL) return;
   if (!FX.ready) { // the tap that opens the film also gives Agora the folder
-    connectFiles().then(ok => { if (ok) openPlayer(fidx.get(r.path) || r); });
+    connectFiles().then(ok => { if (ok) openPlayer(fidx.get(r.path) || r, at); });
     return;
   }
   const el = document.createElement('div'); el.className = 'player ui';
@@ -4566,10 +4611,10 @@ function openPlayer(r) {
     <button class="iconbtn pl-unlock" data-p="unlock" aria-label="Unlock" hidden>${PI.lock}</button>
     <div class="pl-side l" hidden>${PI.sun}<div class="tr"><i></i></div><span></span></div>
     <div class="pl-side r" hidden>${PI.vol}<div class="tr"><i></i></div><span></span></div>
-    <div class="pl-panel" hidden></div>`;
+    <div class="pl-panel" hidden></div><div class="pl-note" hidden></div>`;
   document.body.appendChild(el); document.body.classList.add('locked');
   const v = $('video', el);
-  PL = { el, v, r, key: vidKey(r), rec: null, info: null, file: null, url: null, cues: [], cueI: -1, subs: [], subId: null, job: 0,
+  PL = { el, v, r, key: vidKey(r), startAt: at, rec: null, info: null, file: null, url: null, cues: [], cueI: -1, subs: [], subId: null, job: 0,
     bright: plBright(), vol: plVol(), locked: false, uiT: 0, savedAt: 0, raf: 0, gain: null };
   $('.pl-name', el).textContent = r.name;
   plFull();
@@ -4617,7 +4662,8 @@ async function plLoad() {
 function plStart() {
   const P = PL; if (!P) return;
   const pos = P.rec && P.rec.pos, d = P.v.duration;
-  if (pos > 10 && (!isFinite(d) || pos < d - Math.min(60, d * 0.15))) { P.v.currentTime = pos; toast(`Carrying on from ${hms(pos)}`); }
+  if (P.startAt != null) P.v.currentTime = P.startAt; // from a saved line: the moment it was saved at
+  else if (pos > 10 && (!isFinite(d) || pos < d - Math.min(60, d * 0.15))) { P.v.currentTime = pos; toast(`Carrying on from ${hms(pos)}`); }
   if (P.rec) { P.rec.dur = isFinite(d) ? d : P.rec.dur; }
   plPaintTime(); plShowUI();
 }
@@ -4730,6 +4776,8 @@ function plClick(e) {
   else if (k === 'unlock') { P.locked = false; $('.pl-unlock', P.el).hidden = true; plShowUI(); }
   else if (k === 'sub') plPickSub(b.dataset.id);
   else if (k === 'size') { ls.set('player.sub', b.dataset.s); plApplySize(); plPanelPaint(); }
+  else if (k === 'nsave') plNoteSave(b.dataset.kind);
+  else if (k === 'nundo') cnUndo();
 }
 function plUnlockHint() {
   const u = $('.pl-unlock', PL.el); u.hidden = false; clearTimeout(PL.lockT);
@@ -4809,8 +4857,8 @@ function plGestures() {
   const pts = new Map();
   el.addEventListener('pointerdown', e => {
     plAudioWake(e.clientX >= el.clientWidth / 2);
-    if (e.target.closest('button,.pl-seek,.pl-panel,.pl-msg') || (e.target.closest('.pl-sub') && e.target.textContent)) return;
-    if (P.paneled) return;
+    if (e.target.closest('button,.pl-seek,.pl-panel,.pl-note,.pl-msg,.pl-toast') || (e.target.closest('.pl-sub') && e.target.textContent)) return;
+    if (P.paneled || P.noting) return;
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pts.size === 2 && !P.locked && P.rec) {
       // two fingers: pinch to zoom, and move them together to shift the picture
@@ -5050,7 +5098,7 @@ function plSubSwipe() {
     const dx = e.clientX - G.x0, dy = e.clientY - G.y0, dt = Date.now() - G.t0;
     const sp = $('span', el); if (sp) { sp.style.transition = ''; sp.style.transform = ''; sp.style.opacity = ''; }
     if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) plSubStep(dx < 0 ? 1 : -1);
-    else if (Math.hypot(dx, dy) < 12 && dt < 450 && e.type === 'pointerup') plTap(e);
+    else if (Math.hypot(dx, dy) < 12 && dt < 450 && e.type === 'pointerup') plNoteOpen(); // a tap on the line: save it for a card
   };
   el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
 }
@@ -5090,6 +5138,339 @@ function plPanelPaint() {
     ${!P.subs.length ? '<p class="note">No subtitles in this video. Put a .srt with the same name next to it to use it here.</p>' : ''}
     <div class="hr"></div><h3>Size</h3>
     <div class="pl-sizes">${Object.keys(SUB_SIZES).map(k => `<button class="${k === size ? 'on' : ''}" data-p="size" data-s="${k}">${k}</button>`).join('')}</div>`;
+}
+
+/* ================= For cards: lines saved from films for the card chat (v40) ================= */
+/* Tap a subtitle line: the film pauses and a panel shows the lines around it (pick 1A). Pick words by tapping or dragging, add a
+   question if you like, then Vocabulary or Concept: the line is saved with the frame and the film plays on.
+   Database "agora-cardnotes" (opened after the decks are on screen): store `cnotes` {id: 'cn-…', kind: 'vocabulary' | 'concept',
+   createdAt, at, text (the words picked, or the line), question, src: {type: 'video', key (vidKey), path, name, size, title}, time,
+   lines: [{s, e, x}] (the line and up to 4 either side), cur (the tapped line's place in lines), sel: [first word, last word] or null
+   (words counted across lines), track, sentAt} or {id, gone: true, at}; store `frames` {id, blob} (the frame, and `<id>-t` for lists).
+   Kept in My Files › Agora › For cards (notes.json + frames/), and in backups. The card chat gets them as a zip (cnZip, kind 'card-notes'). */
+KEYS.cnotes = 'id'; KEYS.frames = 'id';
+const CN = { recs: new Map(), gone: new Map(), loaded: false };
+const CNDIR = 'For cards';
+let cstore = memStore(['cnotes', 'frames']);
+function openCardNotesDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('agora-cardnotes', 1);
+    r.onupgradeneeded = () => { r.result.createObjectStore('cnotes', { keyPath: 'id' }); r.result.createObjectStore('frames', { keyPath: 'id' }); };
+    r.onsuccess = () => { const db = r.result; db.onversionchange = () => db.close(); res(db); };
+    r.onerror = () => rej(r.error);
+    r.onblocked = () => rej(new Error('blocked'));
+  });
+}
+async function loadCardNotes() {
+  try { cstore = tracked(idbStore(await openCardNotesDB()), 'cnotes'); } catch (e) { console.warn('card notes storage unavailable, using memory', e); }
+  try { (await cstore.all('cnotes')).forEach(r => { if (r.gone) CN.gone.set(r.id, r); else if (!CN.recs.has(r.id)) CN.recs.set(r.id, r); }); } catch (e) { console.warn('card notes', e); }
+  CN.loaded = true;
+}
+const cnSave = list => { list.forEach(r => { CN.recs.set(r.id, r); CN.gone.delete(r.id); }); return cstore.put('cnotes', list).catch(storageFail); };
+async function cnDrop(ids) {
+  const at = Date.now(), gone = ids.map(id => ({ id, gone: true, at }));
+  ids.forEach(id => { CN.recs.delete(id); CN.gone.set(id, { id, gone: true, at }); cnUrls.delete(id); });
+  await cstore.put('cnotes', gone).catch(storageFail);
+  await cstore.del('frames', ids.flatMap(id => [id, id + '-t'])).catch(() => {});
+}
+const cnWords = x => String(x).replace(/\n/g, ' ').split(/\s+/).filter(Boolean);
+/* the words picked, as text; or the tapped line when none are */
+function cnText(n) {
+  if (!n.sel) return String(n.lines[n.cur].x).replace(/\n/g, ' ');
+  const all = n.lines.flatMap(l => cnWords(l.x));
+  return all.slice(n.sel[0], n.sel[1] + 1).join(' ');
+}
+/* the lines around it with the picked words marked ==like this==, the way a card's caption marks its word */
+function cnMarked(n, from = 0, to = n.lines.length - 1) {
+  let g = 0; const out = [];
+  n.lines.forEach((l, i) => {
+    const ws = cnWords(l.x), line = ws.map((w, k) => ({ w, on: n.sel && g + k >= n.sel[0] && g + k <= n.sel[1] }));
+    g += ws.length;
+    if (i < from || i > to) return;
+    out.push(line.map((x, k) => (x.on && !(k && line[k - 1].on) ? '==' : '') + x.w + (x.on && !(line[k + 1] && line[k + 1].on) ? '==' : '')).join(' '));
+  });
+  return out;
+}
+const cnTitleOf = r => String(r.name || '').replace(/\.[^.]+$/, '');
+const cnCardsOf = id => cards.filter(c => c.fromNote === id).map(c => c.id);
+
+/* ---- in the player ---- */
+function plNoteOpen() {
+  const P = PL; if (!P || P.noting || !P.cues.length || P.locked) return;
+  const t = P.v.currentTime; let i = cueAt(P.cues, t); if (i < 0) i = 0;
+  P.noteWas = !P.v.paused; P.v.pause(); plHideUI();
+  const lo = Math.max(0, i - 4), hi = Math.min(P.cues.length - 1, i + 4);
+  const N = P.note = { at: t, lines: P.cues.slice(lo, hi + 1).map(c => ({ s: c.s, e: c.e, x: c.x })), cur: i - lo, sel: null, frame: plGrab() };
+  const pn = $('.pl-note', P.el);
+  // two lines either side show; up to four either side are kept for the card chat
+  const show = [Math.max(0, N.cur - 2), Math.min(N.lines.length - 1, N.cur + 2)];
+  let g = 0;
+  const lines = N.lines.map((l, li) => {
+    const ws = cnWords(l.x), html = ws.map((w, k) => `<span class="nw" data-g="${g + k}">${esc(w)}</span>`).join('<span class="nsp"> </span>');
+    g += ws.length;
+    return li < show[0] || li > show[1] ? '' : `<div class="nl${li === N.cur ? ' now' : ''}">${html}</div>`;
+  }).join('');
+  pn.innerHTML = `<div class="nh">Save for a card<span>${hms(t)}</span></div><div class="nls">${lines}</div>
+    <div class="nhint"></div><input class="nq" type="text" placeholder="Add a question (optional)" enterkeyhint="done" autocomplete="off">
+    <div class="nb"><button class="voc" data-p="nsave" data-kind="vocabulary">Vocabulary</button><button class="con" data-p="nsave" data-kind="concept">Concept</button></div>`;
+  plNotePaint(); plNotePick(pn);
+  $('.nq', pn).addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
+  pn.hidden = false; pn.offsetWidth; pn.classList.add('open'); P.el.classList.add('noting'); P.noting = true;
+  const shut = e => { if (!e.target.closest('.pl-note')) { e.stopPropagation(); e.preventDefault(); back(); } };
+  P.el.addEventListener('pointerdown', shut, true); P.nshut = shut;
+  pushLayer(() => {
+    if (!PL || PL !== P) return;
+    P.el.removeEventListener('pointerdown', P.nshut, true);
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    pn.classList.remove('open'); P.el.classList.remove('noting'); P.noting = false;
+    setTimeout(() => { if (!pn.classList.contains('open')) pn.hidden = true; }, 260);
+    if (P.noteWas) P.v.play().catch(() => {}); // back to watching
+  });
+}
+/* the frame on screen, as a JPEG (taken at once, while the film is paused on it) */
+function plGrab() {
+  const v = PL.v; if (!v.videoWidth) return Promise.resolve(null);
+  try {
+    const c = document.createElement('canvas'); c.width = v.videoWidth; c.height = v.videoHeight;
+    c.getContext('2d').drawImage(v, 0, 0);
+    return new Promise(res => c.toBlob(b => res(b), 'image/jpeg', 0.88));
+  } catch (e) { console.warn(e); return Promise.resolve(null); }
+}
+function plNotePaint() {
+  const P = PL, N = P.note, pn = $('.pl-note', P.el);
+  $$('.nw', pn).forEach(w => { const g = +w.dataset.g, on = !!N.sel && g >= N.sel[0] && g <= N.sel[1]; w.classList.toggle('on', on); });
+  $$('.nsp', pn).forEach(sp => { const a = sp.previousElementSibling, b = sp.nextElementSibling; sp.classList.toggle('on', !!(a && b && a.classList.contains('on') && b.classList.contains('on'))); });
+  const n = N.sel ? N.sel[1] - N.sel[0] + 1 : 0;
+  $('.nhint', pn).textContent = n ? `${plural(n, 'word')} picked · drag to pick more` : 'Tap or drag across words to pick them';
+}
+/* tap a word to pick it (next to the picked ones it adds on; a picked word at either end comes off), or drag across words */
+function plNotePick(pn) {
+  const P = PL, box = $('.nls', pn);
+  let d = null;
+  const wordAt = (x, y) => { const el = document.elementFromPoint(x, y); return el && el.classList.contains('nw') ? +el.dataset.g : null; };
+  box.addEventListener('pointerdown', e => {
+    const g = wordAt(e.clientX, e.clientY); if (g == null) return;
+    d = { id: e.pointerId, g, moved: false }; box.setPointerCapture(e.pointerId);
+  });
+  box.addEventListener('pointermove', e => {
+    if (!d || e.pointerId !== d.id) return;
+    const g = wordAt(e.clientX, e.clientY); if (g == null || (g === d.g && !d.moved)) return;
+    d.moved = true; P.note.sel = [Math.min(d.g, g), Math.max(d.g, g)]; plNotePaint();
+  });
+  const up = e => {
+    if (!d || e.pointerId !== d.id) return;
+    const { g, moved } = d; d = null; if (moved || e.type !== 'pointerup') return;
+    const N = P.note, s = N.sel;
+    if (!s) N.sel = [g, g];
+    else if (g >= s[0] && g <= s[1]) N.sel = s[0] === s[1] ? null : g === s[0] ? [s[0] + 1, s[1]] : g === s[1] ? [s[0], s[1] - 1] : [g, g];
+    else N.sel = g === s[0] - 1 ? [g, s[1]] : g === s[1] + 1 ? [s[0], g] : [g, g];
+    plNotePaint();
+  };
+  box.addEventListener('pointerup', up); box.addEventListener('pointercancel', up);
+}
+async function plNoteSave(kind) {
+  const P = PL, N = P && P.note; if (!N || N.saving) return;
+  N.saving = true;
+  const q = $('.pl-note .nq', P.el).value.trim(), sub = P.subs.find(x => x.id === P.subId);
+  const n = { id: 'cn-' + uid(), kind, createdAt: Date.now(), at: Date.now(), question: q, time: +N.at.toFixed(2), lines: N.lines, cur: N.cur, sel: N.sel,
+    src: { type: 'video', key: P.key, path: P.r.path, name: P.r.name, size: P.r.size, title: cnTitle(P.key) || cnTitleOf(P.r) },
+    track: sub ? sub.label : '' };
+  n.text = cnText(n);
+  back(); // the panel closes and the film plays on
+  const blob = await N.frame;
+  if (blob) await cstore.put('frames', [{ id: n.id, blob }, { id: n.id + '-t', blob: await makeThumb(blob, 320) }]).catch(storageFail);
+  await cnSave([n]);
+  if (PL !== P) return;
+  $$('.pl-toast', P.el).forEach(x => x.remove());
+  const t = document.createElement('div'); t.className = 'pl-toast';
+  t.innerHTML = `<span>Saved “${esc(n.text.length > 40 ? n.text.slice(0, 38) + '…' : n.text)}” for a card</span><button data-p="nundo">Undo</button>`;
+  P.el.appendChild(t); P.lastNote = n.id;
+  setTimeout(() => t.remove(), 4500);
+}
+async function cnUndo() {
+  const P = PL; if (!P || !P.lastNote) return;
+  await cnDrop([P.lastNote]); P.lastNote = null;
+  $$('.pl-toast', P.el).forEach(x => x.remove());
+}
+/* a film's name in the list: what it was renamed to, else its file name */
+const cnTitle = key => { const n = [...CN.recs.values()].find(r => r.src && r.src.key === key && r.src.title); return n ? n.src.title : ''; };
+
+/* ---- the pages: a tile for each film (or book), then its lines ---- */
+const ICON_FORCARDS = svg('<rect x="4" y="7" width="13" height="13" rx="2"/><path d="M8 4h10a2 2 0 0 1 2 2v10"/><path d="M10.5 11v6M7.5 14h6"/>', 24);
+function cnGroups() {
+  const m = new Map();
+  for (const n of CN.recs.values()) {
+    const k = n.src.key; if (!m.has(k)) m.set(k, { key: k, title: n.src.title || cnTitleOf(n.src), list: [] });
+    m.get(k).list.push(n);
+  }
+  const gs = [...m.values()];
+  gs.forEach(g => g.list.sort((a, b) => b.createdAt - a.createdAt));
+  return gs.sort((a, b) => b.list[0].createdAt - a.list[0].createdAt);
+}
+function openCardNotes() { if (CN.loaded) newPage({ kind: 'cnotes' }); }
+const cnUrls = new Map();
+function cnPics(root) {
+  $$('img[data-cnf]', root).forEach(async img => {
+    const id = img.dataset.cnf;
+    if (!cnUrls.has(id)) { const r = await cstore.get('frames', id + '-t').catch(() => null); cnUrls.set(id, r ? URL.createObjectURL(r.blob) : ''); }
+    if (cnUrls.get(id)) { img.onload = () => img.classList.add('in'); img.src = cnUrls.get(id); }
+  });
+}
+function cnRow(n, withSrc) {
+  // every line holding a picked word (a pick can run across lines), else the line itself
+  const line = n.sel ? cnMarked(n).filter(x => x.includes('==')).join(' ') : cnMarked(n, n.cur, n.cur).join(' ');
+  const html = esc(line).replace(/==(.+?)==/g, '<b>$1</b>');
+  const made = cnCardsOf(n.id).length;
+  return `<button class="cnrow" data-cn="${esc(n.id)}"><span class="pic"><img alt="" data-cnf="${esc(n.id)}"></span><span class="tx">
+    <span class="ln">${html}</span>
+    <span class="mt">${withSrc ? esc(n.src.title) + ' · ' : ''}${hms(n.time)} · <span class="k">${n.kind === 'concept' ? 'Concept' : 'Vocabulary'}</span>${made ? ' · card made' : n.sentAt ? ' · sent' : ''}</span>
+    ${n.question ? `<span class="qq">“${esc(n.question)}”</span>` : ''}</span></button>`;
+}
+function renderCardNotes(v) {
+  const top = v.el.scrollTop, gs = cnGroups();
+  if (v.kind === 'cnotes') {
+    const total = gs.reduce((n, g) => n + g.list.length, 0);
+    v.title = 'For cards';
+    v.el.innerHTML = `<div class="home">${pageBar(v)}
+      <p class="summary">${plural(total, 'line')} · ${plural(gs.length, 'source')}</p>
+      <div class="srcs">${gs.map(g => `<div class="src"><button class="src-open" data-cng="${esc(g.key)}"><div class="cover"><img class="cnimg" alt="" data-cnf="${esc(g.list[0].id)}"></div>
+        <div><div class="tile-name">${esc(g.title)}</div><div class="tile-meta">${plural(g.list.length, 'line')}</div></div></button>
+        <button class="more" data-cngmenu="${esc(g.key)}" aria-label="Options for ${esc(g.title)}">${ICON.more}</button></div>`).join('')}</div>
+      ${total ? `<button class="cnsend" data-p="cnsend">Send ${total} to the card chat</button>` : '<p class="empty">Tap a subtitle line while a film plays to save it here for a card.</p>'}</div>`;
+  } else {
+    const g = gs.find(x => x.key === v.key), list = g ? g.list : [];
+    v.title = g ? g.title : v.title || 'For cards';
+    v.el.innerHTML = `<div class="home">${pageBar(v)}
+      <p class="summary">${plural(list.length, 'line')} · newest first</p>
+      <div class="cnlist">${list.map(n => cnRow(n, false)).join('')}</div>
+      ${list.length ? `<button class="cnsend" data-p="cnsend">Send ${list.length} to the card chat</button>` : '<p class="empty">No lines left here.</p>'}</div>`;
+  }
+  cnPics(v.el); v.el.scrollTop = top; markScrolled(v);
+}
+function onCardNotesClick(e, v) {
+  const b = e.target.closest('button'); if (!b || b.disabled) return;
+  const p = b.dataset.p;
+  if (p === 'back') back();
+  else if (p === 'cnsend') cnSend(v.kind === 'cnlist' ? cnGroups().find(g => g.key === v.key)?.list || [] : [...CN.recs.values()]);
+  else if (b.dataset.cng) { const g = cnGroups().find(x => x.key === b.dataset.cng); if (g) newPage({ kind: 'cnlist', key: g.key, title: g.title }); }
+  else if (b.dataset.cngmenu) cnGroupMenu(b.dataset.cngmenu);
+  else if (b.dataset.cn) cnMenu(CN.recs.get(b.dataset.cn));
+}
+function cnGroupMenu(key) {
+  const g = cnGroups().find(x => x.key === key); if (!g) return;
+  sheet(`<h2>${esc(g.title)}</h2><p class="sub">${plural(g.list.length, 'line')}</p>
+    <div class="list">${item('ren', ico('rename', 'Rename'))}${item('del', ico('trash', `Delete ${plural(g.list.length, 'line')}`), '', 'danger')}</div>`, {
+    ren: () => askSheet({ title: 'Rename', value: g.title, btn: 'Save', label: 'Name', done: async name => {
+      const at = Date.now(); await cnSave(g.list.map(n => ({ ...n, at, src: { ...n.src, title: name } })));
+      refreshPages(); closeSheet(); toast('Renamed');
+    } }),
+    del: () => sheet(`<h2>Delete ${plural(g.list.length, 'line')}?</h2><p class="note">Their frames go too. Cards already made from them stay.</p>
+      <div class="btns"><button class="btn" data-act="keep">Cancel</button><button class="btn danger" data-act="yes">Delete</button></div>`, {
+      keep: closeSheet,
+      yes: async () => { await cnDrop(g.list.map(n => n.id)); refreshPages(); closeSheet(); toast(`Deleted ${plural(g.list.length, 'line')}`); }
+    })
+  });
+}
+function cnMenu(n) {
+  if (!n) return;
+  const r = fidx.get(n.src.path) || [...fidx.values()].find(x => x.kind === 'file' && vidKey(x) === n.src.key);
+  sheet(`<h2>${esc(n.text)}</h2><p class="sub">${esc(n.src.title)} · ${hms(n.time)}</p>
+    <div class="list">${r ? item('play', 'Play from here') : ''}${item('q', n.question ? 'Change the question' : 'Add a question')}
+    ${item('kind', n.kind === 'concept' ? 'Make it Vocabulary' : 'Make it a Concept')}${item('del', ico('trash', 'Delete'), '', 'danger')}</div>`, {
+    play: () => { closeSheet(); openPlayer(r, Math.max(0, n.time - 2)); },
+    q: () => askSheet({ title: n.question ? 'Change the question' : 'Add a question', value: n.question || '', btn: 'Save', label: 'Question', done: async q => {
+      await cnSave([{ ...n, question: q.trim(), at: Date.now() }]); refreshPages(); closeSheet();
+    } }),
+    kind: async () => { await cnSave([{ ...n, kind: n.kind === 'concept' ? 'vocabulary' : 'concept', at: Date.now() }]); refreshPages(); closeSheet(); },
+    del: async () => { await cnDrop([n.id]); refreshPages(); closeSheet(); toast('Deleted'); }
+  });
+}
+/* the zip for the card chat: notes.json (kind 'card-notes', version 1) and frames/<id>.jpg; documented in CLAUDE.md */
+async function cnZip(list) {
+  const JSZip = await loadZip(), zip = new JSZip();
+  const notes = [];
+  for (const n of [...list].sort((a, b) => a.createdAt - b.createdAt)) {
+    const cue = n.lines[n.cur], fr = await cstore.get('frames', n.id).catch(() => null);
+    const c = x => ({ start: +x.s.toFixed(2), end: +x.e.toFixed(2), text: String(x.x) });
+    const o = { id: n.id, kind: n.kind, createdAt: new Date(n.createdAt).toISOString(), selection: { text: n.text, picked: !!n.sel, marked: cnMarked(n).filter(x => x.includes('==')).join('\n') || null } };
+    if (n.question) o.question = n.question;
+    o.video = { file: { path: n.src.path, name: n.src.name, size: n.src.size }, title: n.src.title, time: n.time, cue: c(cue),
+      caption: cnMarked(n, n.cur, n.cur)[0], before: n.lines.slice(0, n.cur).map(c), after: n.lines.slice(n.cur + 1).map(c), track: n.track || null };
+    if (fr) { o.video.frame = `frames/${n.id}.jpg`; zip.file(o.video.frame, fr.blob); }
+    const made = cnCardsOf(n.id); if (made.length) o.cards = made;
+    notes.push(o);
+  }
+  zip.file('notes.json', JSON.stringify({ app: 'agora', kind: 'card-notes', version: 1, exportedAt: new Date().toISOString(), notes }, null, 2));
+  return zip.generateAsync({ type: 'blob', compression: 'STORE' });
+}
+async function cnSend(list) {
+  if (!list.length) return;
+  let blob; try { blob = await cnZip(list); } catch { toast('Sending needs an internet connection the first time'); return; }
+  const name = `agora-for-cards-${new Date().toISOString().slice(0, 10)}.zip`, file = new File([blob], name, { type: 'application/zip' });
+  let sent = false;
+  if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+    try { await navigator.share({ files: [file] }); sent = true; }
+    catch (e) { if (e && e.name === 'AbortError') return; console.warn(e); }
+  }
+  if (!sent) { // no share menu: the zip is downloaded instead
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+    toast(`Saved ${name}`);
+  }
+  const at = Date.now(); await cnSave(list.map(n => ({ ...n, sentAt: at, at }))); refreshPages();
+}
+/* backups carry the lines and their frames; an import takes one only when it is newer than the phone's */
+async function exportCardNotes(zip) {
+  if (!CN.recs.size && !CN.gone.size) return null;
+  const notes = [];
+  for (const n of CN.recs.values()) {
+    const fr = await cstore.get('frames', n.id).catch(() => null);
+    const o = { ...n }; if (fr) { o.frame = `card-notes/${n.id}.jpg`; zip.file(o.frame, fr.blob); }
+    notes.push(o);
+  }
+  return { notes: [...notes, ...CN.gone.values()] };
+}
+async function importCardNotes(list, frameOf) {
+  const take = [], frames = [];
+  for (const x of Array.isArray(list) ? list : []) {
+    if (!x || !/^cn-[\w-]+$/.test(String(x.id))) continue;
+    const have = CN.recs.get(x.id) || CN.gone.get(x.id), at = +x.at || 0;
+    if (have && (have.at || 0) >= at) continue;
+    if (x.gone) { take.push({ id: x.id, gone: true, at }); continue; }
+    if (!x.src || !Array.isArray(x.lines) || !x.lines.length) continue;
+    const lines = x.lines.map(l => ({ s: +l.s || 0, e: +l.e || 0, x: String(l.x || '') })), cur = Math.max(0, Math.min(lines.length - 1, +x.cur || 0));
+    const sel = Array.isArray(x.sel) && x.sel.length === 2 && x.sel.every(Number.isFinite) ? [x.sel[0], x.sel[1]] : null;
+    const n = { id: x.id, kind: x.kind === 'concept' ? 'concept' : 'vocabulary', createdAt: +x.createdAt || at || Date.now(), at, question: String(x.question || ''),
+      time: +x.time || 0, lines, cur, sel, track: String(x.track || ''),
+      src: { type: 'video', key: String(x.src.key || ''), path: String(x.src.path || ''), name: String(x.src.name || ''), size: +x.src.size || 0, title: String(x.src.title || '') } };
+    if (x.sentAt) n.sentAt = +x.sentAt;
+    n.text = cnText(n); take.push(n);
+    if (!(await cstore.get('frames', n.id).catch(() => null))) {
+      const b = await frameOf(x).catch(() => null);
+      if (b) { const blob = new Blob([b], { type: 'image/jpeg' }); frames.push({ id: n.id, blob }, { id: n.id + '-t', blob: await makeThumb(blob, 320) }); }
+    }
+  }
+  if (frames.length) await cstore.put('frames', frames).catch(storageFail);
+  const live = take.filter(n => !n.gone), gone = take.filter(n => n.gone);
+  if (live.length) await cnSave(live);
+  if (gone.length) { gone.forEach(g => { CN.recs.delete(g.id); CN.gone.set(g.id, g); }); await cstore.put('cnotes', gone).catch(storageFail); }
+  return live.length;
+}
+/* My Files › Agora › For cards: notes.json (every record, deletions too) and frames/<id>.jpg */
+async function agCardNotes(k, stamp) {
+  const rec = AG.map.get(k), files = {};
+  for (const n of CN.recs.values()) {
+    const f = `${n.id}.jpg`;
+    if (rec && rec.files && rec.files[f]) { files[f] = n.id; continue; }
+    const r = await cstore.get('frames', n.id).catch(() => null); if (!r) continue;
+    await agPut(`${CNDIR}/frames/${f}`, r.blob); files[f] = n.id;
+  }
+  if (rec && rec.files) for (const f of Object.keys(rec.files)) if (!files[f]) { await agKeep(`${CNDIR}/frames/${f}`, stamp); await agRemove(`${CNDIR}/frames/${f}`); }
+  const data = { app: 'agora', kind: 'card-notes-store', version: 1, notes: [...CN.recs.values(), ...CN.gone.values()] };
+  const same = old => { try { return canon(JSON.parse(old)) === canon(data); } catch { return false; } };
+  const path = `${CNDIR}/notes.json`, r = await agText(path, JSON.stringify(data, null, 1), rec, stamp, same);
+  if (r.kept != null) agLogChange(k, k, 'For cards', 'changed', path);
+  await agSave({ k, dir: path, label: 'For cards', files, sum: r.sum });
 }
 
 /* ================= Notes: a small notebook of its own ================= */
@@ -5961,6 +6342,7 @@ async function agWrite(k, stamp, at) {
   if (kind === 'note') return agNote(k, id, stamp);
   if (kind === 'study') return agOne(k, 'Study progress.json', 'Study progress', { app: 'agora', kind: 'study', version: 1, daily: SD.dailySet ? SD.daily : null, extra: SD.extra, cards: [...SD.recs.values()] }, stamp);
   if (kind === 'history') return agOne(k, 'History.json', 'History', { app: 'agora', kind: 'history', version: 1, visits: [...HI.recs.values()] }, stamp);
+  if (kind === 'cnotes') return agCardNotes(k, stamp);
   if (kind === 'marks') return agOne(k, 'Bookmarks.json', 'Bookmarks', { app: 'agora', kind: 'bookmarks', version: 1, marks: [...BM.recs.values(), ...BM.gone.values()] }, stamp);
 }
 async function agOne(k, path, label, data, stamp) {
@@ -6275,7 +6657,7 @@ async function agLink() {
     AG.linked = rootName(); await gstore.put('meta', [{ k: 'linked', v: AG.linked }]).catch(() => {});
     if (!(await agRead('Read me.txt'))) await agPut('Read me.txt', README).catch(() => {});
     // everything on the phone is checked against the folder; what is already there the same is left alone
-    agWaiting([...decks.map(d => 'deck:' + d.id), ...cards.map(c => 'card:' + c.id), ...[...NT.notes.keys()].map(id => 'note:' + id), 'study', 'history', 'marks']);
+    agWaiting([...decks.map(d => 'deck:' + d.id), ...cards.map(c => 'card:' + c.id), ...[...NT.notes.keys()].map(id => 'note:' + id), 'study', 'history', 'marks', 'cnotes']);
     AG.phase = '';
     if (n) { renderHome(); refreshPages(); toast(`Brought in ${plural(n, 'item')} from My Files › Agora`); }
     agSoon(0);
@@ -6339,6 +6721,9 @@ async function agMerge() {
       const gone = bm.marks.filter(r => r && r.gone && r.id && !(BM.gone.has(r.id)) && (!BM.recs.has(r.id) || (BM.recs.get(r.id).at || 0) < r.at));
       if (gone.length) { gone.forEach(g => { BM.recs.delete(g.id); BM.gone.set(g.id, g); }); await bstore.put('marks', gone); }
     }
+    // For cards: a line comes in when the phone doesn't have it or has an older copy
+    const cj = await agJSON(`${CNDIR}/notes.json`);
+    if (cj && Array.isArray(cj.notes)) n += await importCardNotes(cj.notes, async x => agRead(`${CNDIR}/frames/${x.id}.jpg`));
     // Notes: a note comes in when the phone doesn't have it or has an older copy
     for (const e of await agList('Notes')) {
       if (e.kind !== 'file' || !/\.html$/i.test(e.name)) continue;
@@ -6591,6 +6976,12 @@ async function agRestore(x) {
   if (x.k === 'history' && Array.isArray(j.visits)) {
     const keep = new Set(j.visits.map(r => r.id)); await dropHistory([...HI.recs.keys()].filter(id => !keep.has(id)));
     j.visits.forEach(r => HI.recs.set(r.id, r)); await hstore.put('visits', j.visits);
+    return true;
+  }
+  if (x.k === 'cnotes' && Array.isArray(j.notes)) {
+    const live = j.notes.filter(r => r && !r.gone), keep = new Set(live.map(r => r.id)), at = Date.now();
+    const drop = [...CN.recs.keys()].filter(id => !keep.has(id)); if (drop.length) await cnDrop(drop);
+    await importCardNotes(live.map(r => ({ ...r, at })), async r => (await agRead(`${vdir}/${CNDIR}/frames/${r.id}.jpg`)) || agRead(`${CNDIR}/frames/${r.id}.jpg`));
     return true;
   }
   if (x.rec) { await saveMarks([{ ...x.rec, at: Date.now() }]); return true; } // one bookmark, from its own menu
@@ -6869,6 +7260,7 @@ async function seed() {
     // bookmarks too; a link shared into Agora opens its save sheet once they are in
     loadMarks().then(() => { renderHome(); takeShared(); }, e => console.warn(e)),
     loadNotes().then(renderHome, e => console.warn(e)),
+    loadCardNotes().catch(e => console.warn(e)),
     loadSync().catch(e => console.warn(e))];
   // then the Agora folder: on a computer it may still be allowed, on a phone it waits for a tap
   Promise.all(loads).then(() => { agPaint(); if (FX.ready) agLink(); });

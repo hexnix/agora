@@ -553,6 +553,70 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 .vfoot{position:absolute;left:0;right:0;bottom:0;height:var(--vf);display:flex;align-items:center;gap:14px;padding:0 10px env(safe-area-inset-bottom,0px) 20px;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
 .vfoot .textbtn{margin-left:auto;display:inline-flex;align-items:center;gap:8px;font-size:15px}
 
+/* ---------- the video player (v37; the owner's picks 1A, 3A, 4A, subtitles like the phone's own player) ---------- */
+.vplay{display:flex;flex-direction:column;align-items:center;gap:10px;color:var(--text);font-size:15px}
+.vplay .disc{width:72px;height:72px;border-radius:50%;background:var(--raised);display:grid;place-items:center}
+.player{position:fixed;inset:0;z-index:50;background:#000;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
+  --sub:1;--ui:0;--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--sb:env(safe-area-inset-bottom,0px)}
+.player video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+.player.fill video{object-fit:cover}
+.pl-dim{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none}
+/* the subtitle: Roboto (the phone's own font) 600, white with a soft shadow, just above the bottom edge; it moves up while the controls show */
+.pl-sub{position:absolute;left:8%;right:8%;bottom:calc(var(--sb) + 3.2vmin);text-align:center;white-space:pre-line;text-wrap:balance;
+  font:600 calc(4.73vmin * var(--sub))/1.15 Roboto,system-ui,sans-serif;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.85),0 0 4px rgba(0,0,0,.5);transition:bottom .2s var(--ease)}
+.player.ui .pl-sub{bottom:calc(var(--sb) + 104px)}
+.pl-sub span{display:inline-block;padding:2px 6px;transition:transform .18s var(--ease),opacity .18s}
+.pl-ctl{position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity .2s}
+.pl-ctl::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent 24%,transparent 68%,rgba(0,0,0,.65))}
+.player.ui .pl-ctl{opacity:1}
+.player.ui .pl-ctl button,.player.ui .pl-seek{pointer-events:auto}
+.pl-top{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:6px;padding:8px calc(14px + var(--sr)) 0 calc(8px + var(--sl))}
+.pl-name{flex:1;min-width:0;font-size:16px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:6px}
+.pl-mid{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);display:flex;justify-content:center;align-items:center;gap:min(80px,12vw)}
+.pl-big{width:64px;height:64px;border-radius:50%;background:rgba(0,0,0,.35);display:grid;place-items:center;color:#fff}
+.pl-skip{position:relative;width:52px;height:52px;display:grid;place-items:center;color:#fff}
+.pl-skip b{position:absolute;font-size:11px;font-weight:500;top:20px}
+.pl-bot{position:absolute;left:0;right:0;bottom:0;padding:0 calc(22px + var(--sr)) calc(6px + var(--sb)) calc(22px + var(--sl))}
+.pl-row{display:flex;align-items:center;gap:14px}
+.pl-t{font-size:13px;color:#e8e8e8;min-width:62px;font-variant-numeric:tabular-nums}
+.pl-t.end{text-align:right}
+.pl-seek{position:relative;flex:1;height:34px;display:flex;align-items:center;touch-action:none}
+.pl-track{position:relative;flex:1;height:3px;background:rgba(255,255,255,.3);border-radius:2px}
+.pl-buf{position:absolute;left:0;top:0;bottom:0;width:0;background:rgba(255,255,255,.35);border-radius:2px}
+.pl-done{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--gold);border-radius:2px}
+.pl-knob{position:absolute;left:0;top:50%;width:14px;height:14px;margin:-7px;border-radius:50%;background:var(--gold);transition:transform .15s}
+.pl-seek.drag .pl-knob{transform:scale(1.35)}
+.pl-icons{display:flex;justify-content:space-between;align-items:center;margin:-2px -9px 0}
+.player .iconbtn{color:#fff}
+.player .iconbtn:active{background:rgba(255,255,255,.12)}
+.pl-unlock{position:absolute;left:calc(14px + var(--sl));bottom:calc(14px + var(--sb));background:rgba(0,0,0,.5)!important}
+/* brightness on the left, volume on the right: a bar shows on the side being swiped (pick 4A) */
+.pl-side{position:absolute;top:50%;transform:translateY(-50%);height:min(220px,54vh);display:flex;flex-direction:column;align-items:center;gap:10px;font-size:12px;color:#fff;font-variant-numeric:tabular-nums;pointer-events:none}
+.pl-side.l{left:calc(26px + var(--sl))} .pl-side.r{right:calc(26px + var(--sr))}
+.pl-side .tr{flex:1;width:4px;border-radius:2px;background:rgba(255,255,255,.3);position:relative}
+.pl-side .tr i{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:2px}
+.pl-side .tr i.boost{background:var(--gold)}
+.pl-flash{position:absolute;top:50%;transform:translateY(-50%);padding:10px 16px;border-radius:999px;background:rgba(0,0,0,.55);font-size:14px;color:#fff;pointer-events:none;animation:fadein .15s}
+.pl-flash.l{left:18%} .pl-flash.r{right:18%} .pl-flash.c{left:50%;transform:translate(-50%,-50%)}
+.pl-msg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:0 40px;text-align:center;color:var(--muted)}
+.pl-msg b{color:var(--text);font-weight:500;font-size:16px}
+.pl-msg .btn{margin-top:14px}
+/* choosing subtitles: a panel from the right while the film stays in view (pick 3A) */
+.pl-panel{position:absolute;top:0;right:0;bottom:0;width:min(340px,86vw);background:#121316;padding:18px 0 calc(18px + var(--sb));padding-right:var(--sr);overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;transform:translateX(100%);transition:transform .25s var(--ease)}
+.pl-panel.open{transform:none}
+.player.paneled .pl-sub{right:calc(min(340px,86vw) + 4%)}
+.pl-panel h3{margin:0 22px 6px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.pl-opt{display:flex;align-items:center;gap:14px;width:100%;padding:11px 22px;font-size:15px;text-align:left;color:var(--text)}
+.pl-opt .r{width:18px;height:18px;border-radius:50%;border:1.6px solid #6b6e74;box-sizing:border-box;flex:none}
+.pl-opt.on .r{border:5px solid var(--gold)}
+.pl-opt small{color:var(--muted);font-size:12.5px;display:block}
+.pl-opt[disabled]{opacity:.45}
+.pl-panel .hr{height:1px;background:#26282c;margin:10px 22px 14px}
+.pl-panel .note{margin:4px 22px 0;font-size:12.5px;color:var(--muted);line-height:1.5}
+.pl-sizes{display:flex;gap:6px;padding:4px 14px}
+.pl-sizes button{min-width:46px;padding:8px 8px;font-size:15px;color:#c9cbd0;border-bottom:2px solid transparent}
+.pl-sizes button.on{color:var(--blue-text);border-color:var(--gold)}
+
 /* ---------- Notes ---------- */
 /* the list: the title, a line of what follows, the date; a small picture when the note has one */
 .nlist{display:flex;flex-direction:column;margin-top:14px;user-select:none;-webkit-user-select:none}
@@ -807,7 +871,7 @@ addEventListener('popstate', e => {
 try { if (history.state && (history.state.agora || history.state.subtext)) history.replaceState(null, ''); } catch {}
 
 /* the page underneath stops scrolling while anything covers it */
-function unlockIdle() { if (!pages.length && !cardsView && !searchView && !S && !FV) document.body.classList.remove('locked'); }
+function unlockIdle() { if (!pages.length && !cardsView && !searchView && !S && !FV && !PL) document.body.classList.remove('locked'); }
 
 /* ================= toast ================= */
 let toastTimer;
@@ -3386,10 +3450,10 @@ const fidx = new Map(); // path → record
 const FX = { root: null, ready: false, scanning: null, scanned: false, found: 0, mode: null, pending: [], lastJson: null, handles: null };
 const IMG_EXT = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'avif']);
 const TXT_EXT = new Set(['txt', 'md', 'csv', 'json', 'log']);
-const VID_EXT = new Set(['mp4', 'webm', 'mov', 'm4v', '3gp']);
+const VID_EXT = new Set(['mp4', 'webm', 'mov', 'm4v', '3gp', 'mkv']);
 const AUD_EXT = new Set(['mp3', 'm4a', 'aac', 'ogg', 'opus', 'wav', 'flac']);
 const FMIME = { pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', gif: 'image/gif', txt: 'text/plain', md: 'text/plain', csv: 'text/csv', json: 'application/json',
-  mp4: 'video/mp4', webm: 'video/webm', mov: 'video/quicktime', mp3: 'audio/mpeg', m4a: 'audio/mp4', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  mp4: 'video/mp4', webm: 'video/webm', mkv: 'video/x-matroska', mov: 'video/quicktime', mp3: 'audio/mpeg', m4a: 'audio/mp4', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   xls: 'application/vnd.ms-excel', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', ppt: 'application/vnd.ms-powerpoint', pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', zip: 'application/zip' };
 const fext = n => { const m = /\.([^.]+)$/.exec(n); return m ? m[1].toLowerCase() : ''; };
 const fkind = r => IMG_EXT.has(r.ext) ? 'img' : r.ext === 'pdf' ? 'pdf' : TXT_EXT.has(r.ext) ? 'txt' : VID_EXT.has(r.ext) ? 'vid' : AUD_EXT.has(r.ext) ? 'aud' : 'other';
@@ -3959,6 +4023,8 @@ ICON.folder = ICON_FOLDER(22);
 const fileNow = () => FV && (fidx.get(FV.order[FV.i].path) || FV.order[FV.i]);
 function openViewer(list, path) {
   const order = list.filter(r => r.kind === 'file'); if (!order.length) return;
+  const first = order.find(r => r.path === path);
+  if (first && fkind(first) === 'vid') { openPlayer(first); return; } // films play in the player, full screen
   const el = document.createElement('div'); el.className = 'fview';
   el.innerHTML = `<div class="chrome"><button class="iconbtn" data-v="back" aria-label="Back">${ICON.back}</button><span class="vt"></span>
       <button class="iconbtn" data-v="more" aria-label="Options for this file">${ICON.more}</button><div class="tags"></div></div>
@@ -4052,7 +4118,7 @@ async function loadFull(s) {
     if (!s.isConnected) return;
     const url = () => { const u = URL.createObjectURL(f); s.urls.push(u); return u; };
     if (k === 'img') { const im = $('img.full', s); im.onerror = () => { s.innerHTML = otherHTML(r); }; im.dataset.full = '1'; im.src = url(); }
-    else if (k === 'vid') s.innerHTML = `<video controls playsinline preload="metadata" src="${url()}"></video>`;
+    else if (k === 'vid') s.innerHTML = `<button class="vplay" data-v="play"><span class="disc">${PI.play}</span>Play</button>`;
     else if (k === 'aud') s.innerHTML = `<audio controls preload="metadata" src="${url()}"></audio>`;
     else if (k === 'txt') $('pre', s).textContent = f.size > 2e6 ? (await f.slice(0, 2e6).text()) + '\n…' : await f.text();
     else if (k === 'pdf') await openPdfFile(s, f);
@@ -4201,6 +4267,7 @@ function viewerClick(e) {
   const b = e.target.closest('[data-v]'); if (!b || !FV) return;
   const v = b.dataset.v, r = fileNow();
   if (v === 'back') back();
+  else if (v === 'play') openPlayer(r);
   else if (v === 'share') shareFiles([r.path]);
   else if (v === 'more') viewerMenu(r);
   else if (v === 'connect') connectFiles().then(ok => { if (ok && FV) loadFull(FV.slide); });
@@ -4254,6 +4321,654 @@ function fileResults(list, titleOf) {
   return `<div class="rhead fhead"><span class="num">${[nd ? plural(nd, 'folder') : '', nf ? plural(nf, 'file') : ''].filter(Boolean).join(' · ')}</span></div>`
     + list.map(r => `<button class="res" data-fopen="${esc(r.path)}">${r.thumbId ? `<img alt="" class="fth" data-blob="${r.thumbId}">` : `<span class="gly">${r.kind === 'dir' ? ICON_FOLDER(24) : ICON_DOC(22)}</span>`}
       <span><span class="rw">${titleOf(r)}</span><span class="rd">${r.kind === 'dir' ? `Folder · ${plural(deepCount(r.path), 'file')}` : `${esc(kindLabel(r))} · ${esc(fname(r.dir))}`}</span></span></button>`).join('');
+}
+
+/* ================= the video player ================= */
+/* Videos from My Files play here, full screen and sideways (the owner's picks 1A, 3A and 4A, without a speed button; subtitles drawn
+   like the phone's own player, from their screenshot). The film is read straight from the folder, never copied, however big.
+   Chrome doesn't hand a page the subtitles inside an .mkv, so Agora reads them from the file itself: the file's index (its "cues")
+   points at every subtitle line, so only those small pieces are read, the lines around where the film is first. A .srt or .vtt with the
+   same name next to the video works too. Picture subtitles (PGS, VobSub) can't be read as text and are listed as such.
+   Where each video stopped, and its subtitles, are kept in a database of their own ("agora-media"), opened on the first film. */
+let PL = null;
+KEYS.videos = 'id'; KEYS.subs = 'k';
+let mstore = memStore(['videos', 'subs']), mediaReady = null;
+function openMediaDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('agora-media', 1);
+    r.onupgradeneeded = () => { const d = r.result; d.createObjectStore('videos', { keyPath: 'id' }); d.createObjectStore('subs', { keyPath: 'k' }); };
+    r.onsuccess = () => { const db = r.result; db.onversionchange = () => db.close(); res(db); };
+    r.onerror = () => rej(r.error);
+    r.onblocked = () => rej(new Error('blocked'));
+  });
+}
+const mediaDB = () => mediaReady || (mediaReady = openMediaDB().then(db => { mstore = idbStore(db); }, e => console.warn('media storage unavailable, using memory', e)));
+// a video is known by its name and size, so moving it to another folder keeps its place
+const vidKey = r => `v:${r.size}:${r.name}`;
+const hms = sec => {
+  sec = Math.max(0, Math.floor(sec || 0));
+  const h = sec / 3600 | 0, m = (sec / 60 | 0) % 60, s2 = String(sec % 60).padStart(2, '0');
+  return h ? `${h}:${String(m).padStart(2, '0')}:${s2}` : `${m}:${s2}`;
+};
+
+/* ---- reading an .mkv: elements of an id, a size, then the data (Matroska / EBML) ---- */
+const MK = { EBML: 0x1A45DFA3, Segment: 0x18538067, SeekHead: 0x114D9B74, Seek: 0x4DBB, SeekID: 0x53AB, SeekPos: 0x53AC, Info: 0x1549A966, Scale: 0x2AD7B1,
+  Duration: 0x4489, Tracks: 0x1654AE6B, Track: 0xAE, Num: 0xD7, Type: 0x83, Codec: 0x86, Lang: 0x22B59C, LangB: 0x22B59D, Name: 0x536E, Forced: 0x55AA,
+  Cues: 0x1C53BB6B, CuePoint: 0xBB, CueTime: 0xB3, CuePos: 0xB7, CueTrack: 0xF7, CueCluster: 0xF1, CueRel: 0xF0, CueDur: 0xB2,
+  Cluster: 0x1F43B675, Timecode: 0xE7, BlockGroup: 0xA0, Block: 0xA1, BlockDur: 0x9B, SimpleBlock: 0xA3 };
+function ebv(b, p, keep) { // a variable-length number; ids keep their length bits
+  const first = b[p]; if (first === undefined) return null;
+  let len = 1, mask = 0x80;
+  while (len <= 8 && !(first & mask)) { len++; mask >>= 1; }
+  if (len > 8 || p + len > b.length) return null;
+  let v = keep ? first : first & (mask - 1), all1 = (first & (mask - 1)) === mask - 1;
+  for (let i = 1; i < len; i++) { v = v * 256 + b[p + i]; if (b[p + i] !== 255) all1 = false; }
+  return { v: !keep && all1 ? -1 : v, len }; // -1: a size left open (the element runs to the end of its parent)
+}
+function ebh(b, p) { const id = ebv(b, p, true); if (!id) return null; const sz = ebv(b, p + id.len, false); if (!sz) return null; return { id: id.v, size: sz.v, data: p + id.len + sz.len }; }
+const ebu = (b, p, n) => { let v = 0; for (let i = 0; i < n; i++) v = v * 256 + b[p + i]; return v; };
+const ebs = (b, p, n) => new TextDecoder().decode(b.subarray(p, p + n)).replace(/\0+$/, '');
+const ebf = (b, p, n) => { const dv = new DataView(b.buffer, b.byteOffset + p, n); return n === 4 ? dv.getFloat32(0) : dv.getFloat64(0); };
+function ebKids(b, from, to, fn) {
+  for (let p = from; p < to;) {
+    const h = ebh(b, p); if (!h || h.size < 0 || h.data + h.size > b.length) return;
+    fn(h); p = h.data + h.size;
+  }
+}
+const readAt = async (f, at, n) => new Uint8Array(await f.slice(at, Math.min(f.size, at + n)).arrayBuffer());
+/* the track list, the timing scale and where the index sits: all near the start of the file */
+async function mkvInfo(f) {
+  const b = await readAt(f, 0, 1 << 21), e = ebh(b, 0);
+  if (!e || e.id !== MK.EBML) return null;
+  const seg = ebh(b, e.data + e.size); if (!seg || seg.id !== MK.Segment) return null;
+  const I = { seg: seg.data, scale: 1e6, tracks: [], seeks: {} };
+  const tracks = (bb, from, to) => {
+    ebKids(bb, from, to, t => {
+      if (t.id !== MK.Track) return;
+      const k = { lang: 'eng' }; // Matroska's default language
+      ebKids(bb, t.data, t.data + t.size, x => {
+        if (x.id === MK.Num) k.num = ebu(bb, x.data, x.size);
+        else if (x.id === MK.Type) k.type = { 1: 'video', 2: 'audio', 17: 'subs' }[ebu(bb, x.data, x.size)] || 'other';
+        else if (x.id === MK.Codec) k.codec = ebs(bb, x.data, x.size);
+        else if (x.id === MK.Lang || x.id === MK.LangB) k.lang = ebs(bb, x.data, x.size);
+        else if (x.id === MK.Name) k.name = ebs(bb, x.data, x.size);
+        else if (x.id === MK.Forced) k.forced = ebu(bb, x.data, x.size);
+      });
+      I.tracks.push(k);
+    });
+  };
+  ebKids(b, seg.data, b.length, x => {
+    if (x.id === MK.SeekHead) ebKids(b, x.data, x.data + x.size, sk => {
+      if (sk.id !== MK.Seek) return;
+      let id = 0, pos = 0;
+      ebKids(b, sk.data, sk.data + sk.size, y => { if (y.id === MK.SeekID) id = ebu(b, y.data, y.size); if (y.id === MK.SeekPos) pos = ebu(b, y.data, y.size); });
+      if (!(id in I.seeks)) I.seeks[id] = pos;
+    });
+    else if (x.id === MK.Info) ebKids(b, x.data, x.data + x.size, y => { if (y.id === MK.Scale) I.scale = ebu(b, y.data, y.size); });
+    else if (x.id === MK.Tracks) tracks(b, x.data, x.data + x.size);
+  });
+  if (!I.tracks.length && I.seeks[MK.Tracks] != null) {
+    const tb = await readAt(f, I.seg + I.seeks[MK.Tracks], 1 << 20), th = ebh(tb, 0);
+    if (th && th.id === MK.Tracks) tracks(tb, th.data, th.data + th.size);
+  }
+  return I;
+}
+/* the index: for each track, where its pieces sit (only read when subtitles are wanted) */
+async function mkvCues(f, I) {
+  if (I.cues !== undefined) return I.cues;
+  I.cues = null;
+  if (I.seeks[MK.Cues] == null) return null;
+  const at = I.seg + I.seeks[MK.Cues], h = ebh(await readAt(f, at, 16), 0);
+  if (!h || h.id !== MK.Cues || h.size < 0 || h.size > 64 << 20) return null;
+  const b = await readAt(f, at, h.data + h.size), ch = ebh(b, 0), map = new Map();
+  ebKids(b, ch.data, ch.data + ch.size, cp => {
+    if (cp.id !== MK.CuePoint) return;
+    let t = 0;
+    ebKids(b, cp.data, cp.data + cp.size, y => {
+      if (y.id === MK.CueTime) t = ebu(b, y.data, y.size);
+      if (y.id !== MK.CuePos) return;
+      const c = { t };
+      ebKids(b, y.data, y.data + y.size, z => {
+        if (z.id === MK.CueTrack) c.track = ebu(b, z.data, z.size);
+        else if (z.id === MK.CueCluster) c.cl = ebu(b, z.data, z.size);
+        else if (z.id === MK.CueRel) c.rel = ebu(b, z.data, z.size);
+        else if (z.id === MK.CueDur) c.dur = ebu(b, z.data, z.size);
+      });
+      if (!map.has(c.track)) map.set(c.track, []);
+      map.get(c.track).push(c);
+    });
+  });
+  return (I.cues = map);
+}
+/* the first block of one track inside b: its time (relative to its cluster), how long it lasts, and its bytes */
+function blockIn(b, from, to, track, want) {
+  let out = null;
+  ebKids(b, from, to, e => {
+    if (out && out.exact) return;
+    let blk = null, dur = null;
+    if (e.id === MK.SimpleBlock) blk = e;
+    else if (e.id === MK.BlockGroup) ebKids(b, e.data, e.data + e.size, x => { if (x.id === MK.Block) blk = x; else if (x.id === MK.BlockDur) dur = ebu(b, x.data, x.size); });
+    if (!blk) return;
+    const tn = ebv(b, blk.data, false); if (!tn || tn.v !== track) return;
+    const rel = new DataView(b.buffer, b.byteOffset + blk.data + tn.len, 2).getInt16(0);
+    const r = { rel, dur, text: ebs(b, blk.data + tn.len + 3, blk.size - tn.len - 3), exact: want == null || rel === want };
+    if (!out || r.exact) out = r;
+  });
+  return out;
+}
+async function mkvBlockAt(f, I, c, track) {
+  const at = I.seg + c.cl, head = await readAt(f, at, 48), ch = ebh(head, 0);
+  if (!ch || ch.id !== MK.Cluster) return null;
+  let ct = 0; ebKids(head, ch.data, head.length, x => { if (x.id === MK.Timecode) ct = ebu(head, x.data, x.size); }); // after a CRC-32, often
+  const start = at + ch.data;
+  let r = null;
+  if (c.rel != null) { const b = await readAt(f, start + c.rel, 1 << 16); r = blockIn(b, 0, b.length, track); }
+  if (!r) { const b = await readAt(f, start, Math.min(ch.size < 0 ? 8 << 20 : ch.size, 8 << 20)); r = blockIn(b, 0, b.length, track, c.t - ct); }
+  if (!r) return null;
+  const k = I.scale / 1e9, dur = r.dur != null ? r.dur : c.dur;
+  return { s: (ct + r.rel) * k, e: dur != null ? (ct + r.rel + dur) * k : null, x: r.text };
+}
+/* no index for this track: one pass through the whole file, reading only the elements' headers and the subtitle pieces */
+async function mkvScan(f, I, track, onPart, live) {
+  const out = [], CH = 8 << 20, k = I.scale / 1e9;
+  let buf = null, at0 = 0, pos = I.seg, ct = 0, n = 0;
+  const need = async (p, len) => { if (!buf || p < at0 || p + len > at0 + buf.length) { at0 = p; buf = await readAt(f, p, Math.max(CH, len)); } return p - at0; };
+  while (pos < f.size - 4 && live()) {
+    const o = await need(pos, 16), h = ebh(buf, o); if (!h) break;
+    const data = pos + (h.data - o);
+    if (h.id === MK.Cluster || h.id === MK.Segment || h.size < 0) { pos = data; continue; } // step inside
+    if (h.id === MK.Timecode) { const o2 = await need(data, h.size); ct = ebu(buf, o2, h.size); }
+    else if ((h.id === MK.SimpleBlock || h.id === MK.BlockGroup) && h.size < 1 << 20) {
+      const o2 = await need(pos, data - pos + h.size), r = blockIn(buf, o2, o2 + (data - pos) + h.size, track);
+      if (r) out.push({ s: (ct + r.rel) * k, e: r.dur != null ? (ct + r.rel + r.dur) * k : null, x: r.text });
+    }
+    pos = data + h.size;
+    if (++n % 4000 === 0) { onPart(out, pos / f.size); await sleep(0); }
+  }
+  return out;
+}
+/* ASS lines carry their style first and formatting codes inside; SRT inside an .mkv may carry <i> tags */
+function subClean(codec, x) {
+  if (/ASS|SSA/.test(codec || '')) { const parts = x.split(','); if (parts.length > 8) x = parts.slice(8).join(','); x = x.replace(/\{[^}]*\}/g, '').replace(/\\N/gi, '\n').replace(/\\h/g, ' '); }
+  return x.replace(/<[^>]+>/g, '').replace(/\r/g, '').replace(/[ \t]+\n/g, '\n').trim();
+}
+/* a list in time order, each line ending when it says (or when the next starts, or after a reading time) */
+function subList(raw, codec) {
+  const L = raw.filter(c => c && c.x != null).map(c => ({ s: c.s, e: c.e, x: subClean(codec, c.x) })).filter(c => c.x).sort((a, b) => a.s - b.s);
+  const out = [];
+  for (const c of L) if (!out.length || out[out.length - 1].s !== c.s || out[out.length - 1].x !== c.x) out.push(c);
+  out.forEach((c, i) => { const nx = out[i + 1]; if (c.e == null || c.e <= c.s) c.e = Math.min(nx ? nx.s : Infinity, c.s + Math.min(7, 1.4 + c.x.length * 0.06)); });
+  return out;
+}
+/* .srt and .vtt: "00:01:02,500 --> 00:01:04,000" then the lines */
+function parseSubFile(text) {
+  const t = text.replace(/^﻿/, '').replace(/\r\n?/g, '\n'), out = [];
+  const sec = s => { const p = s.replace(',', '.').split(':').map(Number); return p.length === 3 ? p[0] * 3600 + p[1] * 60 + p[2] : p[0] * 60 + p[1]; };
+  const re = /((?:\d+:)?\d{1,2}:\d{2}[.,]\d{1,3})\s*-->\s*((?:\d+:)?\d{1,2}:\d{2}[.,]\d{1,3})[^\n]*\n([\s\S]*?)(?=\n[ \t]*\n|\n*$)/g;
+  let m; while ((m = re.exec(t))) out.push({ s: sec(m[1]), e: sec(m[2]), x: m[3] });
+  return subList(out, 'S_TEXT/UTF8');
+}
+async function fileText(f) {
+  const b = await f.arrayBuffer();
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(b); } catch { return new TextDecoder('windows-1252').decode(b); } // older subtitle files
+}
+const subsNextTo = r => {
+  const base = r.name.replace(/\.[^.]+$/, '').toLowerCase();
+  return kidsOf(r.dir).filter(x => x.kind === 'file' && (x.ext === 'srt' || x.ext === 'vtt') && (x.name.toLowerCase().startsWith(base + '.')));
+};
+const LANGS = { eng: 'English', en: 'English', hin: 'Hindi', hi: 'Hindi', fre: 'French', fra: 'French', fr: 'French', spa: 'Spanish', es: 'Spanish', ger: 'German', deu: 'German', de: 'German',
+  ita: 'Italian', it: 'Italian', jpn: 'Japanese', ja: 'Japanese', kor: 'Korean', ko: 'Korean', chi: 'Chinese', zho: 'Chinese', zh: 'Chinese', tha: 'Thai', th: 'Thai', und: 'Unknown language' };
+const langName = l => LANGS[(l || '').toLowerCase()] || (l || '').toUpperCase();
+const PICTURE_SUBS = /PGS|VOBSUB|DVB/i;
+const CODEC_NAMES = { A_AC3: 'AC3', A_EAC3: 'E-AC3', A_DTS: 'DTS', A_TRUEHD: 'Dolby TrueHD', A_AAC: 'AAC', A_OPUS: 'Opus', A_MPEG: 'MP3', A_FLAC: 'FLAC', A_VORBIS: 'Vorbis' };
+const codecName = c => CODEC_NAMES[(c || '').split('/')[0]] || CODEC_NAMES[c] || c;
+
+/* ---- the player itself ---- */
+const PI = {
+  play: '<svg width="34" height="34" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>',
+  pause: '<svg width="34" height="34" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="5" width="3.4" height="14" rx="1" fill="currentColor"/><rect x="13.6" y="5" width="3.4" height="14" rx="1" fill="currentColor"/></svg>',
+  rew: svg('<path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4h4"/>', 40),
+  fwd: svg('<path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v4h-4"/>', 40),
+  cc: svg('<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M10 10.2a2.3 2.3 0 1 0 0 3.6M17 10.2a2.3 2.3 0 1 0 0 3.6"/>', 24),
+  lock: svg('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>', 24),
+  fit: svg('<path d="M4 9V5h4M20 9V5h-4M4 15v4h4M20 15v4h-4"/>', 24),
+  sun: svg('<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>', 24),
+  vol: svg('<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>', 24)
+};
+const plBright = () => { const v = parseFloat(ls.get('player.bright')); return v >= 0.1 && v <= 1 ? v : 1; };
+const plVol = () => { const v = parseFloat(ls.get('player.vol')); return v >= 0 && v <= 200 ? v : 100; };
+function openPlayer(r) {
+  if (PL) return;
+  if (!FX.ready) { // the tap that opens the film also gives Agora the folder
+    connectFiles().then(ok => { if (ok) openPlayer(fidx.get(r.path) || r); });
+    return;
+  }
+  const el = document.createElement('div'); el.className = 'player ui';
+  el.innerHTML = `<video playsinline preload="auto"></video><div class="pl-dim"></div><div class="pl-sub"></div>
+    <div class="pl-ctl">
+      <div class="pl-top"><button class="iconbtn" data-p="back" aria-label="Back">${ICON.back}</button><span class="pl-name"></span>
+        <button class="iconbtn" data-p="subs" aria-label="Subtitles">${PI.cc}</button><button class="iconbtn" data-p="more" aria-label="Options for this video">${ICON.more}</button></div>
+      <div class="pl-mid"><button class="pl-skip" data-p="rew" aria-label="Back 10 seconds">${PI.rew}<b>10</b></button>
+        <button class="pl-big" data-p="play" aria-label="Play">${PI.play}</button>
+        <button class="pl-skip" data-p="fwd" aria-label="Forward 10 seconds">${PI.fwd}<b>10</b></button></div>
+      <div class="pl-bot"><div class="pl-row"><span class="pl-t now">0:00</span>
+          <div class="pl-seek" role="slider" aria-label="Position in the video"><div class="pl-track"><div class="pl-buf"></div><div class="pl-done"></div><div class="pl-knob"></div></div></div>
+          <span class="pl-t end">0:00</span></div>
+        <div class="pl-icons"><button class="iconbtn" data-p="lock" aria-label="Lock the screen">${PI.lock}</button><button class="iconbtn" data-p="fit" aria-label="Fill the screen">${PI.fit}</button></div></div>
+    </div>
+    <button class="iconbtn pl-unlock" data-p="unlock" aria-label="Unlock" hidden>${PI.lock}</button>
+    <div class="pl-side l" hidden>${PI.sun}<div class="tr"><i></i></div><span></span></div>
+    <div class="pl-side r" hidden>${PI.vol}<div class="tr"><i></i></div><span></span></div>
+    <div class="pl-panel" hidden></div>`;
+  document.body.appendChild(el); document.body.classList.add('locked');
+  const v = $('video', el);
+  PL = { el, v, r, key: vidKey(r), rec: null, info: null, file: null, url: null, cues: [], cueI: -1, subs: [], subId: null, job: 0,
+    bright: plBright(), vol: plVol(), locked: false, uiT: 0, savedAt: 0, raf: 0, gain: null };
+  $('.pl-name', el).textContent = r.name;
+  plFull();
+  plApplyBright(); plApplyVol();
+  el.addEventListener('click', plClick);
+  el.addEventListener('contextmenu', e => e.preventDefault());
+  plGestures(); plSeekBar(); plSubSwipe();
+  v.addEventListener('play', plPaintPlay); v.addEventListener('pause', () => { plPaintPlay(); plSave(); plShowUI(); });
+  v.addEventListener('timeupdate', () => { if (PL && PL.v === v) { plPaintTime(); if (Date.now() - PL.savedAt > 5000) plSave(); } });
+  v.addEventListener('progress', plPaintTime);
+  v.addEventListener('loadedmetadata', plStart);
+  v.addEventListener('playing', plCheckSound);
+  v.addEventListener('ended', () => { if (PL) { PL.rec.pos = 0; plSave(true); plShowUI(); } });
+  v.addEventListener('error', () => plFail(v.error && v.error.message));
+  document.addEventListener('fullscreenchange', plFsChange);
+  pushLayer(closePlayer);
+  plLoad();
+  const tick = () => { if (!PL || PL.el !== el) return; plPaintSub(); PL.raf = requestAnimationFrame(tick); };
+  PL.raf = requestAnimationFrame(tick);
+}
+async function plLoad() {
+  const P = PL;
+  try {
+    await mediaDB();
+    P.rec = (await mstore.get('videos', P.key)) || { id: P.key, name: P.r.name, size: P.r.size };
+    P.rec.path = P.r.path;
+    P.file = await fileOf(P.r.path);
+    if (PL !== P) return;
+    P.url = URL.createObjectURL(P.file);
+    P.v.src = P.url;
+    P.v.play().catch(() => plShowUI());
+    if (P.r.ext === 'mkv' || P.r.ext === 'webm') P.info = await mkvInfo(P.file).catch(e => { console.warn(e); return null; });
+    if (PL !== P) return;
+    plSubsFound();
+  } catch (e) {
+    console.warn(e);
+    if (PL === P) plFail(null, `Couldn’t open ${P.r.name}. If it was moved, refresh My Files.`);
+  }
+}
+/* carry on where this video was left (unless that was the very start or the very end) */
+function plStart() {
+  const P = PL; if (!P) return;
+  const pos = P.rec && P.rec.pos, d = P.v.duration;
+  if (pos > 10 && (!isFinite(d) || pos < d - Math.min(60, d * 0.15))) { P.v.currentTime = pos; toast(`Carrying on from ${hms(pos)}`); }
+  if (P.rec) { P.rec.dur = isFinite(d) ? d : P.rec.dur; }
+  plPaintTime(); plShowUI();
+}
+function plSave(force) {
+  const P = PL; if (!P || !P.rec) return;
+  const t = P.v.currentTime;
+  if (!force && !(t > 0)) return;
+  P.savedAt = Date.now();
+  if (!force) P.rec.pos = t;
+  P.rec.at = Date.now();
+  mstore.put('videos', [{ ...P.rec }]).catch(e => console.warn(e));
+}
+/* Chrome plays the picture but stays silent when it can't decode the sound (AC3, E-AC3, DTS): say so once */
+function plCheckSound() {
+  const P = PL; if (!P || P.soundChecked || P.v.webkitAudioDecodedByteCount === undefined) return;
+  P.soundChecked = true;
+  setTimeout(() => {
+    if (PL !== P || P.v.paused || P.v.webkitAudioDecodedByteCount > 0) return;
+    const aud = P.info ? P.info.tracks.filter(t => t.type === 'audio') : [];
+    if (P.info && !aud.length) return; // a film without sound
+    toast(`Chrome can’t play this video’s sound${aud.length ? ` (${[...new Set(aud.map(t => codecName(t.codec)))].join(', ')})` : ''}. A copy with AAC sound will play.`);
+  }, 3500);
+}
+function plFail(why, msg) {
+  const P = PL; if (!P || $('.pl-msg', P.el)) return;
+  P.el.insertAdjacentHTML('beforeend', `<div class="pl-msg"><b>${esc(msg || 'Chrome can’t play this video')}</b>${!msg && why ? `<span>${esc(why)}</span>` : ''}
+    <button class="btn primary" data-p="share">${ICON_SHARE}Share / Open with…</button></div>`);
+  plShowUI(true);
+}
+function closePlayer() {
+  const P = PL; if (!P) return;
+  plSave(); PL = null;
+  cancelAnimationFrame(P.raf); P.job++;
+  document.removeEventListener('fullscreenchange', plFsChange);
+  P.v.pause(); P.v.removeAttribute('src'); P.v.load();
+  if (P.url) URL.revokeObjectURL(P.url);
+  if (P.gain) P.gain.ctx.close().catch(() => {});
+  P.closing = true;
+  try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch {}
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  P.el.style.transition = 'opacity .2s'; P.el.style.opacity = '0';
+  setTimeout(() => P.el.remove(), 220);
+  unlockIdle();
+}
+/* full screen and sideways; Chrome only allows it from a tap, so a tap on the film tries again if it didn't take */
+function plFull() {
+  const de = document.documentElement;
+  if (document.fullscreenElement || !de.requestFullscreen) return;
+  de.requestFullscreen({ navigationUI: 'hide' }).then(() => {
+    if (PL) PL.fs = true;
+    if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {});
+  }).catch(() => {});
+}
+/* leaving full screen with the phone's Back button also leaves the film, so Back still takes one step */
+function plFsChange() {
+  if (document.fullscreenElement || !PL || !PL.fs) return;
+  const P = PL; P.fs = false;
+  setTimeout(() => { if (PL === P && !document.fullscreenElement && !$('.pl-panel', P.el).classList.contains('open')) back(); }, 250);
+}
+function plPaintPlay() {
+  if (!PL) return;
+  const b = $('.pl-big', PL.el), on = !PL.v.paused;
+  b.innerHTML = on ? PI.pause : PI.play; b.setAttribute('aria-label', on ? 'Pause' : 'Play');
+  if (on) plShowUI();
+}
+function plPaintTime() {
+  const P = PL; if (!P) return;
+  const d = P.v.duration, t = P.drag != null ? P.drag : P.v.currentTime, f = isFinite(d) && d > 0 ? t / d : 0;
+  $('.pl-t.now', P.el).textContent = hms(t);
+  $('.pl-t.end', P.el).textContent = isFinite(d) ? hms(d) : '';
+  $('.pl-done', P.el).style.width = f * 100 + '%';
+  $('.pl-knob', P.el).style.left = f * 100 + '%';
+  const b = P.v.buffered; let e = 0;
+  for (let i = 0; i < b.length; i++) if (b.start(i) <= P.v.currentTime + 1) e = Math.max(e, b.end(i));
+  $('.pl-buf', P.el).style.width = (isFinite(d) && d ? e / d * 100 : 0) + '%';
+}
+/* the controls show on a tap and fade 3.5 s later while the film plays */
+function plShowUI(stay) {
+  const P = PL; if (!P || P.locked) return;
+  P.el.classList.add('ui'); clearTimeout(P.uiT);
+  if (!stay) P.uiT = setTimeout(() => { if (PL === P && !P.v.paused && P.drag == null && !$('.pl-panel', P.el).classList.contains('open')) P.el.classList.remove('ui'); }, 3500);
+}
+const plHideUI = () => { if (PL) { clearTimeout(PL.uiT); PL.el.classList.remove('ui'); } };
+function plSkip(dt) {
+  const P = PL, d = P.v.duration;
+  P.v.currentTime = Math.max(0, Math.min(isFinite(d) ? d - 0.5 : Infinity, P.v.currentTime + dt));
+  plPaintTime();
+}
+function plFlash(cls, text) {
+  const P = PL; if (!P) return;
+  $$('.pl-flash', P.el).forEach(x => x.remove());
+  const f = document.createElement('div'); f.className = 'pl-flash ' + cls; f.textContent = text; P.el.appendChild(f);
+  setTimeout(() => f.remove(), 650);
+}
+function plClick(e) {
+  const b = e.target.closest('[data-p]'); if (!b || !PL) return;
+  const P = PL, k = b.dataset.p;
+  if (k === 'back') back();
+  else if (k === 'play') { P.v.paused ? P.v.play().catch(() => {}) : P.v.pause(); plShowUI(); }
+  else if (k === 'rew' || k === 'fwd') { plSkip(k === 'rew' ? -10 : 10); plShowUI(); }
+  else if (k === 'subs') plPanel();
+  else if (k === 'more') plMenu();
+  else if (k === 'share') shareFiles([P.r.path]);
+  else if (k === 'fit') { P.el.classList.toggle('fill'); b.setAttribute('aria-label', P.el.classList.contains('fill') ? 'Fit the screen' : 'Fill the screen'); plShowUI(); }
+  else if (k === 'lock') { P.locked = true; plHideUI(); plUnlockHint(); }
+  else if (k === 'unlock') { P.locked = false; $('.pl-unlock', P.el).hidden = true; plShowUI(); }
+  else if (k === 'sub') plPickSub(b.dataset.id);
+  else if (k === 'size') { ls.set('player.sub', b.dataset.s); plApplySize(); plPanelPaint(); }
+}
+function plUnlockHint() {
+  const u = $('.pl-unlock', PL.el); u.hidden = false; clearTimeout(PL.lockT);
+  PL.lockT = setTimeout(() => { u.hidden = true; }, 2500);
+}
+function plMenu() {
+  const r = PL.r;
+  sheet(`<h2>${esc(r.name)}</h2><p class="sub num">${fmeta(r)}</p>
+    <div class="list">${item('share', ico('share', 'Share / Open with…'))}${item('folder', ico('folder', 'Show in folder'), '', '', esc(['My Files', ...(r.dir ? r.dir.split('/') : [])].join(' › ')))}</div>`, {
+    share: () => { shareFiles([r.path]); closeSheet(); },
+    folder: () => {
+      const under = pages[pages.length - 1], there = under && under.kind === 'files' && under.dir === r.dir;
+      back(() => { if (!there) openFolder(r.dir); }, 2); // the sheet and the player
+    }
+  });
+}
+
+/* ---- gestures: tap for the controls, double-tap a side to skip 10 s, swipe up or down on the left for brightness, on the right for volume ---- */
+function plApplyBright() { if (PL) $('.pl-dim', PL.el).style.opacity = String(1 - PL.bright); }
+function plApplyVol() {
+  const P = PL; if (!P) return;
+  if (P.vol <= 100) { P.v.volume = P.vol / 100; if (P.gain) P.gain.g.gain.value = 1; return; }
+  // above 100 the sound is made louder than the phone's own level, like MX Player's boost
+  if (!P.gain) {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)(), g = ctx.createGain();
+      ctx.createMediaElementSource(P.v).connect(g); g.connect(ctx.destination); P.gain = { ctx, g };
+    } catch (e) { console.warn(e); P.vol = 100; }
+  }
+  P.v.volume = 1; if (P.gain) { P.gain.ctx.resume().catch(() => {}); P.gain.g.gain.value = P.vol / 100; }
+}
+function plSide(which) {
+  const P = PL, s = $(`.pl-side.${which}`, P.el), val = which === 'l' ? P.bright * 100 : P.vol;
+  s.hidden = false; clearTimeout(s.t);
+  const i = $('i', s); i.style.height = (which === 'l' ? val : Math.min(100, val / 2)) + '%'; i.classList.toggle('boost', which === 'r' && val > 100);
+  $('span', s).textContent = Math.round(val);
+  s.t = setTimeout(() => { s.hidden = true; }, 900);
+}
+function plGestures() {
+  const P = PL, el = P.el;
+  let g = null, last = null, single = 0;
+  el.addEventListener('pointerdown', e => {
+    if (e.target.closest('button,.pl-seek,.pl-panel,.pl-msg') || (e.target.closest('.pl-sub') && e.target.textContent)) return;
+    if (P.paneled) return;
+    g = { id: e.pointerId, x0: e.clientX, y0: e.clientY, t0: Date.now(), mode: null };
+  });
+  el.addEventListener('pointermove', e => {
+    if (!g || e.pointerId !== g.id || P.locked) return;
+    const dx = e.clientX - g.x0, dy = e.clientY - g.y0;
+    if (!g.mode && Math.abs(dy) > 14 && Math.abs(dy) > Math.abs(dx) * 1.3) {
+      g.mode = g.x0 < el.clientWidth / 2 ? 'l' : 'r'; g.v0 = g.mode === 'l' ? P.bright : P.vol; g.y1 = e.clientY;
+    }
+    if (!g.mode) return;
+    const k = -(e.clientY - g.y1) / (el.clientHeight * 0.7);
+    if (g.mode === 'l') { P.bright = Math.max(0.1, Math.min(1, g.v0 + k)); plApplyBright(); ls.set('player.bright', P.bright.toFixed(2)); }
+    else { P.vol = Math.round(Math.max(0, Math.min(200, g.v0 + k * 200))); plApplyVol(); ls.set('player.vol', P.vol); }
+    plSide(g.mode);
+  });
+  const up = e => {
+    if (!g || e.pointerId !== g.id) return;
+    const moved = Math.hypot(e.clientX - g.x0, e.clientY - g.y0), dt = Date.now() - g.t0, mode = g.mode; g = null;
+    if (mode || moved > 12 || dt > 450 || e.type !== 'pointerup') return;
+    plTap(e);
+  };
+  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+  /* a single tap waits a moment so a double tap isn't taken for it */
+  PL.tap = e => {
+    if (!PL) return;
+    plFull();
+    if (P.locked) { plUnlockHint(); return; }
+    const now = Date.now(), w = el.clientWidth, x = e.clientX;
+    if (last && now - last.t < 300 && Math.hypot(x - last.x, e.clientY - last.y) < 60) {
+      clearTimeout(single); last = null;
+      if (x < w * 0.38) { plSkip(-10); plFlash('l', '−10 s'); }
+      else if (x > w * 0.62) { plSkip(10); plFlash('r', '+10 s'); }
+      else { P.v.paused ? P.v.play().catch(() => {}) : P.v.pause(); }
+      return;
+    }
+    last = { t: now, x, y: e.clientY };
+    clearTimeout(single);
+    single = setTimeout(() => { if (PL !== P) return; P.el.classList.contains('ui') ? plHideUI() : plShowUI(); }, 280);
+  };
+}
+const plTap = e => PL && PL.tap(e);
+/* the seek bar: drag anywhere along it; the time shows as it moves and the film follows */
+function plSeekBar() {
+  const P = PL, bar = $('.pl-seek', P.el), tr = $('.pl-track', P.el);
+  let id = null;
+  const at = e => { const r = tr.getBoundingClientRect(), d = P.v.duration; return isFinite(d) ? Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * d : 0; };
+  const go = t => { if (P.v.fastSeek) P.v.fastSeek(t); else P.v.currentTime = t; };
+  bar.addEventListener('pointerdown', e => {
+    id = e.pointerId; bar.setPointerCapture(id); bar.classList.add('drag');
+    P.drag = at(e); plPaintTime(); plShowUI(true); go(P.drag);
+  });
+  bar.addEventListener('pointermove', e => {
+    if (e.pointerId !== id) return;
+    P.drag = at(e); plPaintTime();
+    if (!P.seekT) P.seekT = setTimeout(() => { P.seekT = 0; if (P.drag != null) go(P.drag); }, 120);
+  });
+  const end = e => {
+    if (e.pointerId !== id) return;
+    id = null; bar.classList.remove('drag');
+    const t = P.drag; P.drag = null; if (t != null) P.v.currentTime = t;
+    plPaintTime(); plShowUI(); plSave();
+  };
+  bar.addEventListener('pointerup', end); bar.addEventListener('pointercancel', end);
+}
+
+/* ---- subtitles ---- */
+const SUB_SIZES = { S: 0.85, M: 1, L: 1.2, XL: 1.4 };
+function plApplySize() { if (PL) PL.el.style.setProperty('--sub', SUB_SIZES[ls.get('player.sub')] || 1); }
+/* what this video offers: text tracks inside the file, .srt/.vtt files beside it, and picture tracks (listed, not usable) */
+function plSubsFound() {
+  const P = PL; if (!P) return;
+  const subs = [];
+  for (const t of P.info ? P.info.tracks.filter(t => t.type === 'subs') : []) {
+    const pic = PICTURE_SUBS.test(t.codec || ''), sdh = /sdh|hearing|cc\b/i.test(t.name || '');
+    subs.push({ id: 'mkv:' + t.num, t, ok: !pic && /^S_TEXT/.test(t.codec || ''), sdh, forced: !!t.forced || /forced/i.test(t.name || ''),
+      label: t.name && !/^(sdh|forced)$/i.test(t.name.trim()) ? t.name : `${langName(t.lang)}${sdh ? ' SDH' : ''}${t.forced || /forced/i.test(t.name || '') ? ' (forced)' : ''}`,
+      detail: pic ? 'pictures, can’t be read as text' : sdh ? 'inside the file · sounds described' : 'inside the file', lang: t.lang });
+  }
+  for (const x of subsNextTo(P.r)) subs.push({ id: 'file:' + x.path, path: x.path, ok: true, label: x.name, detail: 'next to the video' });
+  P.subs = subs;
+  plApplySize();
+  const ok = subs.filter(s => s.ok);
+  let pick = P.rec && P.rec.sub;
+  if (pick && pick !== 'off' && !ok.some(s => s.id === pick)) pick = null;
+  if (!pick) { // English first, then any; plain before SDH; never a forced-only track
+    const plain = ok.filter(s => !s.forced);
+    const en = plain.filter(s => /^(en|eng)/i.test(s.lang || s.label));
+    pick = ((en.find(s => !s.sdh) || en[0] || plain.find(s => !s.sdh) || plain[0] || {}).id) || null;
+  }
+  if (pick && pick !== 'off') plLoadSub(pick, true);
+  else if (subs.length && !ok.length) toast('This video’s subtitles are pictures, which can’t be read. A .srt with the same name next to it will work.');
+}
+async function plPickSub(id) {
+  const P = PL; if (!P) return;
+  if (P.rec) { P.rec.sub = id; plSave(true); }
+  if (id === 'off') { P.job++; P.subId = 'off'; P.cues = []; P.cueI = -2; plPanelPaint(); return; }
+  plLoadSub(id);
+}
+async function plLoadSub(id, auto) {
+  const P = PL, s = P.subs.find(x => x.id === id); if (!s || !s.ok) return;
+  const job = ++P.job, live = () => PL === P && P.job === job;
+  P.subId = id; P.cues = []; P.cueI = -2; P.subLoad = 0; plPanelPaint();
+  const ck = `${P.key}|${id}`;
+  try {
+    const kept = await mstore.get('subs', ck);
+    if (kept && (!s.path || kept.mtime === (fidx.get(s.path) || {}).mtime)) { P.cues = kept.cues; P.subLoad = null; plPanelPaint(); return; }
+    let cues;
+    if (s.path) cues = parseSubFile(await fileText(await fileOf(s.path)));
+    else {
+      const I = P.info, part = (list, f) => { if (!live()) return; P.cues = subList(list, s.t.codec); P.cueI = -2; P.subLoad = f; plPanelPaint(); };
+      const cl = (await mkvCues(P.file, I)) || new Map(), mine = cl.get(s.t.num);
+      if (mine && mine.length) {
+        // the lines around where the film is come first, so subtitles show straight away
+        const near = (P.v.currentTime || (P.rec && P.rec.pos) || 0) * 1e9 / I.scale;
+        const order = mine.map((c, i) => i).sort((a, b) => Math.abs(mine[a].t - near) - Math.abs(mine[b].t - near));
+        const got = new Array(mine.length); let k = 0, done = 0;
+        const work = async () => {
+          while (k < order.length && live()) {
+            const i = order[k++];
+            try { got[i] = await mkvBlockAt(P.file, I, mine[i], s.t.num); } catch (e) { console.warn(e); }
+            if (++done % 60 === 0 || done === 20) part(got, done / mine.length);
+          }
+        };
+        await Promise.all(Array.from({ length: 6 }, work));
+        if (!live()) return;
+        cues = subList(got, s.t.codec);
+      } else {
+        if (!auto) toast('Reading the subtitles from the whole file, once…');
+        cues = subList(await mkvScan(P.file, I, s.t.num, part, live), s.t.codec);
+      }
+    }
+    if (!live()) return;
+    P.cues = cues; P.cueI = -2; P.subLoad = null; plPanelPaint();
+    mstore.put('subs', [{ k: ck, cues, at: Date.now(), mtime: s.path ? (fidx.get(s.path) || {}).mtime : null }]).catch(e => console.warn(e));
+    if (!cues.length) toast('No subtitle lines found in that track');
+  } catch (e) {
+    console.warn(e);
+    if (live()) { P.subLoad = null; plPanelPaint(); toast('Couldn’t read those subtitles'); }
+  }
+}
+/* the line on screen now (the last line that has started and not yet ended) */
+function cueAt(cues, t) {
+  let lo = 0, hi = cues.length - 1, i = -1;
+  while (lo <= hi) { const m = (lo + hi) >> 1; if (cues[m].s <= t) { i = m; lo = m + 1; } else hi = m - 1; }
+  return i;
+}
+function plPaintSub() {
+  const P = PL, t = P.v.currentTime, i = cueAt(P.cues, t), on = i >= 0 && t < P.cues[i].e ? i : -1;
+  if (on === P.cueI) return;
+  P.cueI = on;
+  const el = $('.pl-sub', P.el);
+  el.innerHTML = on >= 0 ? `<span>${esc(P.cues[on].x)}</span>` : '';
+}
+/* swipe a subtitle left for the next line, right for the one before (like MX Player); a tap on it works like a tap on the film */
+function plSubSwipe() {
+  const P = PL, el = $('.pl-sub', P.el);
+  let g = null;
+  el.addEventListener('pointerdown', e => {
+    if (!e.target.textContent || P.locked) return;
+    e.stopPropagation(); g = { id: e.pointerId, x0: e.clientX, y0: e.clientY, t0: Date.now() }; el.setPointerCapture(e.pointerId);
+  });
+  el.addEventListener('pointermove', e => {
+    if (!g || e.pointerId !== g.id) return;
+    const dx = e.clientX - g.x0, sp = $('span', el);
+    if (sp && Math.abs(dx) > 8) { sp.style.transition = 'none'; sp.style.transform = `translateX(${dx * 0.5}px)`; sp.style.opacity = String(1 - Math.min(0.6, Math.abs(dx) / 300)); }
+  });
+  const up = e => {
+    if (!g || e.pointerId !== g.id) return;
+    const dx = e.clientX - g.x0, dy = e.clientY - g.y0, dt = Date.now() - g.t0; g = null;
+    const sp = $('span', el); if (sp) { sp.style.transition = ''; sp.style.transform = ''; sp.style.opacity = ''; }
+    if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) plSubStep(dx < 0 ? 1 : -1);
+    else if (Math.hypot(dx, dy) < 12 && dt < 450 && e.type === 'pointerup') plTap(e);
+  };
+  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+}
+function plSubStep(dir) {
+  const P = PL; if (!P.cues.length) return;
+  const t = P.v.currentTime, i = cueAt(P.cues, t);
+  // the line on screen counts as "this" line: left goes to the one after it, right to the one before it
+  const on = i >= 0 && t < P.cues[i].e ? i : -1;
+  let j = dir > 0 ? i + 1 : (on >= 0 ? on - 1 : i);
+  j = Math.max(0, Math.min(P.cues.length - 1, j));
+  P.v.currentTime = P.cues[j].s + 0.01; P.cueI = -2;
+  plPaintTime(); buzz(8);
+}
+/* the subtitles panel (pick 3A): slides in from the right; Back or a tap on the film closes it */
+function plPanel() {
+  const P = PL, pn = $('.pl-panel', P.el);
+  if (pn.classList.contains('open')) return;
+  pn.hidden = false; plPanelPaint(); pn.offsetWidth; pn.classList.add('open'); P.el.classList.add('paneled'); P.paneled = true; plHideUI();
+  const shut = e => { if (!e.target.closest('.pl-panel')) { e.stopPropagation(); e.preventDefault(); back(); } };
+  P.el.addEventListener('pointerdown', shut, true); P.shut = shut;
+  pushLayer(() => {
+    if (!PL || PL !== P) return;
+    P.el.removeEventListener('pointerdown', P.shut, true);
+    pn.classList.remove('open'); P.el.classList.remove('paneled'); P.paneled = false;
+    setTimeout(() => { if (!pn.classList.contains('open')) pn.hidden = true; }, 260);
+  });
+}
+function plPanelPaint() {
+  const P = PL; if (!P) return;
+  const pn = $('.pl-panel', P.el); if (pn.hidden) return;
+  const cur = P.subId || 'off', size = ls.get('player.sub') || 'M';
+  const row = s => `<button class="pl-opt${cur === s.id ? ' on' : ''}" data-p="sub" data-id="${esc(s.id)}"${s.ok ? '' : ' disabled'}><span class="r"></span>
+    <span>${esc(s.label)}<small>${cur === s.id && P.subLoad != null ? `reading… ${Math.round(P.subLoad * 100)}%` : esc(s.detail)}</small></span></button>`;
+  pn.innerHTML = `<h3>Subtitles</h3>${P.subs.map(row).join('')}
+    <button class="pl-opt${cur === 'off' ? ' on' : ''}" data-p="sub" data-id="off"><span class="r"></span><span>Off</span></button>
+    ${P.subs.length && !P.subs.some(s => s.ok) ? '<p class="note">These subtitles are pictures. Put a .srt with the same name next to the video to use it here.</p>' : ''}
+    ${!P.subs.length ? '<p class="note">No subtitles in this video. Put a .srt with the same name next to it to use it here.</p>' : ''}
+    <div class="hr"></div><h3>Size</h3>
+    <div class="pl-sizes">${Object.keys(SUB_SIZES).map(k => `<button class="${k === size ? 'on' : ''}" data-p="size" data-s="${k}">${k}</button>`).join('')}</div>`;
 }
 
 /* ================= Notes: a small notebook of its own ================= */

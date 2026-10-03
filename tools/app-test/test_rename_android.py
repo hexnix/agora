@@ -1,9 +1,9 @@
-"""Renaming and tagging in My Files the way Android behaves (v40).
+"""Renaming and tagging in My Files the way Android behaves (v41).
 
     python3 tools/app-test/test_rename_android.py . --out shots/rename-android/
 
 On the phone a file in My Files has no real move: Chrome copies it, and copying a film of a few GB fails part-way, leaving
-an empty file under the new name. v32–v39 then left one more empty file on every try ("Oppenheimer.mkv",
+an empty file under the new name. v32–v40 then left one more empty file on every try ("Oppenheimer.mkv",
 "Oppenheimer 2.mkv"…). This test makes the made-up folder behave like that (move() creates the new name empty and fails;
 writing more than a few bytes fails for the "big" file) and checks:
   - a failed rename leaves no empty file, the film keeps its name, and a clear message says why;

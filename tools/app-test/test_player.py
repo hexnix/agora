@@ -128,15 +128,55 @@ async def main(app, out):
         await ph.shot(f'{out}/03-brightness.png'); await pg.mouse.up()
         b = await pg.evaluate("T.PL.bright")
         check(b < 1 and await pg.evaluate("+getComputedStyle(document.querySelector('.pl-dim')).opacity") > 0, f'swiping down on the left dims the picture ({b:.2f})')
-        await pg.mouse.move(770, 300); await pg.mouse.down(); await pg.mouse.move(770, 250, steps=5); await pg.mouse.move(770, 200, steps=8)
-        await ph.shot(f'{out}/04-volume.png'); await pg.mouse.up()
+        await pg.mouse.move(150, 330); await pg.mouse.down(); await pg.mouse.move(150, 300, steps=5); await pg.mouse.move(150, 120, steps=10)
+        await ph.shot(f'{out}/03b-brightness-boost.png')
+        side = await pg.evaluate("(() => { const r = document.querySelector('.pl-side.l').getBoundingClientRect(); return [r.left, innerWidth]; })()")
+        check(side[0] > side[1] / 2, f'the brightness bar shows on the right, away from the finger ({side})')
+        await pg.mouse.up()
+        b = await pg.evaluate("[T.PL.bright, T.PL.v.style.filter]")
+        check(b[0] > 1 and 'brightness' in b[1], f'and swiping up past 100 brightens the picture itself ({b})')
+        await pg.evaluate("localStorage.setItem('agora.player.bright', '1'); T.PL.bright = 1; document.querySelector('.pl-dim').style.opacity = '0'; T.PL.v.style.filter = ''")
+        await pg.mouse.move(770, 300); await pg.mouse.down(); await pg.mouse.move(770, 250, steps=5); await pg.mouse.move(770, 100, steps=10)
+        await ph.shot(f'{out}/04-volume.png')
+        side = await pg.evaluate("(() => { const r = document.querySelector('.pl-side.r').getBoundingClientRect(); return [r.right, innerWidth]; })()")
+        check(side[0] < side[1] / 2, f'the volume bar shows on the left, away from the finger ({side})')
+        await pg.mouse.up()
         vol = await pg.evaluate("T.PL.vol")
-        check(vol > 100 and await pg.evaluate("!!T.PL.gain"), f'swiping up on the right raises the volume, past 100 with a boost ({vol})')
+        check(vol == 100 and await pg.evaluate("!!T.PL.gain"), f'swiping up on the right raises the volume to 100, with a boost ({vol})')
         gv = await pg.evaluate("T.PL.gain.g.gain.value")
-        check(abs(gv - 2 ** ((vol - 100) / 50)) < 0.01, f'the boost doubles the loudness every 50 ({gv:.2f}x at {vol})')
-        await pg.mouse.move(770, 150); await pg.mouse.down(); await pg.mouse.move(770, 200, steps=5); await pg.mouse.move(770, 380, steps=10); await pg.mouse.up()
-        vol2 = await pg.evaluate("[T.PL.vol, T.PL.v.volume]")
-        check(vol2[0] < 100 and abs(vol2[1] - vol2[0] / 100) < 0.01, f'and down again ({vol2})')
+        check(abs(gv - 3) < 0.01, f'100 is 3 times the film\'s own level ({gv:.2f}x)')
+        await pg.mouse.move(770, 150); await pg.mouse.down(); await pg.mouse.move(770, 200, steps=5); await pg.mouse.move(770, 290, steps=10); await pg.mouse.up()
+        vol2 = await pg.evaluate("[T.PL.vol, T.PL.v.volume, T.PL.gain.g.gain.value]")
+        check(5 < vol2[0] < 69 and abs(vol2[1] - 3 * (vol2[0] / 100) ** 3) < 0.01 and vol2[2] == 1, f'and down again, below the film\'s own level ({vol2})')
+
+        # the picture: fit, crop, stretch, then pinch to zoom
+        await pg.mouse.click(300, 120); await pg.wait_for_timeout(300)
+        modes = []
+        for _ in range(3):
+            await pg.locator('[data-p="fit"]').click(); await pg.wait_for_timeout(150)
+            modes.append(await pg.evaluate("getComputedStyle(T.PL.v).objectFit"))
+        check(modes == ['cover', 'fill', 'contain'], f'the corner button goes crop, stretch, fit ({modes})')
+        await pg.evaluate('''(() => { const el = document.querySelector('.player');
+          const ev = (t, id, x, y) => el.dispatchEvent(new PointerEvent(t, {pointerId: id, clientX: x, clientY: y, bubbles: true, isPrimary: id === 1}));
+          ev('pointerdown', 1, 400, 200); ev('pointerdown', 2, 500, 200);
+          ev('pointermove', 1, 350, 200); ev('pointermove', 2, 550, 200);
+          ev('pointerup', 1, 350, 200); ev('pointerup', 2, 550, 200); })()''')
+        await pg.wait_for_timeout(200); await ph.shot(f'{out}/04b-pinch.png')
+        z = await pg.evaluate("[T.PL.rec.view.z, T.PL.v.style.transform, document.querySelector('.player').classList.contains('ui')]")
+        check(abs(z[0] - 2) < 0.01 and 'scale(2' in z[1], f'pinching out zooms the picture, around the fingers ({z})')
+        await pg.wait_for_timeout(500)
+        check(await pg.evaluate("!!T.PL.v.style.transform"), 'a pinch is not taken for a tap')
+
+        # hold a subtitle and drag it up: kept for the screen with the controls and without them
+        await pg.evaluate("T.PL.v.currentTime = 6.5"); await pg.wait_for_timeout(400)
+        await pg.evaluate("document.querySelector('.player').classList.remove('ui')"); await pg.wait_for_timeout(400)
+        sb = await pg.locator('.pl-sub span').bounding_box()
+        x, y = sb['x'] + sb['width'] / 2, sb['y'] + sb['height'] / 2
+        await pg.mouse.move(x, y); await pg.mouse.down(); await pg.wait_for_timeout(600); await pg.mouse.move(x, y - 60, steps=6)
+        await ph.shot(f'{out}/04c-subtitle-drag.png'); await pg.mouse.up(); await pg.wait_for_timeout(300)
+        sy = await pg.evaluate("[JSON.parse(localStorage.getItem('agora.player.suby')), document.querySelector('.pl-sub').getBoundingClientRect().bottom]")
+        check(sy[0]['bare'] > 0.1 and sy[0]['ui'] == 0, f'holding a subtitle and dragging it up moves it, for the screen without controls ({sy})')
+        check(await pg.evaluate("T.PL.cues.length > 0 && Math.abs(T.PL.v.currentTime - 6.5) < 2"), 'and doesn\'t skip to another line')
 
         # the subtitles panel (3A): tracks, Off, size; Back closes only the panel
         depth = await pg.evaluate("history.state && history.state.agora || 0")
@@ -179,7 +219,11 @@ async def main(app, out):
         t = await pg.evaluate("T.PL.v.currentTime")
         check(abs(t - 22.5) < 1.5, f'opening it again carries on from where it was left ({t:.1f})')
         check(await pg.evaluate("T.PL.subId") == 'mkv:3', 'and keeps the subtitle choice')
-        check(await pg.evaluate("T.PL.vol === 100 && !T.PL.gain"), 'a film left near silent opens at full volume, outside the boost')
+        check(await pg.evaluate("T.PL.vol === vol2[0]".replace('vol2[0]', str(vol2[0])) + " && !T.PL.gain"), 'it keeps the volume, outside the boost')
+        check(await pg.evaluate("T.PL.rec.view.z === 2 && T.PL.v.style.transform.includes('scale(2')"), 'and the zoom')
+        check(await pg.evaluate("getComputedStyle(document.querySelector('.pl-name')).webkitLineClamp") == '2', 'a long file name takes up to two lines')
+        await pg.evaluate("document.querySelector('.pl-name').textContent = 'Made Up Film (2026) IMAX 1080p 10bit BluRay x265 HEVC [Org Made Up Hindi DDP 5.1 640Kbps English AAC 5.1] ESub Extra Words To Overflow.mkv'; T.PL.el.classList.add('ui')")
+        await ph.shot(f'{out}/09-long-name.png')
         await ph.back(); await pg.wait_for_timeout(500)
 
         # a .srt beside a film without subtitles of its own is picked by itself (made from the same film, its tracks removed by name)

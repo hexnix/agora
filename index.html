@@ -4739,7 +4739,9 @@ function plApplyBright() { if (PL) $('.pl-dim', PL.el).style.opacity = String(1 
 function plApplyVol() {
   const P = PL; if (!P) return;
   if (P.vol <= 100) { P.v.volume = P.vol / 100; if (P.gain) P.gain.g.gain.value = 1; return; }
-  // above 100 the sound is made louder than the phone's own level, like MX Player's boost
+  // above 100 the sound is made louder than the phone's own level, like MX Player's boost. Films are mixed quietly
+  // (a 5.1 track folded into two speakers loses more), so 200 is 4 times as loud (+12 dB), with a limiter after
+  // it so the loud scenes don't crackle
   // Once the film's sound goes through Web Audio it can't come back out, and Chrome keeps a sound context silent
   // unless it was started by a touch. So the sound is only moved over once a context made at touch-down is running;
   // until then the volume stays at 100 rather than risk silence.
@@ -4747,11 +4749,12 @@ function plApplyVol() {
     const ctx = P.actx;
     if (!ctx || ctx.state !== 'running') { P.vol = 100; P.v.volume = 1; if (ctx) ctx.resume().catch(() => {}); return; }
     try {
-      const g = ctx.createGain();
-      ctx.createMediaElementSource(P.v).connect(g); g.connect(ctx.destination); P.gain = { ctx, g };
+      const g = ctx.createGain(), lim = ctx.createDynamicsCompressor();
+      lim.threshold.value = -3; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.002; lim.release.value = 0.15;
+      ctx.createMediaElementSource(P.v).connect(g); g.connect(lim); lim.connect(ctx.destination); P.gain = { ctx, g };
     } catch (e) { console.warn(e); P.vol = 100; }
   }
-  P.v.volume = 1; if (P.gain) P.gain.g.gain.value = P.vol / 100;
+  P.v.volume = 1; if (P.gain) P.gain.g.gain.value = 2 ** ((P.vol - 100) / 50);
 }
 /* called on every touch-down on the player, which is when Chrome lets a sound context start */
 function plAudioWake(right) {

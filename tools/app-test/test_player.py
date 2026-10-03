@@ -132,6 +132,8 @@ async def main(app, out):
         await ph.shot(f'{out}/04-volume.png'); await pg.mouse.up()
         vol = await pg.evaluate("T.PL.vol")
         check(vol > 100 and await pg.evaluate("!!T.PL.gain"), f'swiping up on the right raises the volume, past 100 with a boost ({vol})')
+        gv = await pg.evaluate("T.PL.gain.g.gain.value")
+        check(abs(gv - 2 ** ((vol - 100) / 50)) < 0.01, f'the boost doubles the loudness every 50 ({gv:.2f}x at {vol})')
         await pg.mouse.move(770, 150); await pg.mouse.down(); await pg.mouse.move(770, 200, steps=5); await pg.mouse.move(770, 380, steps=10); await pg.mouse.up()
         vol2 = await pg.evaluate("[T.PL.vol, T.PL.v.volume]")
         check(vol2[0] < 100 and abs(vol2[1] - vol2[0] / 100) < 0.01, f'and down again ({vol2})')

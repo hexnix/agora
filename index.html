@@ -560,6 +560,98 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 /* ---------- the video player (v37; the owner's picks 1A, 3A, 4A, subtitles like the phone's own player) ---------- */
 .vplay{display:flex;flex-direction:column;align-items:center;gap:10px;color:var(--text);font-size:15px}
 .vplay .disc{width:72px;height:72px;border-radius:50%;background:var(--raised);display:grid;place-items:center}
+/* the book reader (v44): Merriweather for every word in it */
+.book{position:fixed;inset:0;z-index:45;background:#000;color:#fff;overflow:hidden;font-family:'Merriweather',Georgia,serif;animation:fadein .2s ease;
+  --bk-fs:17px;--bk-lh:1.72;--bk-pad:24px;--bk-top:calc(env(safe-area-inset-top,0px) + 46px);--bk-bot:calc(env(safe-area-inset-bottom,0px) + 46px)}
+.book .bk-head{position:absolute;left:0;right:0;top:0;height:var(--bk-top);display:flex;align-items:flex-end;justify-content:center;padding:0 60px 8px;pointer-events:none}
+.book .bk-ch,.book .bk-prog{font:300 12.5px/1.3 'Merriweather',Georgia,serif;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.book .bk-foot{position:absolute;left:0;right:0;bottom:0;height:var(--bk-bot);display:flex;align-items:flex-start;justify-content:center;padding:10px 24px 0;pointer-events:none}
+.book .bk-stage{position:absolute;left:0;right:0;top:var(--bk-top);bottom:var(--bk-bot);overflow:hidden;touch-action:pan-y}
+.book .bk-page{position:absolute;inset:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:14px var(--bk-pad) 0;will-change:transform}
+.bk-text{font:300 var(--bk-fs)/var(--bk-lh) 'Merriweather',Georgia,serif;color:#E4E4E4;hyphens:auto;-webkit-hyphens:auto;overflow-wrap:break-word}
+.bk-text p{margin:0 0 1.05em}
+.bk-text h1,.bk-text h2,.bk-text h3,.bk-text h4,.bk-text h5,.bk-text h6{font-family:'Merriweather',Georgia,serif;font-weight:700;color:#fff;line-height:1.3;margin:1.2em 0 .8em;hyphens:manual}
+.bk-text h1{font-size:1.4em}.bk-text h2{font-size:1.25em}.bk-text h3{font-size:1.1em}.bk-text h4,.bk-text h5,.bk-text h6{font-size:1em}
+.bk-text > :first-child,.bk-text > div:first-child > :first-child{margin-top:.4em}
+.bk-text b,.bk-text strong{font-weight:700;color:#fff}
+.bk-text em,.bk-text i,.bk-text cite{font-style:italic}
+.bk-text blockquote{margin:0 0 1.05em;padding-left:1em;border-left:1px solid var(--line);color:#C9CBCF}
+.bk-text ul,.bk-text ol{margin:0 0 1.05em;padding-left:1.4em}
+.bk-text li{margin:0 0 .3em}
+.bk-text hr{border:0;margin:1.6em auto;width:40%;border-top:1px solid var(--line)}
+.bk-text img{display:block;max-width:100%;height:auto;margin:.6em auto 1em;border-radius:4px}
+.bk-text figcaption{font-size:.85em;color:var(--muted);text-align:center;margin:-.4em 0 1em}
+.bk-text a[data-to],.bk-text a[data-out]{color:var(--blue-text);text-decoration:none}
+.bk-text sup,.bk-text sub{font-size:.7em;line-height:0}
+.bk-text table{border-collapse:collapse;margin:0 0 1em;font-size:.9em}
+.bk-text td,.bk-text th{border:1px solid var(--line);padding:4px 8px}
+.bk-text pre{white-space:pre-wrap;font-size:.85em}
+.book .bk-end{padding:36px 0 calc(42px + env(safe-area-inset-bottom,0px));text-align:center;font:300 13px 'Merriweather',Georgia,serif;color:var(--faint)}
+.book .bk-wait{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:0 32px;text-align:center;color:var(--muted);font:300 15px/1.6 'Merriweather',Georgia,serif;background:#000;z-index:2}
+.book .bk-wait b{color:#fff;font-weight:300}
+.book .bk-wait .btn{flex:none;font-family:'Merriweather',Georgia,serif}
+.book.failed .bk-bot,.book.failed [data-b=toc],.book.failed [data-b=text]{display:none}
+.book .bk-ctl{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .2s;z-index:3}
+.book.ui .bk-ctl{opacity:1}
+.book.ui .bk-top,.book.ui .bk-bot{pointer-events:auto}
+.book .bk-top{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:2px;padding:calc(env(safe-area-inset-top,0px) + 8px) 6px 8px;background:#000;border-bottom:1px solid var(--line)}
+.book .bk-title{flex:1;min-width:0;padding:0 6px;font:700 16px/1.3 'Merriweather',Georgia,serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bk-aa{font:700 17px 'Merriweather',Georgia,serif;letter-spacing:-.02em}
+.bk-aa small{font-size:12px;font-weight:300}
+.book .bk-bot{position:absolute;left:0;right:0;bottom:0;padding:18px 24px calc(env(safe-area-inset-bottom,0px) + 18px);background:#000;border-top:1px solid var(--line)}
+.book .bk-row{display:flex;justify-content:space-between;gap:14px;font:300 13px/1.4 'Merriweather',Georgia,serif}
+.book .bk-row.mut{color:var(--muted)}
+.book .bk-row .bk-cname{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.book .bk-row .bk-pct{color:var(--muted)}
+.book .bk-seek{padding:16px 0;margin:2px 0;touch-action:none}
+.book .bk-track{position:relative;height:3px;background:rgba(255,255,255,.3);border-radius:2px}
+.book .bk-done{position:absolute;left:0;top:0;bottom:0;background:var(--gold);border-radius:2px}
+.book .bk-ticks i{position:absolute;top:-3px;width:1px;height:9px;background:rgba(255,255,255,.45)}
+.book .bk-knob{position:absolute;top:50%;width:16px;height:16px;margin:-8px;border-radius:50%;background:var(--gold)}
+.book .bk-toc{position:absolute;inset:0;z-index:4;background:#000;overflow-y:auto;padding:0 20px 40px;transition:opacity .2s;animation:fadein .2s ease;font-family:'Merriweather',Georgia,serif}
+.book .bk-toc .pbar{margin-top:0;padding-top:calc(env(safe-area-inset-top,0px) + 8px)}
+.book .bk-toc .pt{font:700 19px/1.3 'Merriweather',Georgia,serif;letter-spacing:0}
+.book .bk-toc .summary{padding-left:32px;font:300 13px/1.6 'Merriweather',Georgia,serif}
+.book .bk-rows{margin:14px -20px 0}
+.book .bk-trow2{display:flex;gap:14px;align-items:baseline;width:100%;padding:14px 22px;text-align:left;font:300 15px/1.45 'Merriweather',Georgia,serif;color:#fff}
+.book .bk-trow2 .k{width:24px;flex:none;font-size:13px;color:var(--muted)}
+.book .bk-trow2 .nm{flex:1;min-width:0}
+.book .bk-trow2 .pg{flex:none;font-size:12.5px;color:var(--muted)}
+.book .bk-trow2.sub .nm{padding-left:14px;font-size:14px;color:#C9CBCF}
+.book .bk-trow2.read .nm{color:#B8BABF}
+.book .bk-trow2.on .nm,.book .bk-trow2.on .k,.book .bk-trow2.on .pg{color:var(--blue-text)}
+.bkfont,.bkfont h2,.bkfont .sub,.bkfont .item{font-family:'Merriweather',Georgia,serif}
+.bkfont h2{font-weight:700}
+.bk-tsheet .bk-trow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0}
+.bk-tsheet .bk-trow > span{color:var(--muted);font:300 14px 'Merriweather',Georgia,serif}
+.bk-tsheet .bk-trow > div{display:flex;align-items:center;gap:8px}
+.bk-pill{padding:9px 14px;border-radius:18px;border:1px solid #45484E;font:300 13.5px 'Merriweather',Georgia,serif;color:#fff}
+.bk-pill.on{background:var(--gold);border-color:var(--gold)}
+.bk-pill.sz{width:52px;height:40px;padding:0;display:grid;place-items:center;font-size:14px}
+.bk-pill.sz.big{font-size:21px}
+.bk-tsheet .bk-n{width:30px;text-align:center;font:300 15px 'Merriweather',Georgia,serif}
+/* book notes (v45, picks A1, B1, C1): the bar under picked words, highlights, a highlight's card */
+.bk-text mark{background:none;color:inherit}
+.bk-text mark.hl.s{text-decoration:underline 2px rgba(255,255,255,.75);text-underline-offset:4px;text-decoration-skip-ink:none}
+.bk-text mark.hl.c{background:rgba(0,134,255,.28);color:#fff;border-radius:3px;box-shadow:0 0 0 1.5px rgba(0,134,255,.28);-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.bk-text mark.hl.pend{background:rgba(0,134,255,.38);color:#fff;text-decoration:none}
+.book .bk-selbar{position:absolute;z-index:6;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:2px;background:#1C1D20;border-radius:14px;padding:6px;box-shadow:0 6px 24px rgba(0,0,0,.6);white-space:nowrap;animation:fadein .15s;user-select:none;-webkit-user-select:none}
+.book .bk-selbar button{padding:9px 14px;border-radius:10px;font:300 14.5px 'Merriweather',Georgia,serif;color:#fff}
+.book .bk-selbar button.on{background:var(--gold)}
+.book .bk-selbar button.q{color:var(--muted);padding:9px 12px}
+.book .bk-selbar button.q.has{color:var(--blue-text)}
+.book .bk-selbar i{width:1px;height:22px;background:#3A3C41;margin:0 2px}
+.book .bk-strip{position:absolute;z-index:6;left:16px;right:16px;bottom:calc(var(--bk-bot) + 12px);display:flex;gap:12px;align-items:center;background:rgba(28,29,32,.97);border-radius:16px;padding:10px 6px 10px 10px;box-shadow:0 6px 24px rgba(0,0,0,.6);animation:fadein .15s;transition:opacity .2s;user-select:none;-webkit-user-select:none}
+.book .bk-strip.out{opacity:0}
+.book .bk-strip .pic{width:64px;height:40px;border-radius:8px;overflow:hidden;background:#2a2b2f;flex:none}
+.book .bk-strip img{width:100%;height:100%;object-fit:cover;display:block}
+.book .bk-strip .tx{flex:1;min-width:0;padding-left:4px}
+.book .bk-strip b{display:block;font:700 15px/1.35 'Merriweather',Georgia,serif;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.book .bk-strip small{display:block;font:300 12.5px/1.4 'Merriweather',Georgia,serif;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.book .bk-strip button{flex:none;padding:10px 12px;color:var(--blue-text);font:300 14px 'Merriweather',Georgia,serif}
+.book .bk-toast{position:absolute;z-index:7;left:50%;bottom:calc(var(--bk-bot) + 12px);transform:translateX(-50%);background:#1C1D20;border-radius:14px;padding:10px 8px 10px 18px;display:flex;gap:6px;align-items:center;max-width:calc(100vw - 32px);animation:fadein .15s;font:300 14px 'Merriweather',Georgia,serif;color:#fff}
+.book .bk-toast span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.book .bk-toast button{color:var(--blue-text);font:300 14px 'Merriweather',Georgia,serif;padding:4px 10px}
 .player{position:fixed;inset:0;z-index:50;background:#000;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
   --sub:1;--ui:0;--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--sb:env(safe-area-inset-bottom,0px)}
 .player video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;transform-origin:50% 50%}
@@ -593,6 +685,18 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 .pl-done{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--gold);border-radius:2px}
 .pl-knob{position:absolute;left:0;top:50%;width:14px;height:14px;margin:-7px;border-radius:50%;background:var(--gold);transition:transform .15s}
 .pl-seek.drag .pl-knob{transform:scale(1.35)}
+/* B1: a blue dot for each card from this film, a white one for each line saved here and not made into a card yet */
+.pl-marks{position:absolute;inset:0;pointer-events:none}
+.pl-marks i{position:absolute;top:50%;width:7px;height:7px;margin:-3.5px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 1.5px rgba(0,0,0,.45)}
+.pl-marks i.n{background:#fff}
+/* C1: the card the film has just reached */
+.pl-card{position:absolute;right:calc(22px + var(--sr));top:calc(64px + env(safe-area-inset-top,0px));display:flex;gap:10px;align-items:center;background:rgba(28,29,32,.94);border-radius:14px;padding:8px 14px 8px 8px;font:14px var(--sans);color:#fff;animation:fadein .2s;transition:opacity .3s;max-width:46vw}
+.pl-card.out{opacity:0}
+.pl-card .pic{width:64px;height:36px;border-radius:6px;overflow:hidden;background:#2a2b2f;flex:none}
+.pl-card img{width:100%;height:100%;object-fit:cover;display:block}
+.pl-card b{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pl-card .go{color:var(--blue-text);white-space:nowrap;margin-left:4px}
+.pl-match em{font-style:normal;color:var(--muted)}
 .pl-icons{display:flex;justify-content:space-between;align-items:center;margin:-2px -9px 0}
 .player .iconbtn{color:#fff}
 .player .iconbtn:active{background:rgba(255,255,255,.12)}
@@ -915,7 +1019,7 @@ addEventListener('popstate', e => {
 try { if (history.state && (history.state.agora || history.state.subtext)) history.replaceState(null, ''); } catch {}
 
 /* the page underneath stops scrolling while anything covers it */
-function unlockIdle() { if (!pages.length && !cardsView && !searchView && !S && !FV && !PL) document.body.classList.remove('locked'); }
+function unlockIdle() { if (!pages.length && !cardsView && !searchView && !S && !FV && !PL && !BK) document.body.classList.remove('locked'); }
 
 /* ================= toast ================= */
 let toastTimer;
@@ -4127,6 +4231,7 @@ function openViewer(list, path) {
   const order = list.filter(r => r.kind === 'file'); if (!order.length) return;
   const first = order.find(r => r.path === path);
   if (first && fkind(first) === 'vid') { openPlayer(first); return; } // films play in the player, full screen
+  if (first && first.ext === 'epub') { openBook(first); return; } // books open in the reader
   const el = document.createElement('div'); el.className = 'fview';
   el.innerHTML = `<div class="chrome"><button class="iconbtn" data-v="back" aria-label="Back">${ICON.back}</button><span class="vt"></span>
       <button class="iconbtn" data-v="more" aria-label="Options for this file">${ICON.more}</button><div class="tags"></div></div>
@@ -4182,7 +4287,7 @@ function showFileHead() {
   fitViewer();
 }
 const otherHTML = r => `<div class="vother">${ICON_DOC(56)}<span class="fn">${esc(r.name)}</span><span class="num">${esc(kindLabel(r))} · ${fsize(r.size)}</span>
-  <button class="btn primary" data-v="share">${ICON_SHARE}Share / Open with…</button></div>`;
+  ${r.ext === 'epub' ? '<button class="btn primary" data-v="read">Read</button>' : ''}<button class="btn${r.ext === 'epub' ? '' : ' primary'}" data-v="share">${ICON_SHARE}Share / Open with…</button></div>`;
 function showFile(i, dir) {
   const old = FV.slide; FV.i = i; FV.z = { s: 1, x: 0, y: 0 };
   const r = fileNow(), k = fkind(r), s = document.createElement('div');
@@ -4370,6 +4475,7 @@ function viewerClick(e) {
   const v = b.dataset.v, r = fileNow();
   if (v === 'back') back();
   else if (v === 'play') openPlayer(r);
+  else if (v === 'read') openBook(r);
   else if (v === 'share') shareFiles([r.path]);
   else if (v === 'more') viewerMenu(r);
   else if (v === 'connect') connectFiles().then(ok => { if (ok && FV) loadFull(FV.slide); });
@@ -4423,6 +4529,608 @@ function fileResults(list, titleOf) {
   return `<div class="rhead fhead"><span class="num">${[nd ? plural(nd, 'folder') : '', nf ? plural(nf, 'file') : ''].filter(Boolean).join(' · ')}</span></div>`
     + list.map(r => `<button class="res" data-fopen="${esc(r.path)}">${r.thumbId ? `<img alt="" class="fth" data-blob="${r.thumbId}">` : `<span class="gly">${r.kind === 'dir' ? ICON_FOLDER(24) : ICON_DOC(22)}</span>`}
       <span><span class="rw">${titleOf(r)}</span><span class="rd">${r.kind === 'dir' ? `Folder · ${plural(deepCount(r.path), 'file')}` : `${esc(kindLabel(r))} · ${esc(fname(r.dir))}`}</span></span></button>`).join('');
+}
+
+/* ================= the book reader ================= */
+/* .epub books from My Files open here (v44, the owner's picks): every word in Merriweather, the book's text and everything around it;
+   a chapter scrolls to its end and stops there, and a swipe left or right goes to the next or the previous chapter; the contents as a
+   page of their own (C1). While reading only the chapter's name and how far you are show; a tap brings Back, the contents, the text
+   size and a bar to move through the book. The book is read straight from the file (an epub is a zip of web pages), never copied.
+   Where each book was left is kept in a database of its own ("agora-books"), like the video player's places. */
+let BK = null;
+KEYS.books = 'id';
+let bkstore = memStore(['books']), booksReady = null;
+function openBooksDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('agora-books', 1);
+    r.onupgradeneeded = () => { r.result.createObjectStore('books', { keyPath: 'id' }); };
+    r.onsuccess = () => { const db = r.result; db.onversionchange = () => db.close(); res(db); };
+    r.onerror = () => rej(r.error);
+    r.onblocked = () => rej(new Error('blocked'));
+  });
+}
+const booksDB = () => booksReady || (booksReady = openBooksDB().then(db => { bkstore = idbStore(db); }, e => console.warn('book storage unavailable, using memory', e)));
+const bookKey = r => `b:${r.size}:${r.name}`; // known by name and size, so a moved book keeps its place
+const BK_SIZES = [14, 15, 16, 17, 18, 19, 20, 22, 24], BK_LINES = { close: 1.5, normal: 1.72, open: 1.95 }, BK_MARGINS = { narrow: 16, normal: 24, wide: 34 };
+const bkText = () => Object.assign({ s: 17, l: 'normal', m: 'normal' }, (() => { try { return JSON.parse(ls.get('book.text') || '{}') || {}; } catch { return {}; } })());
+const ICON_TOC = svg('<path d="M4 6.5h16M4 12h16M4 17.5h10"/>');
+const ICON_AA = '<span class="bk-aa" aria-hidden="true">A<small>a</small></span>';
+
+/* ---- reading the epub: container.xml names the package file, which lists the pages in reading order (the spine) and the contents ---- */
+function bkPath(base, href) {
+  let h = String(href || '').split('#')[0];
+  try { h = decodeURIComponent(h); } catch {}
+  const out = [];
+  for (const p of (h.startsWith('/') ? h.slice(1) : base + h).split('/')) { if (p === '..') out.pop(); else if (p && p !== '.') out.push(p); }
+  return out.join('/');
+}
+const bkDir = p => p.includes('/') ? p.slice(0, p.lastIndexOf('/') + 1) : '';
+const bkTag = (doc, name) => [...doc.getElementsByTagNameNS('*', name)];
+async function bkParse(file) {
+  const JSZip = await loadZip(), z = await JSZip.loadAsync(file);
+  const zf = p => z.file(p) || z.file(new RegExp('^' + p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i'))[0];
+  const txt = async p => { const f = zf(p); if (!f) throw new Error('missing ' + p); return f.async('string'); };
+  const xml = s => new DOMParser().parseFromString(s, 'application/xml');
+  const cont = xml(await txt('META-INF/container.xml'));
+  const opfPath = (bkTag(cont, 'rootfile')[0] || { getAttribute: () => '' }).getAttribute('full-path');
+  const opf = xml(await txt(opfPath)), base = bkDir(opfPath);
+  const items = new Map();
+  for (const it of bkTag(opf, 'item')) items.set(it.getAttribute('id'), { href: bkPath(base, it.getAttribute('href')), type: it.getAttribute('media-type') || '', props: it.getAttribute('properties') || '' });
+  const spine = bkTag(opf, 'itemref').filter(r => r.getAttribute('linear') !== 'no').map(r => items.get(r.getAttribute('idref')))
+    .filter(x => x && /html|xml/.test(x.type) && zf(x.href));
+  if (!spine.length) throw new Error('no pages');
+  const meta = n => { const e = bkTag(opf, n)[0]; return e ? e.textContent.trim().replace(/\s+/g, ' ') : ''; };
+  // a book whose pages are encrypted (bought with DRM) can't be read here; fonts are often obscured too, and that's fine
+  const enc = zf('META-INF/encryption.xml');
+  if (enc) {
+    const refs = bkTag(xml(await enc.async('string')), 'CipherReference').map(c => bkPath('', c.getAttribute('URI')));
+    if (refs.some(u => spine.some(s => s.href === u))) throw Object.assign(new Error('drm'), { drm: true });
+  }
+  // the contents: the EPUB 3 nav page, else the EPUB 2 toc.ncx
+  let toc = [];
+  const nav = [...items.values()].find(x => /\bnav\b/.test(x.props));
+  if (nav) try {
+    const d = new DOMParser().parseFromString(await txt(nav.href), 'application/xhtml+xml'), nb = bkDir(nav.href);
+    const navs = bkTag(d, 'nav'), tn = navs.find(n => /toc/.test(n.getAttribute('epub:type') || n.getAttributeNS('http://www.idpf.org/2007/ops', 'type') || '')) || navs[0];
+    const walk = (ol, lv) => { for (const li of [...(ol ? ol.children : [])].filter(e => e.localName === 'li')) {
+      const a = [...li.children].find(e => e.localName === 'a' || e.localName === 'span');
+      if (a && a.getAttribute('href')) toc.push({ name: a.textContent.trim().replace(/\s+/g, ' '), href: bkPath(nb, a.getAttribute('href')), frag: (a.getAttribute('href').split('#')[1] || ''), lv });
+      walk([...li.children].find(e => e.localName === 'ol'), lv + 1);
+    } };
+    if (tn) walk([...tn.getElementsByTagNameNS('*', 'ol')][0], 0);
+  } catch (e) { console.warn('book contents', e); }
+  if (!toc.length) {
+    const ncxId = (bkTag(opf, 'spine')[0] || { getAttribute: () => '' }).getAttribute('toc');
+    const ncx = items.get(ncxId) || [...items.values()].find(x => /ncx/.test(x.type));
+    if (ncx) try {
+      const d = xml(await txt(ncx.href)), nb = bkDir(ncx.href);
+      const walk = (el, lv) => { for (const np of [...el.children].filter(e => e.localName === 'navPoint')) {
+        const lab = bkTag(np, 'text')[0], src = (bkTag(np, 'content')[0] || { getAttribute: () => '' }).getAttribute('src');
+        if (lab && src) toc.push({ name: lab.textContent.trim().replace(/\s+/g, ' '), href: bkPath(nb, src), frag: src.split('#')[1] || '', lv });
+        walk(np, lv + 1);
+      } };
+      const map = bkTag(d, 'navMap')[0]; if (map) walk(map, 0);
+    } catch (e) { console.warn('book contents', e); }
+  }
+  toc = toc.filter(t => t.name && spine.some(s => s.href === t.href));
+  const size = s => { const f = zf(s.href); return Math.max(1, (f && f._data && f._data.uncompressedSize) || 1); };
+  const pages = spine.map((s, i) => ({ href: s.href, i, size: size(s), name: (toc.find(t => t.href === s.href) || {}).name || '' }));
+  // the cover picture, for the book's tile in For cards: EPUB 3 marks it, EPUB 2 names it in a meta
+  const cm = bkTag(opf, 'meta').find(m => m.getAttribute('name') === 'cover'), cv = [...items.values()].find(x => /\bcover-image\b/.test(x.props)) || (cm && items.get(cm.getAttribute('content')));
+  const cover = cv && /^image\//.test(cv.type) && zf(cv.href) ? cv.href : '';
+  return { z, zf, title: meta('title'), author: meta('creator'), pages, toc, cover, total: pages.reduce((a, p) => a + p.size, 0) };
+}
+
+/* ---- one chapter as plain, safe HTML: the book's own styles and scripts are left out, so it reads in Agora's look ---- */
+const BK_KEEP = new Set(['p', 'div', 'section', 'article', 'header', 'footer', 'aside', 'main', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'em', 'i', 'b', 'strong', 'u', 's',
+  'sup', 'sub', 'small', 'blockquote', 'ul', 'ol', 'li', 'br', 'hr', 'img', 'a', 'figure', 'figcaption', 'table', 'thead', 'tbody', 'tr', 'td', 'th', 'pre', 'code',
+  'cite', 'q', 'dl', 'dt', 'dd', 'abbr', 'mark']);
+const BK_DROP = new Set(['script', 'style', 'link', 'meta', 'title', 'head', 'iframe', 'object', 'embed', 'form', 'input', 'button', 'video', 'audio', 'canvas', 'noscript']);
+async function bkChapter(B, i) {
+  const pg = B.pages[i], dir = bkDir(pg.href), src = await B.zf(pg.href).async('string');
+  let d = new DOMParser().parseFromString(src, 'application/xhtml+xml');
+  if (d.getElementsByTagName('parsererror').length) d = new DOMParser().parseFromString(src, 'text/html');
+  const body = d.getElementsByTagNameNS('*', 'body')[0] || d.documentElement;
+  const out = document.createElement('div'), pics = [];
+  const copy = (from, to) => {
+    for (const n of [...from.childNodes]) {
+      if (n.nodeType === 3) { to.appendChild(document.createTextNode(n.nodeValue)); continue; }
+      if (n.nodeType !== 1) continue;
+      const t = n.localName.toLowerCase();
+      if (BK_DROP.has(t)) continue;
+      if (t === 'svg') { // a cover drawn as an svg around one picture
+        const im = [...n.getElementsByTagNameNS('*', 'image')][0], h = im && (im.getAttribute('href') || im.getAttributeNS('http://www.w3.org/1999/xlink', 'href'));
+        if (h) { const e = document.createElement('img'); e.dataset.src = bkPath(dir, h); pics.push(e); to.appendChild(e); }
+        continue;
+      }
+      if (!BK_KEEP.has(t)) { copy(n, to); continue; }
+      const e = document.createElement(t);
+      const id = n.getAttribute('id'); if (id) e.dataset.id = id;
+      if (t === 'img') { const s = n.getAttribute('src'); if (s) { e.dataset.src = bkPath(dir, s); e.alt = n.getAttribute('alt') || ''; pics.push(e); } }
+      if (t === 'a') { const h = n.getAttribute('href') || ''; if (/^[a-z]+:/i.test(h)) e.dataset.out = h; else if (h) { e.dataset.to = h.startsWith('#') ? pg.href : bkPath(dir, h); e.dataset.frag = h.split('#')[1] || ''; } }
+      if (t === 'td' || t === 'th') for (const a of ['colspan', 'rowspan']) if (n.getAttribute(a)) e.setAttribute(a, n.getAttribute(a));
+      copy(n, e); to.appendChild(e);
+    }
+  };
+  copy(body, out);
+  for (const e of pics) {
+    const f = B.zf(e.dataset.src);
+    if (!f) { e.remove(); continue; }
+    const ext = e.dataset.src.split('.').pop().toLowerCase(), type = ext === 'svg' ? 'image/svg+xml' : (MIME[ext] || 'image/jpeg');
+    const u = URL.createObjectURL(new Blob([await f.async('arraybuffer')], { type })); B.urls.push(u); e.src = u;
+  }
+  return out;
+}
+
+/* ---- opening and closing ---- */
+function openBook(r, go) {
+  if (BK) return;
+  if (!FX.ready) { connectFiles().then(ok => { if (ok) openBook(fidx.get(r.path) || r, go); }); return; } // the tap that opens it also gives Agora the folder
+  const el = document.createElement('div'); el.className = 'book';
+  el.innerHTML = `<div class="bk-head"><span class="bk-ch"></span></div><div class="bk-stage"></div><div class="bk-foot"><span class="bk-prog num"></span></div>
+    <div class="bk-ctl"><div class="bk-top"><button class="iconbtn" data-b="back" aria-label="Back">${ICON.back}</button><span class="bk-title"></span>
+        <button class="iconbtn" data-b="toc" aria-label="Contents">${ICON_TOC}</button><button class="iconbtn" data-b="text" aria-label="Text size">${ICON_AA}</button>
+        <button class="iconbtn" data-b="more" aria-label="Options for this book">${ICON.more}</button></div>
+      <div class="bk-bot"><div class="bk-row"><span class="bk-cname"></span><span class="bk-pct num"></span></div>
+        <div class="bk-seek" role="slider" aria-label="Position in the book"><div class="bk-track"><div class="bk-done"></div><div class="bk-ticks"></div><div class="bk-knob"></div></div></div>
+        <div class="bk-row mut"><span class="bk-cnum num"></span><span class="bk-left num"></span></div></div></div>
+    <div class="bk-selbar" hidden></div><div class="bk-wait">Opening…</div>`;
+  document.body.appendChild(el); document.body.classList.add('locked');
+  BK = { el, r, key: bookKey(r), stage: $('.bk-stage', el), rec: null, pages: [], toc: [], urls: [], ch: 0, page: null, ui: false, seen: new Map(), saveT: 0, go };
+  $('.bk-title', el).textContent = r.name.replace(/\.epub$/i, '');
+  bkApplyText();
+  el.addEventListener('click', bkClick);
+  bkGestures(); bkSeekBar(); bkSelBar(); bkSelWatch(true);
+  pushLayer(closeBook);
+  bkLoad();
+}
+async function bkLoad() {
+  const B = BK;
+  try {
+    await booksDB();
+    B.rec = (await bkstore.get('books', B.key)) || { id: B.key, name: B.r.name, size: B.r.size };
+    B.rec.path = B.r.path;
+    const book = await bkParse(await fileOf(B.r.path));
+    if (BK !== B) return;
+    Object.assign(B, book);
+    B.rec.title = book.title || B.rec.title; B.rec.author = book.author || '';
+    if (book.title) $('.bk-title', B.el).textContent = book.title;
+    $('.bk-ticks', B.el).innerHTML = B.pages.slice(1).filter(p => p.name).map(p => `<i style="left:${(bkStartOf(p.i) * 100).toFixed(2)}%"></i>`).join('');
+    const gi = B.go ? B.pages.findIndex(p => p.href === B.go.href) : -1; // opened from a line saved for a card: there
+    const ch = gi >= 0 ? gi : Math.min(B.pages.length - 1, Math.max(0, B.rec.ch | 0)), had = gi < 0 && B.rec.ch != null && (ch > 0 || B.rec.y > 0.02);
+    await bkShow(ch, 0, gi >= 0 ? 0 : B.rec.y || 0);
+    if (gi >= 0 && BK === B) { const e = B.page.blocks[B.go.p | 0]; if (e) { B.page.scrollTop = Math.max(0, e.offsetTop - B.page.clientHeight / 3); bkPaint(); } }
+    $('.bk-wait', B.el).remove();
+    if (had) toast(`Carrying on from ${bkName(ch)}`);
+  } catch (e) {
+    console.warn(e);
+    if (BK !== B) return;
+    const w = $('.bk-wait', B.el); B.el.classList.add('failed');
+    w.innerHTML = `<b>${e && e.drm ? 'This book is locked by its shop (DRM), so Agora can’t open it' : navigator.onLine === false && !window.JSZip ? 'Connect to the internet once to open books' : `Couldn’t open ${esc(B.r.name)}`}</b>
+      <button class="btn primary" data-b="share">${ICON_SHARE}Share / Open with…</button>`;
+    bkShowUI(true);
+  }
+}
+function closeBook() {
+  const B = BK; if (!B) return;
+  bkSave(); bkSelWatch(false); BK = null;
+  B.el.style.transition = 'opacity .2s'; B.el.style.opacity = '0';
+  setTimeout(() => { B.el.remove(); B.urls.forEach(u => URL.revokeObjectURL(u)); }, 220);
+  unlockIdle();
+}
+const bkName = i => { const p = BK && BK.pages[i]; return (p && p.name) || (i === 0 ? 'the start' : `part ${i + 1}`); };
+// where a chapter starts in the whole book, 0 to 1, by the length of its pages
+const bkStartOf = i => BK.pages.slice(0, i).reduce((a, p) => a + p.size, 0) / BK.total;
+
+/* ---- a chapter on screen: it scrolls to its end and stops; swiping sideways brings the next or the one before ---- */
+async function bkShow(i, dir, y, frag) {
+  const B = BK; if (!B || !B.pages[i]) return;
+  if (B.page) B.seen.set(B.ch, B.page.scrollTop);
+  const pg = document.createElement('div'); pg.className = 'bk-page';
+  const text = await bkChapter(B, i); if (BK !== B) return;
+  text.className = 'bk-text'; pg.appendChild(text);
+  pg.insertAdjacentHTML('beforeend', `<div class="bk-end">${i < B.pages.length - 1 ? `Swipe for ${esc(bkName(i + 1))} ›` : 'The end'}</div>`);
+  if (dir) { pg.style.transition = 'none'; pg.style.transform = `translateX(${dir * 100}%)`; }
+  B.stage.appendChild(pg);
+  const old = B.page; B.page = pg; B.ch = i;
+  bkSelHide();
+  pg.blocks = bkBlocks(text); bkMarks();
+  pg.addEventListener('scroll', bkScrolled, { passive: true });
+  // pictures settle the page's height: place the reader once they have
+  await Promise.all([...$$('img', pg)].map(im => im.decode ? im.decode().catch(() => {}) : null)).then(() => {}, () => {});
+  if (BK !== B || B.page !== pg) return;
+  const t = frag && $(`[data-id="${CSS.escape(frag)}"]`, pg);
+  if (t) pg.scrollTop = t.offsetTop - 8;
+  else if (y != null) pg.scrollTop = y * Math.max(0, pg.scrollHeight - pg.clientHeight);
+  else if (B.seen.has(i)) pg.scrollTop = B.seen.get(i);
+  if (old) {
+    pg.offsetWidth; pg.style.transition = '';
+    old.style.transition = 'transform .32s var(--ease), opacity .32s'; old.style.transform = `translateX(${-dir * 100}%)`; old.style.opacity = '0'; pg.style.transform = '';
+    setTimeout(() => old.remove(), 340);
+  }
+  $('.bk-ch', B.el).textContent = bkName(i) === 'the start' ? (B.title || '') : bkName(i);
+  bkPaint(); bkSave();
+}
+function bkFrac() {
+  const p = BK && BK.page; if (!p) return 0;
+  const h = p.scrollHeight - p.clientHeight; return h > 4 ? Math.min(1, Math.max(0, p.scrollTop / h)) : 1;
+}
+function bkPaint() {
+  const B = BK; if (!B || !B.page) return;
+  const f = bkFrac(), pct = Math.min(100, Math.round((bkStartOf(B.ch) + f * B.pages[B.ch].size / B.total) * 100));
+  const words = B.page.words || (B.page.words = (B.page.textContent.match(/\S+/g) || []).length);
+  const min = Math.round(words * (1 - f) / 230); // about 230 words a minute
+  const left = f > 0.995 ? 'End of chapter' : min < 1 ? 'Less than a minute left' : `${min} min left in chapter`;
+  $('.bk-prog', B.el).textContent = `${pct}% · ${left}`;
+  $('.bk-pct', B.el).textContent = `${pct}%`; $('.bk-left', B.el).textContent = left;
+  $('.bk-cname', B.el).textContent = bkName(B.ch);
+  const tops = B.toc.filter(t => !t.lv).map(t => B.pages.findIndex(p => p.href === t.href)), n = tops.filter(i => i >= 0 && i <= B.ch).length;
+  $('.bk-cnum', B.el).textContent = tops.length && n ? `Chapter ${n} of ${tops.length}` : '';
+  if (!B.seeking) { $('.bk-done', B.el).style.width = pct + '%'; $('.bk-knob', B.el).style.left = pct + '%'; }
+  B.pct = pct;
+}
+function bkScrolled() {
+  const B = BK; if (!B) return;
+  bkPaint(); if (B.pick) bkSelPlace(); clearTimeout(B.saveT); B.saveT = setTimeout(bkSave, 800);
+}
+function bkSave() {
+  const B = BK; if (!B || !B.rec || !B.page) return;
+  Object.assign(B.rec, { ch: B.ch, y: bkFrac(), pct: B.pct || 0, at: Date.now() });
+  bkstore.put('books', [{ ...B.rec }]).catch(e => console.warn(e));
+}
+
+/* ---- a tap shows or hides the controls; a sideways swipe changes chapter, following the finger ---- */
+function bkShowUI(on) { const B = BK; if (!B) return; B.ui = on; B.el.classList.toggle('ui', on); if (on) bkPaint(); }
+function bkGestures() {
+  const st = BK.stage; let g = null;
+  // words being picked (a selection, or a finger held down to start one) never turn the chapter or toggle the controls
+  const picking = () => { const s = getSelection(); return !!(s && !s.isCollapsed && BK && BK.page && BK.page.contains(s.anchorNode)); };
+  st.addEventListener('pointerdown', e => { if (!BK || e.button) return; g = { x: e.clientX, y: e.clientY, t: Date.now(), dx: 0, side: false, id: e.pointerId, sel: picking() || !!BK.pick || !!BK.strip }; });
+  st.addEventListener('pointermove', e => {
+    if (!g || e.pointerId !== g.id || !BK.page) return;
+    const dx = e.clientX - g.x, dy = e.clientY - g.y;
+    if (!g.side && Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.3 && !g.sel && Date.now() - g.t < 450 && !picking()) { g.side = true; BK.page.style.transition = 'none'; }
+    if (g.side) {
+      const edge = (dx > 0 && BK.ch === 0) || (dx < 0 && BK.ch === BK.pages.length - 1);
+      g.dx = edge ? dx / 4 : dx; BK.page.style.transform = `translateX(${g.dx}px)`;
+    }
+  });
+  const up = e => {
+    if (!g || e.pointerId !== g.id) return;
+    const B = BK, gg = g; g = null; if (!B || !B.page) return;
+    if (gg.side) {
+      const v = gg.dx / Math.max(1, Date.now() - gg.t), next = gg.dx < 0 ? B.ch + 1 : B.ch - 1;
+      if ((Math.abs(gg.dx) > 70 || Math.abs(v) > 0.5) && B.pages[next] && e.type === 'pointerup') { bkShowUI(false); bkShow(next, gg.dx < 0 ? 1 : -1, next < B.ch ? null : 0); }
+      else { B.page.style.transition = 'transform .25s var(--ease)'; B.page.style.transform = ''; }
+      return;
+    }
+    if (e.type !== 'pointerup' || Math.hypot(e.clientX - gg.x, e.clientY - gg.y) >= 10 || Date.now() - gg.t >= 400 || e.target.closest('a[data-to],a[data-out]')) return;
+    if (gg.sel) { if (B.strip || (B.pick && B.pick.held)) back(); return; } // a tap away from picked words (or the card strip) lets them go
+    const m = e.target.closest('mark.hl');
+    if (m) { bkHlTap(m); return; }
+    bkShowUI(!B.ui);
+  };
+  st.addEventListener('pointerup', up); st.addEventListener('pointercancel', up);
+}
+/* the bar at the bottom: drag anywhere along it to move through the whole book */
+function bkSeekBar() {
+  const B = BK, bar = $('.bk-seek', B.el), tr = $('.bk-track', B.el);
+  const at = x => { const r = tr.getBoundingClientRect(); return Math.min(1, Math.max(0, (x - r.left) / r.width)); };
+  const where = f => { let i = 0; while (i < B.pages.length - 1 && bkStartOf(i + 1) <= f) i++; return { i, y: Math.min(1, (f - bkStartOf(i)) * B.total / B.pages[i].size) }; };
+  const show = f => { const w = where(f); $('.bk-done', B.el).style.width = f * 100 + '%'; $('.bk-knob', B.el).style.left = f * 100 + '%';
+    $('.bk-cname', B.el).textContent = bkName(w.i); $('.bk-pct', B.el).textContent = Math.round(f * 100) + '%'; return w; };
+  bar.addEventListener('pointerdown', e => { if (!B.pages.length) return; B.seeking = true; bar.setPointerCapture(e.pointerId); show(at(e.clientX)); });
+  bar.addEventListener('pointermove', e => { if (B.seeking) show(at(e.clientX)); });
+  const end = e => { if (!B.seeking) return; B.seeking = false; const w = show(at(e.clientX)); if (BK === B) bkShow(w.i, w.i === B.ch ? 0 : w.i > B.ch ? 1 : -1, w.y); };
+  bar.addEventListener('pointerup', end); bar.addEventListener('pointercancel', () => { B.seeking = false; bkPaint(); });
+}
+function bkClick(e) {
+  const B = BK; if (!B) return;
+  const a = e.target.closest('a[data-to],a[data-out]');
+  if (a) { // a link inside the book: a note or another chapter opens here, a web address in the browser
+    e.preventDefault();
+    if (a.dataset.out) { if (/^https?:/i.test(a.dataset.out)) window.open(a.dataset.out, '_blank', 'noopener'); return; }
+    const i = B.pages.findIndex(p => p.href === a.dataset.to);
+    if (i === B.ch) { const t = a.dataset.frag && $(`[data-id="${CSS.escape(a.dataset.frag)}"]`, B.page); if (t) B.page.scrollTop = t.offsetTop - 8; }
+    else if (i >= 0) bkShow(i, i > B.ch ? 1 : -1, null, a.dataset.frag);
+    return;
+  }
+  const b = e.target.closest('[data-b]'); if (!b) return;
+  const k = b.dataset.b;
+  if (k === 'back') back();
+  else if (k === 'toc') bkContents();
+  else if (k === 'text') bkTextSheet();
+  else if (k === 'more') bkMenu();
+  else if (k === 'share') shareFiles([B.r.path]);
+}
+function bkMenu() {
+  const r = BK.r;
+  sheet(`<div class="bkfont"><h2>${esc(BK.title || r.name)}</h2><p class="sub">${esc([BK.author, fsize(r.size)].filter(Boolean).join(' · '))}</p>
+    <div class="list">${item('share', ico('share', 'Share / Open with…'))}${item('folder', ico('folder', 'Show in folder'), '', '', esc(['My Files', ...(r.dir ? r.dir.split('/') : [])].join(' › ')))}</div></div>`, {
+    share: () => { shareFiles([r.path]); closeSheet(); },
+    folder: () => {
+      const under = pages[pages.length - 1], there = under && under.kind === 'files' && under.dir === r.dir;
+      back(() => { if (!there) openFolder(r.dir); }, 2); // the sheet and the book
+    }
+  });
+}
+
+/* ---- text size, line spacing and margins (Aa) ---- */
+function bkApplyText() {
+  const t = bkText(), el = BK && BK.el; if (!el) return;
+  el.style.setProperty('--bk-fs', t.s + 'px'); el.style.setProperty('--bk-lh', BK_LINES[t.l] || 1.72); el.style.setProperty('--bk-pad', (BK_MARGINS[t.m] || 24) + 'px');
+}
+function bkTextSheet() {
+  const paint = () => {
+    const t = bkText(), sh = $('#sheet');
+    $('.bk-n', sh).textContent = t.s;
+    $$('[data-act^="l-"]', sh).forEach(b => b.classList.toggle('on', b.dataset.act === 'l-' + t.l));
+    $$('[data-act^="m-"]', sh).forEach(b => b.classList.toggle('on', b.dataset.act === 'm-' + t.m));
+  };
+  const set = ch => { const B = BK; if (!B) return; const f = bkFrac(); ls.set('book.text', JSON.stringify(Object.assign(bkText(), ch))); bkApplyText(); paint();
+    if (B.page) B.page.scrollTop = f * Math.max(0, B.page.scrollHeight - B.page.clientHeight); bkPaint(); };
+  const step = d => { const s = bkText().s, i = BK_SIZES.indexOf(s), j = Math.min(BK_SIZES.length - 1, Math.max(0, (i < 0 ? 3 : i) + d)); set({ s: BK_SIZES[j] }); };
+  const pill = (k, v) => `<button class="bk-pill" data-act="${k}-${v}">${v[0].toUpperCase() + v.slice(1)}</button>`;
+  sheet(`<div class="bkfont bk-tsheet"><h2>Text</h2>
+    <div class="bk-trow"><span>Size</span><div><button class="bk-pill sz" data-act="smaller" aria-label="Smaller">A</button><span class="bk-n num"></span><button class="bk-pill sz big" data-act="bigger" aria-label="Bigger">A</button></div></div>
+    <div class="bk-trow"><span>Lines</span><div>${Object.keys(BK_LINES).map(v => pill('l', v)).join('')}</div></div>
+    <div class="bk-trow"><span>Margins</span><div>${Object.keys(BK_MARGINS).map(v => pill('m', v)).join('')}</div></div></div>`,
+    Object.assign({ smaller: () => step(-1), bigger: () => step(1) },
+      ...Object.keys(BK_LINES).map(v => ({ ['l-' + v]: () => set({ l: v }) })), ...Object.keys(BK_MARGINS).map(v => ({ ['m-' + v]: () => set({ m: v }) }))), paint);
+}
+
+/* ---- the contents (C1): a page of their own over the book ---- */
+function bkContents() {
+  const B = BK; if (!B || !B.pages.length || $('.bk-toc', B.el)) return;
+  const list = B.toc.length ? B.toc : B.pages.filter(p => p.name).map(p => ({ name: p.name, href: p.href, frag: '', lv: 0 }));
+  const idx = t => B.pages.findIndex(p => p.href === t.href);
+  // you're in the last contents line that starts at or before this chapter
+  let cur = -1; list.forEach((t, k) => {
+    const i = idx(t); if (i > B.ch) return;
+    if (i < B.ch || !t.frag) { cur = k; return; }
+    const e = $(`[data-id="${CSS.escape(t.frag)}"]`, B.page); // a section in this chapter: only once it has been reached
+    if (!e || e.offsetTop <= B.page.scrollTop + B.page.clientHeight / 3) cur = k;
+  });
+  const top = list.filter(t => !t.lv).length;
+  const el = document.createElement('div'); el.className = 'bk-toc';
+  el.innerHTML = `<div class="pbar"><div class="ptitle"><button class="iconbtn" data-c="back" aria-label="Back">${ICON.back}</button><h1 class="pt">Contents</h1></div></div>
+    <p class="summary">${esc([B.title, B.author].filter(Boolean).join(' · '))}</p><p class="summary">${plural(top, 'chapter')} · ${B.pct || 0}% read</p>
+    <div class="bk-rows">${list.map((t, k) => { const i = idx(t), n = list.slice(0, k + 1).filter(x => !x.lv).length;
+      return `<button class="bk-trow2${k === cur ? ' on' : k < cur ? ' read' : ''}${t.lv ? ' sub' : ''}" data-c="go" data-k="${k}"><span class="k num">${t.lv ? '' : n}</span><span class="nm">${esc(t.name)}</span>
+        <span class="pg num">${k === cur ? 'You’re here' : Math.round(bkStartOf(i) * 100) + '%'}</span></button>`; }).join('')}</div>`;
+  B.el.appendChild(el);
+  const on = $('.bk-trow2.on', el); if (on && on.offsetTop > el.clientHeight * 0.7) el.scrollTop = on.offsetTop - el.clientHeight / 3;
+  el.addEventListener('click', e => {
+    const b = e.target.closest('[data-c]'); if (!b) return;
+    if (b.dataset.c === 'back') back();
+    else { const t = list[+b.dataset.k], i = idx(t); back(() => { if (BK) { bkShowUI(false); bkShow(i, i === BK.ch ? 0 : i > BK.ch ? 1 : -1, t.frag ? null : 0, t.frag); } }); }
+  });
+  pushLayer(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 200); });
+}
+
+/* ---- notes and highlights (v45, the owner's picks A1, B1, C1) ----
+   Pick words with the phone's own selection: a small bar shows under them, Vocabulary, Concept and + Question. The words are saved
+   for a card in For cards (the same list and zip as lines from films), with where they sit: the chapter, the paragraph and the
+   characters in it, and the words just before and after (like Hypothesis), so they are found again even in another edition.
+   A saved phrase gets a white underline; once a card is made from it (or a card of this book is found on the page), a soft blue
+   fill, like the film's dots. Tapping a blue one shows its card in a strip at the bottom (C1). */
+const BK_BLOCK = new Set(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'blockquote', 'figcaption', 'dt', 'dd', 'pre', 'td', 'th', 'div', 'section', 'article',
+  'header', 'footer', 'aside', 'main', 'figure', 'ul', 'ol', 'table', 'thead', 'tbody', 'tr', 'dl']);
+const BK_BLOCK_SEL = [...BK_BLOCK].join(',');
+// a chapter's paragraphs: the innermost blocks with text; a place in the book is a paragraph's number and a character in it
+const bkBlocks = root => [...root.querySelectorAll(BK_BLOCK_SEL)].filter(e => !e.querySelector(BK_BLOCK_SEL) && e.textContent.trim());
+function bkFlat(pg) { // the chapter's text in one string, a line per paragraph (the marks Agora adds never change it)
+  if (pg.F) return pg.F;
+  const lens = pg.blocks.map(b => b.textContent.length), starts = []; let at = 0;
+  lens.forEach(l => { starts.push(at); at += l + 1; });
+  return (pg.F = { text: pg.blocks.map(b => b.textContent).join('\n'), starts, lens, set: new Set(pg.blocks) });
+}
+const bkAt = (F, g) => { let p = 0; while (p < F.starts.length - 1 && F.starts[p + 1] <= g) p++; return { p, o: g - F.starts[p] }; };
+function bkPoint(pg, node, off, end) {
+  const F = bkFlat(pg), bs = pg.blocks;
+  let e = node.nodeType === 1 ? node : node.parentNode;
+  while (e && e !== pg && !F.set.has(e)) e = e.parentNode;
+  if (e && e !== pg) { const r = document.createRange(); r.setStart(e, 0); r.setEnd(node, off); return { p: bs.indexOf(e), o: r.toString().length }; }
+  // between paragraphs: a start moves on to the next one, an end back to the end of the one before
+  const pt = document.createRange(); pt.setStart(node, off);
+  if (!end) { const p = bs.findIndex(b => pt.comparePoint(b, 0) >= 0); return p < 0 ? null : { p, o: 0 }; }
+  let p = -1; bs.forEach((b, k) => { if (pt.comparePoint(b, b.childNodes.length) <= 0) p = k; });
+  return p < 0 ? null : { p, o: F.lens[p] };
+}
+/* wrap the characters g0 to g1 of the chapter in marks (one per piece of text, so a phrase across italics or paragraphs works) */
+function bkWrap(pg, g0, g1, cls, data) {
+  const F = bkFlat(pg), out = [];
+  pg.blocks.forEach((b, p) => {
+    const s0 = F.starts[p], a = Math.max(g0, s0) - s0, z = Math.min(g1, s0 + F.lens[p]) - s0; if (z <= a) return;
+    const tw = document.createTreeWalker(b, NodeFilter.SHOW_TEXT), ns = []; let n; while ((n = tw.nextNode())) ns.push(n);
+    let at = 0;
+    for (const t of ns) {
+      const L = t.nodeValue.length, x = Math.max(a, at) - at, y = Math.min(z, at + L) - at; at += L;
+      if (y <= x) continue;
+      const mid = x > 0 ? t.splitText(x) : t; if (y - x < mid.nodeValue.length) mid.splitText(y - x);
+      const m = document.createElement('mark'); m.className = cls; Object.assign(m.dataset, data);
+      mid.parentNode.insertBefore(m, mid); m.appendChild(mid); out.push(m);
+    }
+  });
+  return out;
+}
+/* where saved words are now: the same place if the words are still there, else the words with what came before and after them,
+   else the words alone, nearest to where they were */
+function bkFind(pg, b) {
+  const F = bkFlat(pg), ex = b.exact; if (!ex) return null;
+  if (F.starts[b.p0] != null) { const g = F.starts[b.p0] + b.o0; if (F.text.slice(g, g + ex.length) === ex) return [g, g + ex.length]; }
+  const i = F.text.indexOf(b.prefix + ex + b.suffix); if (i >= 0) return [i + b.prefix.length, i + b.prefix.length + ex.length];
+  const was = (F.starts[b.p0] || 0) + b.o0; let best = -1;
+  for (let j = F.text.indexOf(ex); j >= 0; j = F.text.indexOf(ex, j + 1)) if (best < 0 || Math.abs(j - was) < Math.abs(best - was)) best = j;
+  return best >= 0 ? [best, best + ex.length] : null;
+}
+/* this book's cards (made in the card chat from screenshots): tagged Book and the book's title */
+function bkBookCards(B) {
+  const t = normLine(B.title || cnTitleOf(B.r)); if (!t) return [];
+  return cards.filter(c => {
+    const s = srcOf(c); if (String(s.kind).toLowerCase() !== 'book') return false;
+    const n = normLine(s.name); return !!n && (n === t || (n.length >= 6 && t.includes(n)) || (t.length >= 6 && n.includes(t)));
+  });
+}
+const bkPlain = x => String(x).replace(/^#\s+/, '').replace(/\*\*|==|\*/g, '');
+/* a card's word on this page: its scene's paragraph (the one with ==the word==) found among the chapter's, then the word in it */
+function bkCardAt(pg, c) {
+  const F = bkFlat(pg), norms = pg.norms || (pg.norms = pg.blocks.map(b => normLine(b.textContent)));
+  const spots = [];
+  for (const p of (c.sceneText && Array.isArray(c.sceneText.paras) ? c.sceneText.paras : [])) if (String(p).includes('==')) spots.push(String(p));
+  if (c.ref && c.ref.kind === 'transcript') for (const l of c.ref.lines || []) if (l.hit) spots.push(String(l.text));
+  for (const sp of spots) {
+    const m = sp.match(/==(.+?)==/), word = bkPlain(m ? m[1] : nameOf(c) || c.word || '').trim(); if (!word) continue;
+    const plain = bkPlain(sp), key = normLine(plain).slice(0, 60); if (key.length < 12) continue;
+    const before = normLine(plain.slice(0, Math.max(0, plain.toLowerCase().indexOf(word.toLowerCase())))).slice(-24);
+    for (let p = 0; p < norms.length; p++) {
+      if (!norms[p].includes(key)) continue;
+      for (const q of [p, p + 1]) { // the word, where what comes before it matches the scene
+        const tx = pg.blocks[q] ? pg.blocks[q].textContent : '', low = tx.toLowerCase(), w = word.toLowerCase(); let pick = -1;
+        for (let j = low.indexOf(w); j >= 0; j = low.indexOf(w, j + 1)) { if (pick < 0) pick = j; if (normLine(tx.slice(0, j)).endsWith(before)) { pick = j; break; } }
+        if (pick >= 0) return [F.starts[q] + pick, F.starts[q] + pick + word.length];
+      }
+    }
+  }
+  return null;
+}
+/* draw the chapter's highlights again (after a save, an undo, a card) */
+function bkMarks() {
+  const B = BK, pg = B && B.page; if (!pg || !pg.blocks) return;
+  $$('mark.hl', pg).forEach(m => m.replaceWith(...m.childNodes)); pg.blocks.forEach(b => b.normalize());
+  const href = B.pages[B.ch].href, shown = new Set();
+  for (const n of CN.recs.values()) {
+    if (!n.book || n.src.key !== B.key || n.book.href !== href) continue;
+    const at = bkFind(pg, n.book); if (!at) continue;
+    const made = cnCardsOf(n.id); made.forEach(id => shown.add(id));
+    bkWrap(pg, at[0], at[1], 'hl ' + (made.length ? 'c' : 's'), { hl: n.id });
+  }
+  for (const c of bkBookCards(B)) {
+    if (shown.has(c.id)) continue;
+    const at = bkCardAt(pg, c); if (at) bkWrap(pg, at[0], at[1], 'hl c', { card: c.id });
+  }
+  if (B.pick && B.pick.held) bkWrap(pg, B.pick.g0, B.pick.g1, 'hl pend', {});
+}
+
+/* ---- A1: the bar under picked words ---- */
+let bkSelT = 0;
+const bkSelChange = () => { clearTimeout(bkSelT); bkSelT = setTimeout(bkSelCheck, 180); };
+function bkSelWatch(on) { document[on ? 'addEventListener' : 'removeEventListener']('selectionchange', bkSelChange); }
+function bkSelCheck() {
+  const B = BK; if (!B || !B.page || (B.pick && B.pick.held) || B.barBusy) return;
+  const s = getSelection(), pg = B.page;
+  if (!s || s.isCollapsed || !s.rangeCount || !pg.contains(s.anchorNode) || !pg.contains(s.focusNode)) { bkSelHide(); return; }
+  const r = s.getRangeAt(0), a = bkPoint(pg, r.startContainer, r.startOffset, false), z = bkPoint(pg, r.endContainer, r.endOffset, true);
+  if (!a || !z) { bkSelHide(); return; }
+  const F = bkFlat(pg); let g0 = F.starts[a.p] + a.o, g1 = F.starts[z.p] + z.o;
+  while (g0 < g1 && /\s/.test(F.text[g0])) g0++;
+  while (g1 > g0 && /\s/.test(F.text[g1 - 1])) g1--;
+  const exact = F.text.slice(g0, g1);
+  if (!exact || exact.length > 2000) { bkSelHide(); return; }
+  B.pick = { g0, g1, exact, text: exact.replace(/\s+/g, ' '), q: B.pick && B.pick.g0 === g0 && B.pick.g1 === g1 ? B.pick.q : '' };
+  bkSelShow();
+}
+function bkSelShow() {
+  const B = BK, bar = $('.bk-selbar', B.el), k = B.pick; if (!k) return;
+  bar.innerHTML = `<button class="on" data-sb="vocabulary">Vocabulary</button><button data-sb="concept">Concept</button><i></i>
+    <button class="q${k.q ? ' has' : ''}" data-sb="q">${k.q ? 'Question ✓' : '+ Question'}</button>`;
+  bar.hidden = false; bkSelPlace();
+}
+/* under the words, clear of the phone's own copy menu above them and its handles just below; above them near the bottom */
+function bkSelPlace() {
+  const B = BK, bar = $('.bk-selbar', B.el), k = B.pick; if (!k || bar.hidden) return;
+  let rc = null;
+  if (k.held) { const ms = $$('mark.pend', B.page); if (ms.length) { const a = ms[0].getBoundingClientRect(), z = ms[ms.length - 1].getBoundingClientRect(); rc = { top: a.top, bottom: z.bottom }; } }
+  else { const s = getSelection(); if (s && s.rangeCount) rc = s.getRangeAt(0).getBoundingClientRect(); }
+  if (!rc) return;
+  const st = B.stage.getBoundingClientRect(), h = bar.offsetHeight || 52;
+  let top = rc.bottom + 34;
+  if (top + h > st.bottom - 8) top = rc.top - h - 58;
+  bar.style.top = Math.round(Math.max(st.top + 4, Math.min(st.bottom - h - 8, top))) + 'px';
+}
+function bkSelHide() {
+  const B = BK; if (!B || (B.pick && B.pick.held)) return;
+  B.pick = null; const bar = $('.bk-selbar', B.el); if (bar) bar.hidden = true;
+}
+function bkSelBar() {
+  const B = BK, bar = $('.bk-selbar', B.el);
+  // tapping the bar can make the phone let go of the selection: the words were already taken when the bar showed
+  bar.addEventListener('pointerdown', e => { e.preventDefault(); B.barBusy = true; setTimeout(() => { B.barBusy = false; }, 900); });
+  bar.addEventListener('click', e => {
+    const b = e.target.closest('[data-sb]'); B.barBusy = false; if (!b || BK !== B || !B.pick) return;
+    if (b.dataset.sb === 'q') bkQuestion(); else bkNoteSave(b.dataset.sb);
+  });
+}
+/* + Question: the words stay marked while you type, then Vocabulary or Concept saves them with it */
+function bkQuestion() {
+  const B = BK, k = B.pick;
+  if (!k.held) {
+    k.held = true; getSelection().removeAllRanges(); bkMarks();
+    pushLayer(() => { if (BK !== B || B.pick !== k) return; k.held = false; B.pick = null; bkMarks(); $('.bk-selbar', B.el).hidden = true; });
+  }
+  askSheet({ title: k.q ? 'Change the question' : 'Add a question', sub: esc(k.text.length > 80 ? k.text.slice(0, 78) + '…' : k.text), value: k.q, btn: 'Add', label: 'Question', empty: true, max: 300,
+    done: q => { k.q = q; closeSheet(); if (BK === B && B.pick === k) bkSelShow(); } });
+}
+const bkCover = B => B.coverT || (B.coverT = (async () => {
+  const f = B.cover && B.zf(B.cover); if (!f) return null;
+  const ext = B.cover.split('.').pop().toLowerCase();
+  return makeThumb(new Blob([await f.async('arraybuffer')], { type: MIME[ext] || 'image/jpeg' }), 320);
+})().catch(() => null));
+async function bkNoteSave(kind) {
+  const B = BK, k = B && B.pick; if (!k || B.saving) return;
+  B.saving = true;
+  const pg = B.page, F = bkFlat(pg), a = bkAt(F, k.g0), z = bkAt(F, k.g1 - 1), lo = Math.max(0, a.p - 2), hi = Math.min(pg.blocks.length - 1, z.p + 2), now = Date.now();
+  const n = { id: 'cn-' + uid(), kind, createdAt: now, at: now, question: k.q || '', text: k.text,
+    src: { type: 'book', key: B.key, path: B.r.path, name: B.r.name, size: B.r.size, title: cnTitle(B.key) || B.title || cnTitleOf(B.r), author: B.author || '' },
+    book: { ch: B.ch, href: B.pages[B.ch].href, chapter: B.pages[B.ch].name || '', p0: a.p, o0: a.o, p1: z.p, o1: z.o + 1,
+      exact: k.exact, prefix: F.text.slice(Math.max(0, k.g0 - 32), k.g0), suffix: F.text.slice(k.g1, k.g1 + 32),
+      paras: pg.blocks.slice(lo, hi + 1).map((b, j) => ({ p: lo + j, x: F.text.substr(F.starts[lo + j], F.lens[lo + j]) })) } };
+  if (k.held) { k.held = false; back(); } // the words were held for a question
+  try { getSelection().removeAllRanges(); } catch {}
+  B.pick = null; $('.bk-selbar', B.el).hidden = true;
+  await cnSave([n]);
+  const cov = await bkCover(B);
+  if (cov) await cstore.put('frames', [{ id: n.id, blob: cov }, { id: n.id + '-t', blob: cov }]).catch(storageFail);
+  B.saving = false;
+  if (BK !== B) return;
+  bkMarks();
+  $$('.bk-toast', B.el).forEach(x => x.remove());
+  const t = document.createElement('div'); t.className = 'bk-toast';
+  t.innerHTML = `<span>Saved “${esc(n.text.length > 34 ? n.text.slice(0, 32) + '…' : n.text)}” for a card</span><button>Undo</button>`;
+  $('button', t).addEventListener('click', async () => { t.remove(); await cnDrop([n.id]); if (BK === B) bkMarks(); });
+  B.el.appendChild(t); setTimeout(() => t.remove(), 4500);
+}
+
+/* ---- C1: a highlight's card in a strip at the bottom ---- */
+function bkHlTap(m) {
+  const B = BK, n = m.dataset.hl ? CN.recs.get(m.dataset.hl) : null;
+  const cid = m.dataset.card || (n && cnCardsOf(n.id)[0]), c = cid && cards.find(x => x.id === cid);
+  if (!c && !n) return;
+  const el = document.createElement('div'); el.className = 'bk-strip';
+  if (c) {
+    const d = decks.find(x => x.id === c.deckId);
+    el.innerHTML = `<span class="pic"><img alt=""></span><span class="tx"><b>${esc(nameOf(c) || c.word || 'Card')}</b><small>${esc(d ? d.name : 'Card')} · card made</small></span>
+      <button data-k="open">Open card</button>`;
+    blobURL(c.thumbId || c.frameId).then(u => { const im = $('img', el); if (u && im) { im.src = u; } });
+  } else {
+    el.innerHTML = `<span class="tx"><b>${esc(n.text)}</b><small>Saved for a ${n.kind === 'concept' ? 'Concept' : 'Vocabulary'} card${n.question ? ' · “' + esc(n.question) + '”' : ''}</small></span>
+      <button data-k="rm">Remove</button>`;
+  }
+  el.addEventListener('click', e => {
+    const b = e.target.closest('[data-k]'); if (!b) return;
+    if (b.dataset.k === 'open') back(() => bkOpenCard(c));
+    else back(async () => { await cnDrop([n.id]); if (BK === B) bkMarks(); toast('Removed'); });
+  });
+  B.el.appendChild(el); B.strip = el;
+  pushLayer(() => { if (B.strip === el) B.strip = null; el.classList.add('out'); setTimeout(() => el.remove(), 200); });
+}
+/* the card opens above the book, among this book's cards in reading order; Back comes back to the page */
+function bkOpenCard(c) {
+  const B = BK, d = c && decks.find(x => x.id === c.deckId); if (!B || !d) return;
+  const made = new Set([...CN.recs.values()].filter(n => n.book && n.src.key === B.key).flatMap(n => cnCardsOf(n.id)));
+  const list = [...new Set([...bkBookCards(B), ...cards.filter(x => made.has(x.id)), c])].sort((a, b) => (shotOf(a) - shotOf(b)) || (a.seq - b.seq));
+  openStudy(d, c.id, list);
+  const st = $$('.study'); if (st.length) st[st.length - 1].style.zIndex = 55;
 }
 
 /* ================= the video player ================= */
@@ -4658,7 +5366,7 @@ function openPlayer(r, at) {
         <button class="pl-big" data-p="play" aria-label="Play">${PI.play}</button>
         <button class="pl-skip" data-p="fwd" aria-label="Forward 10 seconds">${PI.fwd}<b>10</b></button></div>
       <div class="pl-bot"><div class="pl-row"><span class="pl-t now">0:00</span>
-          <div class="pl-seek" role="slider" aria-label="Position in the video"><div class="pl-track"><div class="pl-buf"></div><div class="pl-done"></div><div class="pl-knob"></div></div></div>
+          <div class="pl-seek" role="slider" aria-label="Position in the video"><div class="pl-track"><div class="pl-buf"></div><div class="pl-done"></div><div class="pl-marks"></div><div class="pl-knob"></div></div></div>
           <span class="pl-t end">0:00</span></div>
         <div class="pl-icons"><button class="iconbtn" data-p="lock" aria-label="Lock the screen">${PI.lock}</button><button class="iconbtn" data-p="fit" aria-label="Fill the screen">${PI.fit}</button></div></div>
     </div>
@@ -4679,7 +5387,7 @@ function openPlayer(r, at) {
   el.addEventListener('contextmenu', e => e.preventDefault());
   plGestures(); plSeekBar(); plSubSwipe();
   v.addEventListener('play', plPaintPlay); v.addEventListener('pause', () => { plPaintPlay(); plSave(); plShowUI(); });
-  v.addEventListener('timeupdate', () => { if (PL && PL.v === v) { plPaintTime(); if (Date.now() - PL.savedAt > 5000) plSave(); } });
+  v.addEventListener('timeupdate', () => { if (PL && PL.v === v) { plPaintTime(); plCardCheck(); if (Date.now() - PL.savedAt > 5000) plSave(); } });
   v.addEventListener('progress', plPaintTime);
   v.addEventListener('loadedmetadata', plStart);
   v.addEventListener('playing', plCheckSound);
@@ -4719,7 +5427,7 @@ function plStart() {
   if (P.startAt != null) P.v.currentTime = P.startAt; // from a saved line: the moment it was saved at
   else if (pos > 10 && (!isFinite(d) || pos < d - Math.min(60, d * 0.15))) { P.v.currentTime = pos; toast(`Carrying on from ${hms(pos)}`); }
   if (P.rec) { P.rec.dur = isFinite(d) ? d : P.rec.dur; }
-  plPaintTime(); plShowUI();
+  plPaintTime(); plShowUI(); plMarks(); plMatchSoon();
 }
 function plSave(force) {
   const P = PL; if (!P || !P.rec) return;
@@ -4832,6 +5540,8 @@ function plClick(e) {
   else if (k === 'size') { ls.set('player.sub', b.dataset.s); plApplySize(); plPanelPaint(); }
   else if (k === 'nsave') plNoteSave(b.dataset.kind);
   else if (k === 'nundo') cnUndo();
+  else if (k === 'card') plOpenCard(b.dataset.id);
+  else if (k === 'match') plMatchSheet();
 }
 function plUnlockHint() {
   const u = $('.pl-unlock', PL.el); u.hidden = false; clearTimeout(PL.lockT);
@@ -4840,13 +5550,133 @@ function plUnlockHint() {
 function plMenu() {
   const r = PL.r;
   sheet(`<h2>${esc(r.name)}</h2><p class="sub num">${fmeta(r)}</p>
-    <div class="list">${item('share', ico('share', 'Share / Open with…'))}${item('folder', ico('folder', 'Show in folder'), '', '', esc(['My Files', ...(r.dir ? r.dir.split('/') : [])].join(' › ')))}</div>`, {
+    <div class="list">${item('match', ico('image', 'Cards from'), PL.match ? esc(PL.match.name) : 'none')}${item('share', ico('share', 'Share / Open with…'))}${item('folder', ico('folder', 'Show in folder'), '', '', esc(['My Files', ...(r.dir ? r.dir.split('/') : [])].join(' › ')))}</div>`, {
+    match: () => closeSheet(plMatchSheet),
     share: () => { shareFiles([r.path]); closeSheet(); },
     folder: () => {
       const under = pages[pages.length - 1], there = under && under.kind === 'files' && under.dir === r.dir;
       back(() => { if (!there) openFolder(r.dir); }, 2); // the sheet and the player
     }
   });
+}
+
+/* ---- cards on the timeline (v43, picks A1, B1, C1): which show or film this is, found by its subtitles; a blue dot
+   for each card from it, a white one for each line saved here and not made into a card yet; a notice when the film reaches a card ---- */
+const normLine = s => String(s || '').toLowerCase().replace(/==|\*\*|\*/g, '').replace(/<[^>]+>/g, ' ').replace(/[^\p{L}\p{N}']+/gu, ' ').replace(/\s+/g, ' ').trim();
+const epTag = c => tagsOf(c).find(t => /^S\d+\s*E\d+$/i.test(t)) || '';
+/* a card's own subtitle words: the line under its scene, and the marked line of its transcript */
+function cardLines(c) {
+  const out = [];
+  if (c.sceneCaption) out.push(normLine(String(c.sceneCaption).replace(/\n/g, ' ')));
+  if (c.ref && c.ref.kind === 'transcript') for (const l of c.ref.lines || []) if (l.hit) out.push(normLine(l.text));
+  return [...new Set(out.filter(x => x.length >= 8))];
+}
+/* every show or film (and episode) the cards come from */
+function storyGroups() {
+  const m = new Map();
+  for (const c of cards) {
+    const s = srcOf(c); if (!SRC_STORY.has(String(s.kind).toLowerCase())) continue;
+    const ep = epTag(c), key = s.key + (ep ? '|' + ep.toUpperCase().replace(/\s+/g, ' ') : '');
+    if (!m.has(key)) m.set(key, { key, name: s.name + (ep ? ' · ' + ep : ''), cards: [] });
+    m.get(key).cards.push(c);
+  }
+  return m;
+}
+/* the subtitles as one string, so a card's line is found with one search even when it runs over two subtitles */
+function cueText(cues) {
+  let text = ''; const at = [];
+  for (const q of cues) { at.push(text.length); text += normLine(q.x) + ' '; }
+  const cueOf = i => { let lo = 0, hi = at.length - 1; while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (at[mid] <= i) lo = mid; else hi = mid - 1; } return cues[lo]; };
+  return { text, cueOf };
+}
+function plMatchSoon() { const P = PL; if (!P) return; clearTimeout(P.matchT); P.matchT = setTimeout(() => plMatch(P), 1200); }
+function plMatch(P) {
+  if (PL !== P || !P.rec) return;
+  const { text, cueOf } = cueText(P.cues), groups = storyGroups();
+  const timesOf = g => { // each card's moment: where its line is in the subtitles, else its scene time moved by the others' offset
+    const at = new Map(), offs = [];
+    if (text) for (const c of g.cards) for (const l of cardLines(c)) {
+      const i = text.indexOf(l); if (i < 0) continue;
+      const q = cueOf(i); at.set(c.id, q.s); if (Number.isFinite(c.sceneTime)) offs.push(q.s - c.sceneTime); break;
+    }
+    offs.sort((a, b) => a - b);
+    const off = offs.length ? offs[offs.length >> 1] : 0, hits = at.size;
+    for (const c of g.cards) if (!at.has(c.id) && Number.isFinite(c.sceneTime)) at.set(c.id, c.sceneTime + off);
+    return { at, hits };
+  };
+  const saved = P.rec.match;
+  let best = null;
+  if (saved && saved.key) { const g = groups.get(saved.key); if (g) best = Object.assign({ g }, timesOf(g)); }
+  else if (!saved && text) {
+    for (const g of groups.values()) {
+      if (!g.cards.some(c => cardLines(c).length)) continue;
+      const r = timesOf(g);
+      if (r.hits && (!best || r.hits > best.hits)) best = Object.assign({ g }, r);
+    }
+    if (best && best.hits < Math.min(2, best.g.cards.length)) best = null; // one line in common is too little to be sure
+    if (best) { P.rec.match = { key: best.g.key, by: 'subtitles', at: Date.now() }; plSave(true); P.newMatch = true; }
+  }
+  P.match = best ? { key: best.g.key, name: best.g.name, cards: best.g.cards.filter(c => best.at.has(c.id)).sort((a, b) => best.at.get(a.id) - best.at.get(b.id)), at: best.at } : null;
+  plMarks();
+  if (P.newMatch && P.match) { P.newMatch = false; plMatchLine(); }
+}
+/* A1: said once, the first time a film is matched */
+function plMatchLine() {
+  const P = PL; if (!P || !P.match) return;
+  $$('.pl-toast', P.el).forEach(x => x.remove());
+  const t = document.createElement('div'); t.className = 'pl-toast pl-match';
+  t.innerHTML = `<span>This is <b>${esc(P.match.name)}</b><em> · ${plural(P.match.cards.length, 'card')}</em></span><button data-p="match">Change</button>`;
+  P.el.appendChild(t); setTimeout(() => t.remove(), 7000);
+}
+function plMatchSheet() {
+  const P = PL; if (!P || !P.rec) return;
+  const gs = [...storyGroups().values()].sort((a, b) => a.name.localeCompare(b.name));
+  const cur = P.match ? P.match.key : '', none = !!(P.rec.match && P.rec.match.none);
+  sheet(`<h2>Cards from</h2><p class="sub">Which show or film is ${esc(P.r.name)}?</p>
+    <div class="list">${gs.map((g, i) => item('g' + i, (g.key === cur ? '✓ ' : '') + esc(g.name), plural(g.cards.length, 'card'))).join('')}${item('none', (none ? '✓ ' : '') + 'None of these')}</div>`,
+    Object.assign({ none: () => { P.rec.match = { none: true, at: Date.now() }; plSave(true); P.match = null; plMarks(); closeSheet(); } },
+      Object.fromEntries(gs.map((g, i) => ['g' + i, () => { P.rec.match = { key: g.key, by: 'you', at: Date.now() }; plSave(true); closeSheet(); plMatch(P); }]))));
+}
+/* the dots: blue for cards, white for lines saved here and not made into cards yet (B1) */
+function plMarks() {
+  const P = PL; if (!P) return;
+  const d = P.v.duration, list = [];
+  if (P.match) for (const c of P.match.cards) list.push({ t: P.match.at.get(c.id), c });
+  for (const n of CN.recs.values()) if (n.src && n.src.key === P.key && !cnCardsOf(n.id).length) list.push({ t: n.time, n });
+  P.marks = list.filter(m => Number.isFinite(m.t)).sort((a, b) => a.t - b.t);
+  $('.pl-marks', P.el).innerHTML = isFinite(d) && d > 0 ? P.marks.map(m => `<i class="${m.c ? 'c' : 'n'}" style="left:${Math.min(100, m.t / d * 100).toFixed(3)}%"></i>`).join('') : '';
+}
+function plMarkNear(x) {
+  const P = PL, d = P && P.v.duration; if (!P || !P.marks || !isFinite(d)) return null;
+  const r = $('.pl-track', P.el).getBoundingClientRect();
+  let best = null, bd = 14;
+  for (const m of P.marks) { const dx = Math.abs(r.left + m.t / d * r.width - x); if (dx < bd) { bd = dx; best = m; } }
+  return best;
+}
+/* C1: when the film plays into a card's moment, a small card at the top right for a few seconds */
+function plCardCheck() {
+  const P = PL; if (!P) return;
+  const t = P.v.currentTime, was = P.lastT; P.lastT = t;
+  if (!P.match || was == null || P.v.paused || t < was || t - was > 1.5) return;
+  const c = P.match.cards.find(c => { const at = P.match.at.get(c.id); return at > was && at <= t; });
+  if (c) plCardNotice(c);
+}
+function plCardNotice(c) {
+  const P = PL; if (!P) return;
+  $$('.pl-card', P.el).forEach(x => x.remove());
+  const b = document.createElement('button'); b.className = 'pl-card'; b.dataset.p = 'card'; b.dataset.id = c.id;
+  b.innerHTML = `<span class="pic"><img alt=""></span><b>${esc(nameOf(c) || 'Card')}</b><span class="go">Open card</span>`;
+  blobURL(c.thumbId || c.frameId).then(u => { const im = $('img', b); if (u && im) im.src = u; });
+  P.el.appendChild(b); clearTimeout(P.cardT);
+  P.cardT = setTimeout(() => { b.classList.add('out'); setTimeout(() => b.remove(), 300); }, 5000);
+}
+/* opening the card pauses the film; Back comes back to the same moment */
+function plOpenCard(id) {
+  const P = PL, c = cards.find(x => x.id === id); if (!P || !c) return;
+  P.v.pause(); $$('.pl-card', P.el).forEach(x => x.remove());
+  const d = decks.find(x => x.id === c.deckId); if (!d) return;
+  openStudy(d, c.id, P.match ? P.match.cards : [c]);
+  const st = $$('.study'); if (st.length) st[st.length - 1].style.zIndex = 55; // above the player
 }
 
 /* ---- gestures: tap for the controls, double-tap a side to skip 10 s, swipe up or down on the left for brightness, on the right for volume ---- */
@@ -4988,8 +5818,9 @@ function plSeekBar() {
   let id = null;
   const at = e => { const r = tr.getBoundingClientRect(), d = P.v.duration; return isFinite(d) ? Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * d : 0; };
   const go = t => { if (P.v.fastSeek) P.v.fastSeek(t); else P.v.currentTime = t; };
+  let x0 = 0;
   bar.addEventListener('pointerdown', e => {
-    id = e.pointerId; bar.setPointerCapture(id); bar.classList.add('drag');
+    id = e.pointerId; x0 = e.clientX; bar.setPointerCapture(id); bar.classList.add('drag');
     P.drag = at(e); plPaintTime(); plShowUI(true); go(P.drag);
   });
   bar.addEventListener('pointermove', e => {
@@ -5000,7 +5831,9 @@ function plSeekBar() {
   const end = e => {
     if (e.pointerId !== id) return;
     id = null; bar.classList.remove('drag');
-    const t = P.drag; P.drag = null; if (t != null) P.v.currentTime = t;
+    let t = P.drag; P.drag = null;
+    const m = Math.abs(e.clientX - x0) < 10 && plMarkNear(e.clientX); if (m && t != null) t = Math.max(0, m.t - 1); // a tap on a dot: a second before its card or line
+    if (t != null) P.v.currentTime = t;
     plPaintTime(); plShowUI(); plSave();
   };
   bar.addEventListener('pointerup', end); bar.addEventListener('pointercancel', end);
@@ -5182,6 +6015,7 @@ function plPanel() {
 }
 function plPanelPaint() {
   const P = PL; if (!P) return;
+  plMatchSoon(); // the subtitles changed: find which cards this film holds
   const pn = $('.pl-panel', P.el); if (pn.hidden) return;
   const cur = P.subId || 'off', size = ls.get('player.sub') || 'M';
   const row = s => `<button class="pl-opt${cur === s.id ? ' on' : ''}" data-p="sub" data-id="${esc(s.id)}"${s.ok ? '' : ' disabled'}><span class="r"></span>
@@ -5201,6 +6035,9 @@ function plPanelPaint() {
    createdAt, at, text (the words picked, or the line), question, src: {type: 'video', key (vidKey), path, name, size, title}, time,
    lines: [{s, e, x}] (the line and up to 4 either side), cur (the tapped line's place in lines), sel: [first word, last word] or null
    (words counted across lines), track, sentAt} or {id, gone: true, at}; store `frames` {id, blob} (the frame, and `<id>-t` for lists).
+   Words picked in a book (v45) have src {type: 'book', key (bookKey), path, name, size, title, author}, no time or lines, and
+   book: {ch, href, chapter, p0, o0, p1, o1 (paragraph and character where they start and end), exact, prefix, suffix, paras: [{p, x}]
+   (their paragraphs and two either side)}; their "frame" is the book's cover.
    Kept in My Files › Agora › For cards (notes.json + frames/), and in backups. The card chat gets them as a zip (cnZip, kind 'card-notes'). */
 KEYS.cnotes = 'id'; KEYS.frames = 'id';
 const CN = { recs: new Map(), gone: new Map(), loaded: false };
@@ -5230,6 +6067,7 @@ async function cnDrop(ids) {
 const cnWords = x => String(x).replace(/\n/g, ' ').split(/\s+/).filter(Boolean);
 /* the words picked, as text; or the tapped line when none are */
 function cnText(n) {
+  if (n.book) return n.text || '';
   if (!n.sel) return String(n.lines[n.cur].x).replace(/\n/g, ' ');
   const all = n.lines.flatMap(l => cnWords(l.x));
   return all.slice(n.sel[0], n.sel[1] + 1).join(' ');
@@ -5340,11 +6178,13 @@ async function plNoteSave(kind) {
   t.innerHTML = `<span>Saved “${esc(n.text.length > 40 ? n.text.slice(0, 38) + '…' : n.text)}” for a card</span><button data-p="nundo">Undo</button>`;
   P.el.appendChild(t); P.lastNote = n.id;
   setTimeout(() => t.remove(), 4500);
+  plMarks();
 }
 async function cnUndo() {
   const P = PL; if (!P || !P.lastNote) return;
   await cnDrop([P.lastNote]); P.lastNote = null;
   $$('.pl-toast', P.el).forEach(x => x.remove());
+  plMarks();
 }
 /* a film's name in the list: what it was renamed to, else its file name */
 const cnTitle = key => { const n = [...CN.recs.values()].find(r => r.src && r.src.key === key && r.src.title); return n ? n.src.title : ''; };
@@ -5370,14 +6210,22 @@ function cnPics(root) {
     if (cnUrls.get(id)) { img.onload = () => img.classList.add('in'); img.src = cnUrls.get(id); }
   });
 }
+/* words from a book with a little of what comes before and after them, ==marked== */
+function cnBookLine(n) {
+  const b = n.book, para = (b.paras.find(q => q.p === b.p0) || {}).x || '';
+  if (!para || b.p1 !== b.p0) return '==' + n.text + '==';
+  let pre = para.slice(0, b.o0), post = para.slice(b.o1);
+  if (pre.length > 26) pre = '…' + pre.slice(-26).replace(/^\S*\s/, '');
+  return (pre + '==' + para.slice(b.o0, b.o1) + '==' + post).replace(/\s+/g, ' ');
+}
 function cnRow(n, withSrc) {
   // every line holding a picked word (a pick can run across lines), else the line itself
-  const line = n.sel ? cnMarked(n).filter(x => x.includes('==')).join(' ') : cnMarked(n, n.cur, n.cur).join(' ');
-  const html = esc(line).replace(/==(.+?)==/g, '<b>$1</b>');
+  const line = n.book ? cnBookLine(n) : n.sel ? cnMarked(n).filter(x => x.includes('==')).join(' ') : cnMarked(n, n.cur, n.cur).join(' ');
+  const html = esc(line).replace(/==([\s\S]+?)==/g, '<b>$1</b>');
   const made = cnCardsOf(n.id).length;
   return `<button class="cnrow" data-cn="${esc(n.id)}"><span class="pic"><img alt="" data-cnf="${esc(n.id)}"></span><span class="tx">
     <span class="ln">${html}</span>
-    <span class="mt">${withSrc ? esc(n.src.title) + ' · ' : ''}${hms(n.time)} · <span class="k">${n.kind === 'concept' ? 'Concept' : 'Vocabulary'}</span>${made ? ' · card made' : n.sentAt ? ' · sent' : ''}</span>
+    <span class="mt">${withSrc ? esc(n.src.title) + ' · ' : ''}${n.book ? esc(n.book.chapter || 'Book') : hms(n.time)} · <span class="k">${n.kind === 'concept' ? 'Concept' : 'Vocabulary'}</span>${made ? ' · card made' : n.sentAt ? ' · sent' : ''}</span>
     ${n.question ? `<span class="qq">“${esc(n.question)}”</span>` : ''}</span></button>`;
 }
 function renderCardNotes(v) {
@@ -5390,7 +6238,7 @@ function renderCardNotes(v) {
       <div class="srcs">${gs.map(g => `<div class="src"><button class="src-open" data-cng="${esc(g.key)}"><div class="cover"><img class="cnimg" alt="" data-cnf="${esc(g.list[0].id)}"></div>
         <div><div class="tile-name">${esc(g.title)}</div><div class="tile-meta">${plural(g.list.length, 'line')}</div></div></button>
         <button class="more" data-cngmenu="${esc(g.key)}" aria-label="Options for ${esc(g.title)}">${ICON.more}</button></div>`).join('')}</div>
-      ${total ? `<button class="cnsend" data-p="cnsend">Send ${total} to the card chat</button>` : '<p class="empty">Tap a subtitle line while a film plays to save it here for a card.</p>'}</div>`;
+      ${total ? `<button class="cnsend" data-p="cnsend">Send ${total} to the card chat</button>` : '<p class="empty">Tap a subtitle line while a film plays, or pick words in a book, to save them here for a card.</p>'}</div>`;
   } else {
     const g = gs.find(x => x.key === v.key), list = g ? g.list : [];
     v.title = g ? g.title : v.title || 'For cards';
@@ -5427,11 +6275,11 @@ function cnGroupMenu(key) {
 }
 function cnMenu(n) {
   if (!n) return;
-  const r = fidx.get(n.src.path) || [...fidx.values()].find(x => x.kind === 'file' && vidKey(x) === n.src.key);
-  sheet(`<h2>${esc(n.text)}</h2><p class="sub">${esc(n.src.title)} · ${hms(n.time)}</p>
-    <div class="list">${r ? item('play', 'Play from here') : ''}${item('q', n.question ? 'Change the question' : 'Add a question')}
+  const bk = !!n.book, r = fidx.get(n.src.path) || [...fidx.values()].find(x => x.kind === 'file' && (bk ? /\.epub$/i.test(x.name) && bookKey(x) : vidKey(x)) === n.src.key);
+  sheet(`<h2>${esc(n.text)}</h2><p class="sub">${esc(n.src.title)} · ${bk ? esc(n.book.chapter || 'Book') : hms(n.time)}</p>
+    <div class="list">${r ? item('play', bk ? 'Read from here' : 'Play from here') : ''}${item('q', n.question ? 'Change the question' : 'Add a question')}
     ${item('kind', n.kind === 'concept' ? 'Make it Vocabulary' : 'Make it a Concept')}${item('del', ico('trash', 'Delete'), '', 'danger')}</div>`, {
-    play: () => { closeSheet(); openPlayer(r, Math.max(0, n.time - 2)); },
+    play: () => closeSheet(() => { if (bk) openBook(r, { href: n.book.href, p: n.book.p0 }); else openPlayer(r, Math.max(0, n.time - 2)); }),
     q: () => askSheet({ title: n.question ? 'Change the question' : 'Add a question', value: n.question || '', btn: 'Save', label: 'Question', done: async q => {
       await cnSave([{ ...n, question: q.trim(), at: Date.now() }]); refreshPages(); closeSheet();
     } }),
@@ -5444,7 +6292,21 @@ async function cnZip(list) {
   const JSZip = await loadZip(), zip = new JSZip();
   const notes = [];
   for (const n of [...list].sort((a, b) => a.createdAt - b.createdAt)) {
-    const cue = n.lines[n.cur], fr = await cstore.get('frames', n.id).catch(() => null);
+    const fr = await cstore.get('frames', n.id).catch(() => null);
+    if (n.book) { // words from a book: their paragraph marked ==like this==, the paragraphs around it, and where they sit
+      const b = n.book, para = i => (b.paras.find(q => q.p === i) || {}).x || '', marked = [];
+      for (let i = b.p0; i <= b.p1; i++) { const x = para(i), a = i === b.p0 ? b.o0 : 0, z = i === b.p1 ? b.o1 : x.length; if (x) marked.push(x.slice(0, a) + '==' + x.slice(a, z) + '==' + x.slice(z)); }
+      const o = { id: n.id, kind: n.kind, createdAt: new Date(n.createdAt).toISOString(), selection: { text: n.text, picked: true, marked: marked.join('\n') || `==${n.text}==` } };
+      if (n.question) o.question = n.question;
+      o.book = { file: { path: n.src.path, name: n.src.name, size: n.src.size }, title: n.src.title, author: n.src.author || null, tags: ['Book', n.src.title],
+        chapter: { title: b.chapter || null, index: b.ch }, para: { index: b.p0, text: o.selection.marked },
+        before: b.paras.filter(q => q.p < b.p0).map(q => q.x), after: b.paras.filter(q => q.p > b.p1).map(q => q.x),
+        position: { prefix: b.prefix, exact: b.exact, suffix: b.suffix } };
+      if (fr) { o.book.cover = `frames/${n.id}.jpg`; zip.file(o.book.cover, fr.blob); }
+      const made = cnCardsOf(n.id); if (made.length) o.cards = made;
+      notes.push(o); continue;
+    }
+    const cue = n.lines[n.cur];
     const c = x => ({ start: +x.s.toFixed(2), end: +x.e.toFixed(2), text: String(x.x) });
     const o = { id: n.id, kind: n.kind, createdAt: new Date(n.createdAt).toISOString(), selection: { text: n.text, picked: !!n.sel, marked: cnMarked(n).filter(x => x.includes('==')).join('\n') || null } };
     if (n.question) o.question = n.question;
@@ -5491,14 +6353,29 @@ async function importCardNotes(list, frameOf) {
     const have = CN.recs.get(x.id) || CN.gone.get(x.id), at = +x.at || 0;
     if (have && (have.at || 0) >= at) continue;
     if (x.gone) { take.push({ id: x.id, gone: true, at }); continue; }
-    if (!x.src || !Array.isArray(x.lines) || !x.lines.length) continue;
-    const lines = x.lines.map(l => ({ s: +l.s || 0, e: +l.e || 0, x: String(l.x || '') })), cur = Math.max(0, Math.min(lines.length - 1, +x.cur || 0));
-    const sel = Array.isArray(x.sel) && x.sel.length === 2 && x.sel.every(Number.isFinite) ? [x.sel[0], x.sel[1]] : null;
-    const n = { id: x.id, kind: x.kind === 'concept' ? 'concept' : 'vocabulary', createdAt: +x.createdAt || at || Date.now(), at, question: String(x.question || ''),
-      time: +x.time || 0, lines, cur, sel, track: String(x.track || ''),
-      src: { type: 'video', key: String(x.src.key || ''), path: String(x.src.path || ''), name: String(x.src.name || ''), size: +x.src.size || 0, title: String(x.src.title || '') } };
+    if (!x.src) continue;
+    let n;
+    if (x.src.type === 'book') { // words from a book
+      const b = x.book, num = v => Math.max(0, +v | 0);
+      if (!b || typeof b.exact !== 'string' || !b.exact || !b.href) continue;
+      n = { id: x.id, kind: x.kind === 'concept' ? 'concept' : 'vocabulary', createdAt: +x.createdAt || at || Date.now(), at, question: String(x.question || ''),
+        text: String(x.text || b.exact).replace(/\s+/g, ' ').trim(),
+        src: { type: 'book', key: String(x.src.key || ''), path: String(x.src.path || ''), name: String(x.src.name || ''), size: +x.src.size || 0, title: String(x.src.title || ''), author: String(x.src.author || '') },
+        book: { ch: num(b.ch), href: String(b.href), chapter: String(b.chapter || ''), p0: num(b.p0), o0: num(b.o0), p1: num(b.p1), o1: num(b.o1),
+          exact: b.exact, prefix: String(b.prefix || ''), suffix: String(b.suffix || ''),
+          paras: Array.isArray(b.paras) ? b.paras.filter(q => q).map(q => ({ p: num(q.p), x: String(q.x || '') })) : [] } };
+    }
+    if (!n && (!Array.isArray(x.lines) || !x.lines.length)) continue;
+    if (!n) {
+      const lines = x.lines.map(l => ({ s: +l.s || 0, e: +l.e || 0, x: String(l.x || '') })), cur = Math.max(0, Math.min(lines.length - 1, +x.cur || 0));
+      const sel = Array.isArray(x.sel) && x.sel.length === 2 && x.sel.every(Number.isFinite) ? [x.sel[0], x.sel[1]] : null;
+      n = { id: x.id, kind: x.kind === 'concept' ? 'concept' : 'vocabulary', createdAt: +x.createdAt || at || Date.now(), at, question: String(x.question || ''),
+        time: +x.time || 0, lines, cur, sel, track: String(x.track || ''),
+        src: { type: 'video', key: String(x.src.key || ''), path: String(x.src.path || ''), name: String(x.src.name || ''), size: +x.src.size || 0, title: String(x.src.title || '') } };
+      n.text = cnText(n);
+    }
     if (x.sentAt) n.sentAt = +x.sentAt;
-    n.text = cnText(n); take.push(n);
+    take.push(n);
     if (!(await cstore.get('frames', n.id).catch(() => null))) {
       const b = await frameOf(x).catch(() => null);
       if (b) { const blob = new Blob([b], { type: 'image/jpeg' }); frames.push({ id: n.id, blob }, { id: n.id + '-t', blob: await makeThumb(blob, 320) }); }

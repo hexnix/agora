@@ -630,6 +630,28 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 .bk-pill.sz{width:52px;height:40px;padding:0;display:grid;place-items:center;font-size:14px}
 .bk-pill.sz.big{font-size:21px}
 .bk-tsheet .bk-n{width:30px;text-align:center;font:300 15px 'Merriweather',Georgia,serif}
+/* book notes (v45, picks A1, B1, C1): the bar under picked words, highlights, a highlight's card */
+.bk-text mark{background:none;color:inherit}
+.bk-text mark.hl.s{text-decoration:underline 2px rgba(255,255,255,.75);text-underline-offset:4px;text-decoration-skip-ink:none}
+.bk-text mark.hl.c{background:rgba(0,134,255,.28);color:#fff;border-radius:3px;box-shadow:0 0 0 1.5px rgba(0,134,255,.28);-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.bk-text mark.hl.pend{background:rgba(0,134,255,.38);color:#fff;text-decoration:none}
+.book .bk-selbar{position:absolute;z-index:6;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:2px;background:#1C1D20;border-radius:14px;padding:6px;box-shadow:0 6px 24px rgba(0,0,0,.6);white-space:nowrap;animation:fadein .15s;user-select:none;-webkit-user-select:none}
+.book .bk-selbar button{padding:9px 14px;border-radius:10px;font:300 14.5px 'Merriweather',Georgia,serif;color:#fff}
+.book .bk-selbar button.on{background:var(--gold)}
+.book .bk-selbar button.q{color:var(--muted);padding:9px 12px}
+.book .bk-selbar button.q.has{color:var(--blue-text)}
+.book .bk-selbar i{width:1px;height:22px;background:#3A3C41;margin:0 2px}
+.book .bk-strip{position:absolute;z-index:6;left:16px;right:16px;bottom:calc(var(--bk-bot) + 12px);display:flex;gap:12px;align-items:center;background:rgba(28,29,32,.97);border-radius:16px;padding:10px 6px 10px 10px;box-shadow:0 6px 24px rgba(0,0,0,.6);animation:fadein .15s;transition:opacity .2s;user-select:none;-webkit-user-select:none}
+.book .bk-strip.out{opacity:0}
+.book .bk-strip .pic{width:64px;height:40px;border-radius:8px;overflow:hidden;background:#2a2b2f;flex:none}
+.book .bk-strip img{width:100%;height:100%;object-fit:cover;display:block}
+.book .bk-strip .tx{flex:1;min-width:0;padding-left:4px}
+.book .bk-strip b{display:block;font:700 15px/1.35 'Merriweather',Georgia,serif;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.book .bk-strip small{display:block;font:300 12.5px/1.4 'Merriweather',Georgia,serif;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.book .bk-strip button{flex:none;padding:10px 12px;color:var(--blue-text);font:300 14px 'Merriweather',Georgia,serif}
+.book .bk-toast{position:absolute;z-index:7;left:50%;bottom:calc(var(--bk-bot) + 12px);transform:translateX(-50%);background:#1C1D20;border-radius:14px;padding:10px 8px 10px 18px;display:flex;gap:6px;align-items:center;max-width:calc(100vw - 32px);animation:fadein .15s;font:300 14px 'Merriweather',Georgia,serif;color:#fff}
+.book .bk-toast span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.book .bk-toast button{color:var(--blue-text);font:300 14px 'Merriweather',Georgia,serif;padding:4px 10px}
 .player{position:fixed;inset:0;z-index:50;background:#000;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
   --sub:1;--ui:0;--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--sb:env(safe-area-inset-bottom,0px)}
 .player video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;transform-origin:50% 50%}
@@ -4593,7 +4615,10 @@ async function bkParse(file) {
   toc = toc.filter(t => t.name && spine.some(s => s.href === t.href));
   const size = s => { const f = zf(s.href); return Math.max(1, (f && f._data && f._data.uncompressedSize) || 1); };
   const pages = spine.map((s, i) => ({ href: s.href, i, size: size(s), name: (toc.find(t => t.href === s.href) || {}).name || '' }));
-  return { z, zf, title: meta('title'), author: meta('creator'), pages, toc, total: pages.reduce((a, p) => a + p.size, 0) };
+  // the cover picture, for the book's tile in For cards: EPUB 3 marks it, EPUB 2 names it in a meta
+  const cm = bkTag(opf, 'meta').find(m => m.getAttribute('name') === 'cover'), cv = [...items.values()].find(x => /\bcover-image\b/.test(x.props)) || (cm && items.get(cm.getAttribute('content')));
+  const cover = cv && /^image\//.test(cv.type) && zf(cv.href) ? cv.href : '';
+  return { z, zf, title: meta('title'), author: meta('creator'), pages, toc, cover, total: pages.reduce((a, p) => a + p.size, 0) };
 }
 
 /* ---- one chapter as plain, safe HTML: the book's own styles and scripts are left out, so it reads in Agora's look ---- */
@@ -4638,9 +4663,9 @@ async function bkChapter(B, i) {
 }
 
 /* ---- opening and closing ---- */
-function openBook(r) {
+function openBook(r, go) {
   if (BK) return;
-  if (!FX.ready) { connectFiles().then(ok => { if (ok) openBook(fidx.get(r.path) || r); }); return; } // the tap that opens it also gives Agora the folder
+  if (!FX.ready) { connectFiles().then(ok => { if (ok) openBook(fidx.get(r.path) || r, go); }); return; } // the tap that opens it also gives Agora the folder
   const el = document.createElement('div'); el.className = 'book';
   el.innerHTML = `<div class="bk-head"><span class="bk-ch"></span></div><div class="bk-stage"></div><div class="bk-foot"><span class="bk-prog num"></span></div>
     <div class="bk-ctl"><div class="bk-top"><button class="iconbtn" data-b="back" aria-label="Back">${ICON.back}</button><span class="bk-title"></span>
@@ -4649,13 +4674,13 @@ function openBook(r) {
       <div class="bk-bot"><div class="bk-row"><span class="bk-cname"></span><span class="bk-pct num"></span></div>
         <div class="bk-seek" role="slider" aria-label="Position in the book"><div class="bk-track"><div class="bk-done"></div><div class="bk-ticks"></div><div class="bk-knob"></div></div></div>
         <div class="bk-row mut"><span class="bk-cnum num"></span><span class="bk-left num"></span></div></div></div>
-    <div class="bk-wait">Opening…</div>`;
+    <div class="bk-selbar" hidden></div><div class="bk-wait">Opening…</div>`;
   document.body.appendChild(el); document.body.classList.add('locked');
-  BK = { el, r, key: bookKey(r), stage: $('.bk-stage', el), rec: null, pages: [], toc: [], urls: [], ch: 0, page: null, ui: false, seen: new Map(), saveT: 0 };
+  BK = { el, r, key: bookKey(r), stage: $('.bk-stage', el), rec: null, pages: [], toc: [], urls: [], ch: 0, page: null, ui: false, seen: new Map(), saveT: 0, go };
   $('.bk-title', el).textContent = r.name.replace(/\.epub$/i, '');
   bkApplyText();
   el.addEventListener('click', bkClick);
-  bkGestures(); bkSeekBar();
+  bkGestures(); bkSeekBar(); bkSelBar(); bkSelWatch(true);
   pushLayer(closeBook);
   bkLoad();
 }
@@ -4671,8 +4696,10 @@ async function bkLoad() {
     B.rec.title = book.title || B.rec.title; B.rec.author = book.author || '';
     if (book.title) $('.bk-title', B.el).textContent = book.title;
     $('.bk-ticks', B.el).innerHTML = B.pages.slice(1).filter(p => p.name).map(p => `<i style="left:${(bkStartOf(p.i) * 100).toFixed(2)}%"></i>`).join('');
-    const ch = Math.min(B.pages.length - 1, Math.max(0, B.rec.ch | 0)), had = B.rec.ch != null && (ch > 0 || B.rec.y > 0.02);
-    await bkShow(ch, 0, B.rec.y || 0);
+    const gi = B.go ? B.pages.findIndex(p => p.href === B.go.href) : -1; // opened from a line saved for a card: there
+    const ch = gi >= 0 ? gi : Math.min(B.pages.length - 1, Math.max(0, B.rec.ch | 0)), had = gi < 0 && B.rec.ch != null && (ch > 0 || B.rec.y > 0.02);
+    await bkShow(ch, 0, gi >= 0 ? 0 : B.rec.y || 0);
+    if (gi >= 0 && BK === B) { const e = B.page.blocks[B.go.p | 0]; if (e) { B.page.scrollTop = Math.max(0, e.offsetTop - B.page.clientHeight / 3); bkPaint(); } }
     $('.bk-wait', B.el).remove();
     if (had) toast(`Carrying on from ${bkName(ch)}`);
   } catch (e) {
@@ -4686,7 +4713,7 @@ async function bkLoad() {
 }
 function closeBook() {
   const B = BK; if (!B) return;
-  bkSave(); BK = null;
+  bkSave(); bkSelWatch(false); BK = null;
   B.el.style.transition = 'opacity .2s'; B.el.style.opacity = '0';
   setTimeout(() => { B.el.remove(); B.urls.forEach(u => URL.revokeObjectURL(u)); }, 220);
   unlockIdle();
@@ -4706,6 +4733,8 @@ async function bkShow(i, dir, y, frag) {
   if (dir) { pg.style.transition = 'none'; pg.style.transform = `translateX(${dir * 100}%)`; }
   B.stage.appendChild(pg);
   const old = B.page; B.page = pg; B.ch = i;
+  bkSelHide();
+  pg.blocks = bkBlocks(text); bkMarks();
   pg.addEventListener('scroll', bkScrolled, { passive: true });
   // pictures settle the page's height: place the reader once they have
   await Promise.all([...$$('img', pg)].map(im => im.decode ? im.decode().catch(() => {}) : null)).then(() => {}, () => {});
@@ -4742,7 +4771,7 @@ function bkPaint() {
 }
 function bkScrolled() {
   const B = BK; if (!B) return;
-  bkPaint(); clearTimeout(B.saveT); B.saveT = setTimeout(bkSave, 800);
+  bkPaint(); if (B.pick) bkSelPlace(); clearTimeout(B.saveT); B.saveT = setTimeout(bkSave, 800);
 }
 function bkSave() {
   const B = BK; if (!B || !B.rec || !B.page) return;
@@ -4754,11 +4783,13 @@ function bkSave() {
 function bkShowUI(on) { const B = BK; if (!B) return; B.ui = on; B.el.classList.toggle('ui', on); if (on) bkPaint(); }
 function bkGestures() {
   const st = BK.stage; let g = null;
-  st.addEventListener('pointerdown', e => { if (!BK || e.button) return; g = { x: e.clientX, y: e.clientY, t: Date.now(), dx: 0, side: false, id: e.pointerId }; });
+  // words being picked (a selection, or a finger held down to start one) never turn the chapter or toggle the controls
+  const picking = () => { const s = getSelection(); return !!(s && !s.isCollapsed && BK && BK.page && BK.page.contains(s.anchorNode)); };
+  st.addEventListener('pointerdown', e => { if (!BK || e.button) return; g = { x: e.clientX, y: e.clientY, t: Date.now(), dx: 0, side: false, id: e.pointerId, sel: picking() || !!BK.pick || !!BK.strip }; });
   st.addEventListener('pointermove', e => {
     if (!g || e.pointerId !== g.id || !BK.page) return;
     const dx = e.clientX - g.x, dy = e.clientY - g.y;
-    if (!g.side && Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.3) { g.side = true; BK.page.style.transition = 'none'; }
+    if (!g.side && Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.3 && !g.sel && Date.now() - g.t < 450 && !picking()) { g.side = true; BK.page.style.transition = 'none'; }
     if (g.side) {
       const edge = (dx > 0 && BK.ch === 0) || (dx < 0 && BK.ch === BK.pages.length - 1);
       g.dx = edge ? dx / 4 : dx; BK.page.style.transform = `translateX(${g.dx}px)`;
@@ -4773,7 +4804,11 @@ function bkGestures() {
       else { B.page.style.transition = 'transform .25s var(--ease)'; B.page.style.transform = ''; }
       return;
     }
-    if (e.type === 'pointerup' && Math.hypot(e.clientX - gg.x, e.clientY - gg.y) < 10 && Date.now() - gg.t < 400 && !e.target.closest('a[data-to],a[data-out]')) bkShowUI(!B.ui);
+    if (e.type !== 'pointerup' || Math.hypot(e.clientX - gg.x, e.clientY - gg.y) >= 10 || Date.now() - gg.t >= 400 || e.target.closest('a[data-to],a[data-out]')) return;
+    if (gg.sel) { if (B.strip || (B.pick && B.pick.held)) back(); return; } // a tap away from picked words (or the card strip) lets them go
+    const m = e.target.closest('mark.hl');
+    if (m) { bkHlTap(m); return; }
+    bkShowUI(!B.ui);
   };
   st.addEventListener('pointerup', up); st.addEventListener('pointercancel', up);
 }
@@ -4871,6 +4906,231 @@ function bkContents() {
     else { const t = list[+b.dataset.k], i = idx(t); back(() => { if (BK) { bkShowUI(false); bkShow(i, i === BK.ch ? 0 : i > BK.ch ? 1 : -1, t.frag ? null : 0, t.frag); } }); }
   });
   pushLayer(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 200); });
+}
+
+/* ---- notes and highlights (v45, the owner's picks A1, B1, C1) ----
+   Pick words with the phone's own selection: a small bar shows under them, Vocabulary, Concept and + Question. The words are saved
+   for a card in For cards (the same list and zip as lines from films), with where they sit: the chapter, the paragraph and the
+   characters in it, and the words just before and after (like Hypothesis), so they are found again even in another edition.
+   A saved phrase gets a white underline; once a card is made from it (or a card of this book is found on the page), a soft blue
+   fill, like the film's dots. Tapping a blue one shows its card in a strip at the bottom (C1). */
+const BK_BLOCK = new Set(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'blockquote', 'figcaption', 'dt', 'dd', 'pre', 'td', 'th', 'div', 'section', 'article',
+  'header', 'footer', 'aside', 'main', 'figure', 'ul', 'ol', 'table', 'thead', 'tbody', 'tr', 'dl']);
+const BK_BLOCK_SEL = [...BK_BLOCK].join(',');
+// a chapter's paragraphs: the innermost blocks with text; a place in the book is a paragraph's number and a character in it
+const bkBlocks = root => [...root.querySelectorAll(BK_BLOCK_SEL)].filter(e => !e.querySelector(BK_BLOCK_SEL) && e.textContent.trim());
+function bkFlat(pg) { // the chapter's text in one string, a line per paragraph (the marks Agora adds never change it)
+  if (pg.F) return pg.F;
+  const lens = pg.blocks.map(b => b.textContent.length), starts = []; let at = 0;
+  lens.forEach(l => { starts.push(at); at += l + 1; });
+  return (pg.F = { text: pg.blocks.map(b => b.textContent).join('\n'), starts, lens, set: new Set(pg.blocks) });
+}
+const bkAt = (F, g) => { let p = 0; while (p < F.starts.length - 1 && F.starts[p + 1] <= g) p++; return { p, o: g - F.starts[p] }; };
+function bkPoint(pg, node, off, end) {
+  const F = bkFlat(pg), bs = pg.blocks;
+  let e = node.nodeType === 1 ? node : node.parentNode;
+  while (e && e !== pg && !F.set.has(e)) e = e.parentNode;
+  if (e && e !== pg) { const r = document.createRange(); r.setStart(e, 0); r.setEnd(node, off); return { p: bs.indexOf(e), o: r.toString().length }; }
+  // between paragraphs: a start moves on to the next one, an end back to the end of the one before
+  const pt = document.createRange(); pt.setStart(node, off);
+  if (!end) { const p = bs.findIndex(b => pt.comparePoint(b, 0) >= 0); return p < 0 ? null : { p, o: 0 }; }
+  let p = -1; bs.forEach((b, k) => { if (pt.comparePoint(b, b.childNodes.length) <= 0) p = k; });
+  return p < 0 ? null : { p, o: F.lens[p] };
+}
+/* wrap the characters g0 to g1 of the chapter in marks (one per piece of text, so a phrase across italics or paragraphs works) */
+function bkWrap(pg, g0, g1, cls, data) {
+  const F = bkFlat(pg), out = [];
+  pg.blocks.forEach((b, p) => {
+    const s0 = F.starts[p], a = Math.max(g0, s0) - s0, z = Math.min(g1, s0 + F.lens[p]) - s0; if (z <= a) return;
+    const tw = document.createTreeWalker(b, NodeFilter.SHOW_TEXT), ns = []; let n; while ((n = tw.nextNode())) ns.push(n);
+    let at = 0;
+    for (const t of ns) {
+      const L = t.nodeValue.length, x = Math.max(a, at) - at, y = Math.min(z, at + L) - at; at += L;
+      if (y <= x) continue;
+      const mid = x > 0 ? t.splitText(x) : t; if (y - x < mid.nodeValue.length) mid.splitText(y - x);
+      const m = document.createElement('mark'); m.className = cls; Object.assign(m.dataset, data);
+      mid.parentNode.insertBefore(m, mid); m.appendChild(mid); out.push(m);
+    }
+  });
+  return out;
+}
+/* where saved words are now: the same place if the words are still there, else the words with what came before and after them,
+   else the words alone, nearest to where they were */
+function bkFind(pg, b) {
+  const F = bkFlat(pg), ex = b.exact; if (!ex) return null;
+  if (F.starts[b.p0] != null) { const g = F.starts[b.p0] + b.o0; if (F.text.slice(g, g + ex.length) === ex) return [g, g + ex.length]; }
+  const i = F.text.indexOf(b.prefix + ex + b.suffix); if (i >= 0) return [i + b.prefix.length, i + b.prefix.length + ex.length];
+  const was = (F.starts[b.p0] || 0) + b.o0; let best = -1;
+  for (let j = F.text.indexOf(ex); j >= 0; j = F.text.indexOf(ex, j + 1)) if (best < 0 || Math.abs(j - was) < Math.abs(best - was)) best = j;
+  return best >= 0 ? [best, best + ex.length] : null;
+}
+/* this book's cards (made in the card chat from screenshots): tagged Book and the book's title */
+function bkBookCards(B) {
+  const t = normLine(B.title || cnTitleOf(B.r)); if (!t) return [];
+  return cards.filter(c => {
+    const s = srcOf(c); if (String(s.kind).toLowerCase() !== 'book') return false;
+    const n = normLine(s.name); return !!n && (n === t || (n.length >= 6 && t.includes(n)) || (t.length >= 6 && n.includes(t)));
+  });
+}
+const bkPlain = x => String(x).replace(/^#\s+/, '').replace(/\*\*|==|\*/g, '');
+/* a card's word on this page: its scene's paragraph (the one with ==the word==) found among the chapter's, then the word in it */
+function bkCardAt(pg, c) {
+  const F = bkFlat(pg), norms = pg.norms || (pg.norms = pg.blocks.map(b => normLine(b.textContent)));
+  const spots = [];
+  for (const p of (c.sceneText && Array.isArray(c.sceneText.paras) ? c.sceneText.paras : [])) if (String(p).includes('==')) spots.push(String(p));
+  if (c.ref && c.ref.kind === 'transcript') for (const l of c.ref.lines || []) if (l.hit) spots.push(String(l.text));
+  for (const sp of spots) {
+    const m = sp.match(/==(.+?)==/), word = bkPlain(m ? m[1] : nameOf(c) || c.word || '').trim(); if (!word) continue;
+    const plain = bkPlain(sp), key = normLine(plain).slice(0, 60); if (key.length < 12) continue;
+    const before = normLine(plain.slice(0, Math.max(0, plain.toLowerCase().indexOf(word.toLowerCase())))).slice(-24);
+    for (let p = 0; p < norms.length; p++) {
+      if (!norms[p].includes(key)) continue;
+      for (const q of [p, p + 1]) { // the word, where what comes before it matches the scene
+        const tx = pg.blocks[q] ? pg.blocks[q].textContent : '', low = tx.toLowerCase(), w = word.toLowerCase(); let pick = -1;
+        for (let j = low.indexOf(w); j >= 0; j = low.indexOf(w, j + 1)) { if (pick < 0) pick = j; if (normLine(tx.slice(0, j)).endsWith(before)) { pick = j; break; } }
+        if (pick >= 0) return [F.starts[q] + pick, F.starts[q] + pick + word.length];
+      }
+    }
+  }
+  return null;
+}
+/* draw the chapter's highlights again (after a save, an undo, a card) */
+function bkMarks() {
+  const B = BK, pg = B && B.page; if (!pg || !pg.blocks) return;
+  $$('mark.hl', pg).forEach(m => m.replaceWith(...m.childNodes)); pg.blocks.forEach(b => b.normalize());
+  const href = B.pages[B.ch].href, shown = new Set();
+  for (const n of CN.recs.values()) {
+    if (!n.book || n.src.key !== B.key || n.book.href !== href) continue;
+    const at = bkFind(pg, n.book); if (!at) continue;
+    const made = cnCardsOf(n.id); made.forEach(id => shown.add(id));
+    bkWrap(pg, at[0], at[1], 'hl ' + (made.length ? 'c' : 's'), { hl: n.id });
+  }
+  for (const c of bkBookCards(B)) {
+    if (shown.has(c.id)) continue;
+    const at = bkCardAt(pg, c); if (at) bkWrap(pg, at[0], at[1], 'hl c', { card: c.id });
+  }
+  if (B.pick && B.pick.held) bkWrap(pg, B.pick.g0, B.pick.g1, 'hl pend', {});
+}
+
+/* ---- A1: the bar under picked words ---- */
+let bkSelT = 0;
+const bkSelChange = () => { clearTimeout(bkSelT); bkSelT = setTimeout(bkSelCheck, 180); };
+function bkSelWatch(on) { document[on ? 'addEventListener' : 'removeEventListener']('selectionchange', bkSelChange); }
+function bkSelCheck() {
+  const B = BK; if (!B || !B.page || (B.pick && B.pick.held) || B.barBusy) return;
+  const s = getSelection(), pg = B.page;
+  if (!s || s.isCollapsed || !s.rangeCount || !pg.contains(s.anchorNode) || !pg.contains(s.focusNode)) { bkSelHide(); return; }
+  const r = s.getRangeAt(0), a = bkPoint(pg, r.startContainer, r.startOffset, false), z = bkPoint(pg, r.endContainer, r.endOffset, true);
+  if (!a || !z) { bkSelHide(); return; }
+  const F = bkFlat(pg); let g0 = F.starts[a.p] + a.o, g1 = F.starts[z.p] + z.o;
+  while (g0 < g1 && /\s/.test(F.text[g0])) g0++;
+  while (g1 > g0 && /\s/.test(F.text[g1 - 1])) g1--;
+  const exact = F.text.slice(g0, g1);
+  if (!exact || exact.length > 2000) { bkSelHide(); return; }
+  B.pick = { g0, g1, exact, text: exact.replace(/\s+/g, ' '), q: B.pick && B.pick.g0 === g0 && B.pick.g1 === g1 ? B.pick.q : '' };
+  bkSelShow();
+}
+function bkSelShow() {
+  const B = BK, bar = $('.bk-selbar', B.el), k = B.pick; if (!k) return;
+  bar.innerHTML = `<button class="on" data-sb="vocabulary">Vocabulary</button><button data-sb="concept">Concept</button><i></i>
+    <button class="q${k.q ? ' has' : ''}" data-sb="q">${k.q ? 'Question ✓' : '+ Question'}</button>`;
+  bar.hidden = false; bkSelPlace();
+}
+/* under the words, clear of the phone's own copy menu above them and its handles just below; above them near the bottom */
+function bkSelPlace() {
+  const B = BK, bar = $('.bk-selbar', B.el), k = B.pick; if (!k || bar.hidden) return;
+  let rc = null;
+  if (k.held) { const ms = $$('mark.pend', B.page); if (ms.length) { const a = ms[0].getBoundingClientRect(), z = ms[ms.length - 1].getBoundingClientRect(); rc = { top: a.top, bottom: z.bottom }; } }
+  else { const s = getSelection(); if (s && s.rangeCount) rc = s.getRangeAt(0).getBoundingClientRect(); }
+  if (!rc) return;
+  const st = B.stage.getBoundingClientRect(), h = bar.offsetHeight || 52;
+  let top = rc.bottom + 34;
+  if (top + h > st.bottom - 8) top = rc.top - h - 58;
+  bar.style.top = Math.round(Math.max(st.top + 4, Math.min(st.bottom - h - 8, top))) + 'px';
+}
+function bkSelHide() {
+  const B = BK; if (!B || (B.pick && B.pick.held)) return;
+  B.pick = null; const bar = $('.bk-selbar', B.el); if (bar) bar.hidden = true;
+}
+function bkSelBar() {
+  const B = BK, bar = $('.bk-selbar', B.el);
+  // tapping the bar can make the phone let go of the selection: the words were already taken when the bar showed
+  bar.addEventListener('pointerdown', e => { e.preventDefault(); B.barBusy = true; setTimeout(() => { B.barBusy = false; }, 900); });
+  bar.addEventListener('click', e => {
+    const b = e.target.closest('[data-sb]'); B.barBusy = false; if (!b || BK !== B || !B.pick) return;
+    if (b.dataset.sb === 'q') bkQuestion(); else bkNoteSave(b.dataset.sb);
+  });
+}
+/* + Question: the words stay marked while you type, then Vocabulary or Concept saves them with it */
+function bkQuestion() {
+  const B = BK, k = B.pick;
+  if (!k.held) {
+    k.held = true; getSelection().removeAllRanges(); bkMarks();
+    pushLayer(() => { if (BK !== B || B.pick !== k) return; k.held = false; B.pick = null; bkMarks(); $('.bk-selbar', B.el).hidden = true; });
+  }
+  askSheet({ title: k.q ? 'Change the question' : 'Add a question', sub: esc(k.text.length > 80 ? k.text.slice(0, 78) + '…' : k.text), value: k.q, btn: 'Add', label: 'Question', empty: true, max: 300,
+    done: q => { k.q = q; closeSheet(); if (BK === B && B.pick === k) bkSelShow(); } });
+}
+const bkCover = B => B.coverT || (B.coverT = (async () => {
+  const f = B.cover && B.zf(B.cover); if (!f) return null;
+  const ext = B.cover.split('.').pop().toLowerCase();
+  return makeThumb(new Blob([await f.async('arraybuffer')], { type: MIME[ext] || 'image/jpeg' }), 320);
+})().catch(() => null));
+async function bkNoteSave(kind) {
+  const B = BK, k = B && B.pick; if (!k || B.saving) return;
+  B.saving = true;
+  const pg = B.page, F = bkFlat(pg), a = bkAt(F, k.g0), z = bkAt(F, k.g1 - 1), lo = Math.max(0, a.p - 2), hi = Math.min(pg.blocks.length - 1, z.p + 2), now = Date.now();
+  const n = { id: 'cn-' + uid(), kind, createdAt: now, at: now, question: k.q || '', text: k.text,
+    src: { type: 'book', key: B.key, path: B.r.path, name: B.r.name, size: B.r.size, title: cnTitle(B.key) || B.title || cnTitleOf(B.r), author: B.author || '' },
+    book: { ch: B.ch, href: B.pages[B.ch].href, chapter: B.pages[B.ch].name || '', p0: a.p, o0: a.o, p1: z.p, o1: z.o + 1,
+      exact: k.exact, prefix: F.text.slice(Math.max(0, k.g0 - 32), k.g0), suffix: F.text.slice(k.g1, k.g1 + 32),
+      paras: pg.blocks.slice(lo, hi + 1).map((b, j) => ({ p: lo + j, x: F.text.substr(F.starts[lo + j], F.lens[lo + j]) })) } };
+  if (k.held) { k.held = false; back(); } // the words were held for a question
+  try { getSelection().removeAllRanges(); } catch {}
+  B.pick = null; $('.bk-selbar', B.el).hidden = true;
+  await cnSave([n]);
+  const cov = await bkCover(B);
+  if (cov) await cstore.put('frames', [{ id: n.id, blob: cov }, { id: n.id + '-t', blob: cov }]).catch(storageFail);
+  B.saving = false;
+  if (BK !== B) return;
+  bkMarks();
+  $$('.bk-toast', B.el).forEach(x => x.remove());
+  const t = document.createElement('div'); t.className = 'bk-toast';
+  t.innerHTML = `<span>Saved “${esc(n.text.length > 34 ? n.text.slice(0, 32) + '…' : n.text)}” for a card</span><button>Undo</button>`;
+  $('button', t).addEventListener('click', async () => { t.remove(); await cnDrop([n.id]); if (BK === B) bkMarks(); });
+  B.el.appendChild(t); setTimeout(() => t.remove(), 4500);
+}
+
+/* ---- C1: a highlight's card in a strip at the bottom ---- */
+function bkHlTap(m) {
+  const B = BK, n = m.dataset.hl ? CN.recs.get(m.dataset.hl) : null;
+  const cid = m.dataset.card || (n && cnCardsOf(n.id)[0]), c = cid && cards.find(x => x.id === cid);
+  if (!c && !n) return;
+  const el = document.createElement('div'); el.className = 'bk-strip';
+  if (c) {
+    const d = decks.find(x => x.id === c.deckId);
+    el.innerHTML = `<span class="pic"><img alt=""></span><span class="tx"><b>${esc(nameOf(c) || c.word || 'Card')}</b><small>${esc(d ? d.name : 'Card')} · card made</small></span>
+      <button data-k="open">Open card</button>`;
+    blobURL(c.thumbId || c.frameId).then(u => { const im = $('img', el); if (u && im) { im.src = u; } });
+  } else {
+    el.innerHTML = `<span class="tx"><b>${esc(n.text)}</b><small>Saved for a ${n.kind === 'concept' ? 'Concept' : 'Vocabulary'} card${n.question ? ' · “' + esc(n.question) + '”' : ''}</small></span>
+      <button data-k="rm">Remove</button>`;
+  }
+  el.addEventListener('click', e => {
+    const b = e.target.closest('[data-k]'); if (!b) return;
+    if (b.dataset.k === 'open') back(() => bkOpenCard(c));
+    else back(async () => { await cnDrop([n.id]); if (BK === B) bkMarks(); toast('Removed'); });
+  });
+  B.el.appendChild(el); B.strip = el;
+  pushLayer(() => { if (B.strip === el) B.strip = null; el.classList.add('out'); setTimeout(() => el.remove(), 200); });
+}
+/* the card opens above the book, among this book's cards in reading order; Back comes back to the page */
+function bkOpenCard(c) {
+  const B = BK, d = c && decks.find(x => x.id === c.deckId); if (!B || !d) return;
+  const made = new Set([...CN.recs.values()].filter(n => n.book && n.src.key === B.key).flatMap(n => cnCardsOf(n.id)));
+  const list = [...new Set([...bkBookCards(B), ...cards.filter(x => made.has(x.id)), c])].sort((a, b) => (shotOf(a) - shotOf(b)) || (a.seq - b.seq));
+  openStudy(d, c.id, list);
+  const st = $$('.study'); if (st.length) st[st.length - 1].style.zIndex = 55;
 }
 
 /* ================= the video player ================= */
@@ -5775,6 +6035,9 @@ function plPanelPaint() {
    createdAt, at, text (the words picked, or the line), question, src: {type: 'video', key (vidKey), path, name, size, title}, time,
    lines: [{s, e, x}] (the line and up to 4 either side), cur (the tapped line's place in lines), sel: [first word, last word] or null
    (words counted across lines), track, sentAt} or {id, gone: true, at}; store `frames` {id, blob} (the frame, and `<id>-t` for lists).
+   Words picked in a book (v45) have src {type: 'book', key (bookKey), path, name, size, title, author}, no time or lines, and
+   book: {ch, href, chapter, p0, o0, p1, o1 (paragraph and character where they start and end), exact, prefix, suffix, paras: [{p, x}]
+   (their paragraphs and two either side)}; their "frame" is the book's cover.
    Kept in My Files › Agora › For cards (notes.json + frames/), and in backups. The card chat gets them as a zip (cnZip, kind 'card-notes'). */
 KEYS.cnotes = 'id'; KEYS.frames = 'id';
 const CN = { recs: new Map(), gone: new Map(), loaded: false };
@@ -5804,6 +6067,7 @@ async function cnDrop(ids) {
 const cnWords = x => String(x).replace(/\n/g, ' ').split(/\s+/).filter(Boolean);
 /* the words picked, as text; or the tapped line when none are */
 function cnText(n) {
+  if (n.book) return n.text || '';
   if (!n.sel) return String(n.lines[n.cur].x).replace(/\n/g, ' ');
   const all = n.lines.flatMap(l => cnWords(l.x));
   return all.slice(n.sel[0], n.sel[1] + 1).join(' ');
@@ -5946,14 +6210,22 @@ function cnPics(root) {
     if (cnUrls.get(id)) { img.onload = () => img.classList.add('in'); img.src = cnUrls.get(id); }
   });
 }
+/* words from a book with a little of what comes before and after them, ==marked== */
+function cnBookLine(n) {
+  const b = n.book, para = (b.paras.find(q => q.p === b.p0) || {}).x || '';
+  if (!para || b.p1 !== b.p0) return '==' + n.text + '==';
+  let pre = para.slice(0, b.o0), post = para.slice(b.o1);
+  if (pre.length > 26) pre = '…' + pre.slice(-26).replace(/^\S*\s/, '');
+  return (pre + '==' + para.slice(b.o0, b.o1) + '==' + post).replace(/\s+/g, ' ');
+}
 function cnRow(n, withSrc) {
   // every line holding a picked word (a pick can run across lines), else the line itself
-  const line = n.sel ? cnMarked(n).filter(x => x.includes('==')).join(' ') : cnMarked(n, n.cur, n.cur).join(' ');
-  const html = esc(line).replace(/==(.+?)==/g, '<b>$1</b>');
+  const line = n.book ? cnBookLine(n) : n.sel ? cnMarked(n).filter(x => x.includes('==')).join(' ') : cnMarked(n, n.cur, n.cur).join(' ');
+  const html = esc(line).replace(/==([\s\S]+?)==/g, '<b>$1</b>');
   const made = cnCardsOf(n.id).length;
   return `<button class="cnrow" data-cn="${esc(n.id)}"><span class="pic"><img alt="" data-cnf="${esc(n.id)}"></span><span class="tx">
     <span class="ln">${html}</span>
-    <span class="mt">${withSrc ? esc(n.src.title) + ' · ' : ''}${hms(n.time)} · <span class="k">${n.kind === 'concept' ? 'Concept' : 'Vocabulary'}</span>${made ? ' · card made' : n.sentAt ? ' · sent' : ''}</span>
+    <span class="mt">${withSrc ? esc(n.src.title) + ' · ' : ''}${n.book ? esc(n.book.chapter || 'Book') : hms(n.time)} · <span class="k">${n.kind === 'concept' ? 'Concept' : 'Vocabulary'}</span>${made ? ' · card made' : n.sentAt ? ' · sent' : ''}</span>
     ${n.question ? `<span class="qq">“${esc(n.question)}”</span>` : ''}</span></button>`;
 }
 function renderCardNotes(v) {
@@ -5966,7 +6238,7 @@ function renderCardNotes(v) {
       <div class="srcs">${gs.map(g => `<div class="src"><button class="src-open" data-cng="${esc(g.key)}"><div class="cover"><img class="cnimg" alt="" data-cnf="${esc(g.list[0].id)}"></div>
         <div><div class="tile-name">${esc(g.title)}</div><div class="tile-meta">${plural(g.list.length, 'line')}</div></div></button>
         <button class="more" data-cngmenu="${esc(g.key)}" aria-label="Options for ${esc(g.title)}">${ICON.more}</button></div>`).join('')}</div>
-      ${total ? `<button class="cnsend" data-p="cnsend">Send ${total} to the card chat</button>` : '<p class="empty">Tap a subtitle line while a film plays to save it here for a card.</p>'}</div>`;
+      ${total ? `<button class="cnsend" data-p="cnsend">Send ${total} to the card chat</button>` : '<p class="empty">Tap a subtitle line while a film plays, or pick words in a book, to save them here for a card.</p>'}</div>`;
   } else {
     const g = gs.find(x => x.key === v.key), list = g ? g.list : [];
     v.title = g ? g.title : v.title || 'For cards';
@@ -6003,11 +6275,11 @@ function cnGroupMenu(key) {
 }
 function cnMenu(n) {
   if (!n) return;
-  const r = fidx.get(n.src.path) || [...fidx.values()].find(x => x.kind === 'file' && vidKey(x) === n.src.key);
-  sheet(`<h2>${esc(n.text)}</h2><p class="sub">${esc(n.src.title)} · ${hms(n.time)}</p>
-    <div class="list">${r ? item('play', 'Play from here') : ''}${item('q', n.question ? 'Change the question' : 'Add a question')}
+  const bk = !!n.book, r = fidx.get(n.src.path) || [...fidx.values()].find(x => x.kind === 'file' && (bk ? /\.epub$/i.test(x.name) && bookKey(x) : vidKey(x)) === n.src.key);
+  sheet(`<h2>${esc(n.text)}</h2><p class="sub">${esc(n.src.title)} · ${bk ? esc(n.book.chapter || 'Book') : hms(n.time)}</p>
+    <div class="list">${r ? item('play', bk ? 'Read from here' : 'Play from here') : ''}${item('q', n.question ? 'Change the question' : 'Add a question')}
     ${item('kind', n.kind === 'concept' ? 'Make it Vocabulary' : 'Make it a Concept')}${item('del', ico('trash', 'Delete'), '', 'danger')}</div>`, {
-    play: () => { closeSheet(); openPlayer(r, Math.max(0, n.time - 2)); },
+    play: () => closeSheet(() => { if (bk) openBook(r, { href: n.book.href, p: n.book.p0 }); else openPlayer(r, Math.max(0, n.time - 2)); }),
     q: () => askSheet({ title: n.question ? 'Change the question' : 'Add a question', value: n.question || '', btn: 'Save', label: 'Question', done: async q => {
       await cnSave([{ ...n, question: q.trim(), at: Date.now() }]); refreshPages(); closeSheet();
     } }),
@@ -6020,7 +6292,21 @@ async function cnZip(list) {
   const JSZip = await loadZip(), zip = new JSZip();
   const notes = [];
   for (const n of [...list].sort((a, b) => a.createdAt - b.createdAt)) {
-    const cue = n.lines[n.cur], fr = await cstore.get('frames', n.id).catch(() => null);
+    const fr = await cstore.get('frames', n.id).catch(() => null);
+    if (n.book) { // words from a book: their paragraph marked ==like this==, the paragraphs around it, and where they sit
+      const b = n.book, para = i => (b.paras.find(q => q.p === i) || {}).x || '', marked = [];
+      for (let i = b.p0; i <= b.p1; i++) { const x = para(i), a = i === b.p0 ? b.o0 : 0, z = i === b.p1 ? b.o1 : x.length; if (x) marked.push(x.slice(0, a) + '==' + x.slice(a, z) + '==' + x.slice(z)); }
+      const o = { id: n.id, kind: n.kind, createdAt: new Date(n.createdAt).toISOString(), selection: { text: n.text, picked: true, marked: marked.join('\n') || `==${n.text}==` } };
+      if (n.question) o.question = n.question;
+      o.book = { file: { path: n.src.path, name: n.src.name, size: n.src.size }, title: n.src.title, author: n.src.author || null, tags: ['Book', n.src.title],
+        chapter: { title: b.chapter || null, index: b.ch }, para: { index: b.p0, text: o.selection.marked },
+        before: b.paras.filter(q => q.p < b.p0).map(q => q.x), after: b.paras.filter(q => q.p > b.p1).map(q => q.x),
+        position: { prefix: b.prefix, exact: b.exact, suffix: b.suffix } };
+      if (fr) { o.book.cover = `frames/${n.id}.jpg`; zip.file(o.book.cover, fr.blob); }
+      const made = cnCardsOf(n.id); if (made.length) o.cards = made;
+      notes.push(o); continue;
+    }
+    const cue = n.lines[n.cur];
     const c = x => ({ start: +x.s.toFixed(2), end: +x.e.toFixed(2), text: String(x.x) });
     const o = { id: n.id, kind: n.kind, createdAt: new Date(n.createdAt).toISOString(), selection: { text: n.text, picked: !!n.sel, marked: cnMarked(n).filter(x => x.includes('==')).join('\n') || null } };
     if (n.question) o.question = n.question;
@@ -6067,14 +6353,29 @@ async function importCardNotes(list, frameOf) {
     const have = CN.recs.get(x.id) || CN.gone.get(x.id), at = +x.at || 0;
     if (have && (have.at || 0) >= at) continue;
     if (x.gone) { take.push({ id: x.id, gone: true, at }); continue; }
-    if (!x.src || !Array.isArray(x.lines) || !x.lines.length) continue;
-    const lines = x.lines.map(l => ({ s: +l.s || 0, e: +l.e || 0, x: String(l.x || '') })), cur = Math.max(0, Math.min(lines.length - 1, +x.cur || 0));
-    const sel = Array.isArray(x.sel) && x.sel.length === 2 && x.sel.every(Number.isFinite) ? [x.sel[0], x.sel[1]] : null;
-    const n = { id: x.id, kind: x.kind === 'concept' ? 'concept' : 'vocabulary', createdAt: +x.createdAt || at || Date.now(), at, question: String(x.question || ''),
-      time: +x.time || 0, lines, cur, sel, track: String(x.track || ''),
-      src: { type: 'video', key: String(x.src.key || ''), path: String(x.src.path || ''), name: String(x.src.name || ''), size: +x.src.size || 0, title: String(x.src.title || '') } };
+    if (!x.src) continue;
+    let n;
+    if (x.src.type === 'book') { // words from a book
+      const b = x.book, num = v => Math.max(0, +v | 0);
+      if (!b || typeof b.exact !== 'string' || !b.exact || !b.href) continue;
+      n = { id: x.id, kind: x.kind === 'concept' ? 'concept' : 'vocabulary', createdAt: +x.createdAt || at || Date.now(), at, question: String(x.question || ''),
+        text: String(x.text || b.exact).replace(/\s+/g, ' ').trim(),
+        src: { type: 'book', key: String(x.src.key || ''), path: String(x.src.path || ''), name: String(x.src.name || ''), size: +x.src.size || 0, title: String(x.src.title || ''), author: String(x.src.author || '') },
+        book: { ch: num(b.ch), href: String(b.href), chapter: String(b.chapter || ''), p0: num(b.p0), o0: num(b.o0), p1: num(b.p1), o1: num(b.o1),
+          exact: b.exact, prefix: String(b.prefix || ''), suffix: String(b.suffix || ''),
+          paras: Array.isArray(b.paras) ? b.paras.filter(q => q).map(q => ({ p: num(q.p), x: String(q.x || '') })) : [] } };
+    }
+    if (!n && (!Array.isArray(x.lines) || !x.lines.length)) continue;
+    if (!n) {
+      const lines = x.lines.map(l => ({ s: +l.s || 0, e: +l.e || 0, x: String(l.x || '') })), cur = Math.max(0, Math.min(lines.length - 1, +x.cur || 0));
+      const sel = Array.isArray(x.sel) && x.sel.length === 2 && x.sel.every(Number.isFinite) ? [x.sel[0], x.sel[1]] : null;
+      n = { id: x.id, kind: x.kind === 'concept' ? 'concept' : 'vocabulary', createdAt: +x.createdAt || at || Date.now(), at, question: String(x.question || ''),
+        time: +x.time || 0, lines, cur, sel, track: String(x.track || ''),
+        src: { type: 'video', key: String(x.src.key || ''), path: String(x.src.path || ''), name: String(x.src.name || ''), size: +x.src.size || 0, title: String(x.src.title || '') } };
+      n.text = cnText(n);
+    }
     if (x.sentAt) n.sentAt = +x.sentAt;
-    n.text = cnText(n); take.push(n);
+    take.push(n);
     if (!(await cstore.get('frames', n.id).catch(() => null))) {
       const b = await frameOf(x).catch(() => null);
       if (b) { const blob = new Blob([b], { type: 'image/jpeg' }); frames.push({ id: n.id, blob }, { id: n.id + '-t', blob: await makeThumb(blob, 320) }); }

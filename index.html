@@ -3620,6 +3620,7 @@ function rescan() {
       await applyPending();
       FX.scanned = true;
       await saveTagsFile();
+      await dropLeftovers();
     } catch (e) {
       console.warn('scan stopped', e);
       FX.ready = await fsPerm(FX.root, false);
@@ -4028,7 +4029,8 @@ function fileTagSheet(paths) {
     rm: b => { setFileTags(paths, withoutTag(b.dataset.tag)); after(); },
     add: b => add(b.dataset.tag),
     submit: f => { const t = $('#ftagIn', f).value.trim(); if (t) add(t); else closeSheet(); },
-    done: () => closeSheet()
+    // Done keeps a tag still sitting in the box: tapping Done after typing one is how most people finish
+    done: () => { const t = $('#ftagIn').value.trim(); if (t) add(t); closeSheet(); }
   }, sh => { sh.classList.add('ftagsheet'); draw(sh); $('#ftagIn', sh).addEventListener('input', () => draw(sh)); });
 }
 /* quick tagging: one tag, then each tap on a file adds or removes it */
@@ -7047,14 +7049,23 @@ async function idxMove(from, to) {
 }
 async function copyInto(src, target, name) {
   if (src.kind === 'file') {
-    const f = await src.getFile(), fh = await target.getFileHandle(name, { create: true }), w = await fh.createWritable();
-    await w.write(f); await w.close();
-    if ((await fh.getFile()).size !== f.size) throw new Error('copy incomplete');
+    const f = await src.getFile(), fh = await target.getFileHandle(name, { create: true });
+    try {
+      const w = await fh.createWritable(); await w.write(f); await w.close();
+      if ((await fh.getFile()).size !== f.size) throw new Error('copy incomplete');
+    } catch (e) { await target.removeEntry(name).catch(() => {}); throw e; } // never leave an empty or half copy behind
     return;
   }
   const d = await target.getDirectoryHandle(name, { create: true });
   for await (const [n, h] of src.entries()) await copyInto(h, d, n);
 }
+/* a failed move can leave an empty file under the new name (Android moves by copying): take it away again */
+async function dropEmpty(target, name) {
+  try { const fh = await target.getFileHandle(name); if ((await fh.getFile()).size === 0) await target.removeEntry(name); } catch {}
+}
+/* Android has no real move for My Files: a big film would be copied through Chrome's cache and fail, so Agora only copies smaller files itself */
+const COPY_MAX = 200 * 1024 * 1024;
+const BIG_MSG = what => `Android won’t let Agora ${what} a file this big. ${what === 'move' ? 'Move' : 'Rename'} it in the Files app, then Refresh.`;
 /* move (or rename) one file or folder; returns its new path */
 async function fsMoveOne(from, toDir, newName) {
   const r = fidx.get(from), dir = parentOf(from), name = from.slice(from.lastIndexOf('/') + 1), nm = newName || name;
@@ -7062,23 +7073,36 @@ async function fsMoveOne(from, toDir, newName) {
   if (r && r.kind === 'dir' && (toDir === from || toDir.startsWith(from + '/'))) throw new Error('into itself');
   const src = r && r.kind === 'dir' ? await (await fsDir(dir)).getDirectoryHandle(name) : await handleOf(from);
   const target = await fsDir(toDir, true), free = await freeName(toDir, nm, toDir === dir && nm.toLowerCase() === name.toLowerCase() ? nm : null);
+  const file = src.kind === 'file' ? await src.getFile() : null;
   let done = false;
-  // the phone's own move keeps the file's date; where it isn't there, copy then remove
-  if (src.move) { try { await src.move(target, free); done = true; } catch (e) { console.warn('move', e); } }
-  if (!done) { await copyInto(src, target, free); await (await fsDir(dir)).removeEntry(name, { recursive: true }); }
+  // the phone's own move keeps the file's date: a rename in place first, then a move; where neither works, copy then remove
+  if (src.move) {
+    const tries = toDir === dir ? [() => src.move(free), () => src.move(target, free)] : [() => src.move(target, free)];
+    for (const t of tries) {
+      try { await t(); done = true; break; }
+      catch (e) { console.warn('move', e); if (file && file.size) await dropEmpty(target, free); }
+    }
+  }
+  if (!done) {
+    if (file && file.size > COPY_MAX) { const e = new Error('too big to copy'); e.big = true; throw e; }
+    await copyInto(src, target, free); await (await fsDir(dir)).removeEntry(name, { recursive: true });
+  }
   const to = fsJoin(toDir, free);
   await idxMove(from, to);
   return to;
 }
 async function fsMove(paths, toDir, stamp = agStamp()) {
   const log = [], out = [];
+  let big = 0;
   for (const p of paths) {
-    const to = await fsMoveOne(p, toDir); if (to === p) continue;
+    let to; try { to = await fsMoveOne(p, toDir); } catch (e) { console.warn(e); if (e.big) big++; continue; } // one that can't move doesn't stop the rest
+    if (to === p) continue;
     const r = fidx.get(to), same = parentOf(p) === parentOf(to);
     log.push({ k: 'file:' + p, op: 'move', path: p, to, label: r ? r.name : to, what: same ? `renamed from “${p.slice(p.lastIndexOf('/') + 1)}”` : `moved from ${fname(parentOf(p))}` });
     out.push(to);
   }
   await fileLog(stamp, log);
+  out.big = big;
   return out;
 }
 async function fsDelete(paths) {
@@ -7087,7 +7111,7 @@ async function fsDelete(paths) {
     const r = fidx.get(p); if (!r || r.kind !== 'file') continue;
     const vp = await fsKeepFile(p, stamp);
     await (await fsDir(r.dir)).removeEntry(r.name);
-    log.push({ k: 'file:' + p, op: 'delete', path: p, dir: vp, label: r.name, what: 'deleted', tags: fileTags(r) });
+    log.push({ k: 'file:' + p, op: 'delete', path: p, dir: vp, label: r.name, what: AG.fileWhy || 'deleted', tags: fileTags(r) });
     fidx.delete(p); gone.push(p); if (FX.handles) FX.handles.delete(p); if (r.thumbId) forget([r.thumbId]);
   }
   fchanged(); await fstore.del('files', gone).catch(() => {}); tagsChanged();
@@ -7126,6 +7150,21 @@ async function fileRestore(x) {
   return true;
 }
 
+/* Once (v41): renames of big films in v32–v40 failed on Android and each try left an empty file under the new name
+   ("Oppenheimer.mkv", "Oppenheimer 2.mkv"…). They are the empty files made since renaming arrived (2 Oct 2026), apart from
+   text files, which can be empty on purpose. They go the usual way, to Previous versions, so any of them can come back. */
+const LEFT_SINCE = new Date(2026, 9, 2).getTime();
+async function dropLeftovers() {
+  if (!FX.ready || await fstore.get('meta', 'leftovers').catch(() => null)) return;
+  const empty = allFiles().filter(r => r.size === 0 && r.mtime >= LEFT_SINCE && fkind(r) !== 'txt').map(r => r.path);
+  let k = 0;
+  AG.fileWhy = 'empty, left by a rename that didn’t work';
+  for (const p of empty) { try { k += await fsDelete([p]); } catch (e) { console.warn('leftovers', p, e); } }
+  AG.fileWhy = '';
+  await fstore.put('meta', [{ k: 'leftovers', v: k }]).catch(() => {});
+  if (k) { fchanged(); toast(`Removed ${plural(k, 'empty file')} a rename left behind`); }
+}
+
 /* ---- the screens ---- */
 function fileDeleteSheet(paths, after) {
   const rs = paths.map(p => fidx.get(p)).filter(Boolean), n = rs.length; if (!n) return;
@@ -7143,12 +7182,18 @@ function fileDeleteSheet(paths, after) {
 }
 function fileRenameSheet(path, after) {
   const r = fidx.get(path); if (!r) return;
+  let busy = false;
   askSheet({ title: r.kind === 'dir' ? 'Rename folder' : 'Rename', value: r.name, btn: 'Rename', label: 'New name', max: 255, done: async x => {
+    // a name typed without its ending keeps the file's own (".mkv"), so the phone still knows what it is
+    if (r.kind === 'file' && r.ext && !x.includes('.')) x += '.' + r.name.slice(r.name.lastIndexOf('.') + 1);
     if (x === r.name) { closeSheet(); return; }
     if (badName(x)) { toast('A name can’t have / \\ : * ? " < > |'); return; }
-    if (!(await fsNeed())) return;
-    let to = null; try { to = await renameTo(path, x); } catch (e) { console.warn(e); }
-    closeSheet(() => { if (to) { if (after) after(to); refreshFiles(); toast(`Renamed to ${fidx.get(to) ? fidx.get(to).name : x}`); } else toast('Couldn’t rename that'); });
+    if (busy) return; // a second tap while the first is still renaming would make a second copy
+    busy = true; const b = $('#sheet button[type=submit]'); if (b) { b.disabled = true; b.textContent = 'Renaming…'; }
+    let to = null, big = false;
+    try { if (await fsNeed()) to = await renameTo(path, x); } catch (e) { console.warn(e); big = !!e.big; }
+    busy = false;
+    closeSheet(() => { if (to) { if (after) after(to); refreshFiles(); toast(`Renamed to ${fidx.get(to) ? fidx.get(to).name : x}`); } else toast(big ? BIG_MSG('rename') : 'Couldn’t rename that'); });
   } });
   // only the name is picked out, so typing keeps the extension
   setTimeout(() => { const i = $('#askIn'); if (!i) return; const dot = r.kind === 'file' ? r.name.lastIndexOf('.') : -1; i.focus(); i.setSelectionRange(0, dot > 0 ? dot : r.name.length); }, 420); // after the sheet's own select-all
@@ -7192,8 +7237,9 @@ async function onMovingClick(b, v) {
     if (!(await fsNeed())) return;
     progressSheet('Moving', plural(M.paths.length, 'file'));
     let out = []; try { out = await fsMove(M.paths, v.dir); } catch (e) { console.warn(e); }
-    const to = fname(v.dir);
-    closeSheet(() => back(() => { refreshFiles(); toast(out.length ? `Moved ${out.length === 1 ? fidx.get(out[0]).name : plural(out.length, 'file')} to ${to}` : 'Couldn’t move that'); }, movingPages(M).length));
+    const to = fname(v.dir), left = M.paths.length - out.length;
+    const msg = out.length ? `Moved ${out.length === 1 ? fidx.get(out[0]).name : plural(out.length, 'file')} to ${to}${left ? ` · ${left} couldn’t move` : ''}` : out.big ? BIG_MSG('move') : 'Couldn’t move that';
+    closeSheet(() => back(() => { refreshFiles(); toast(msg); }, movingPages(M).length));
   }
 }
 /* editing a text file: Plex Mono like Notes, saved with Save and when you leave */

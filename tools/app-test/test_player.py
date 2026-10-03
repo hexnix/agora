@@ -177,6 +177,7 @@ async def main(app, out):
         t = await pg.evaluate("T.PL.v.currentTime")
         check(abs(t - 22.5) < 1.5, f'opening it again carries on from where it was left ({t:.1f})')
         check(await pg.evaluate("T.PL.subId") == 'mkv:3', 'and keeps the subtitle choice')
+        check(await pg.evaluate("T.PL.vol === 100 && !T.PL.gain"), 'a film left near silent opens at full volume, outside the boost')
         await ph.back(); await pg.wait_for_timeout(500)
 
         # a .srt beside a film without subtitles of its own is picked by itself (made from the same film, its tracks removed by name)

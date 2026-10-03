@@ -593,6 +593,18 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 .pl-done{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--gold);border-radius:2px}
 .pl-knob{position:absolute;left:0;top:50%;width:14px;height:14px;margin:-7px;border-radius:50%;background:var(--gold);transition:transform .15s}
 .pl-seek.drag .pl-knob{transform:scale(1.35)}
+/* B1: a blue dot for each card from this film, a white one for each line saved here and not made into a card yet */
+.pl-marks{position:absolute;inset:0;pointer-events:none}
+.pl-marks i{position:absolute;top:50%;width:7px;height:7px;margin:-3.5px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 1.5px rgba(0,0,0,.45)}
+.pl-marks i.n{background:#fff}
+/* C1: the card the film has just reached */
+.pl-card{position:absolute;right:calc(22px + var(--sr));top:calc(64px + env(safe-area-inset-top,0px));display:flex;gap:10px;align-items:center;background:rgba(28,29,32,.94);border-radius:14px;padding:8px 14px 8px 8px;font:14px var(--sans);color:#fff;animation:fadein .2s;transition:opacity .3s;max-width:46vw}
+.pl-card.out{opacity:0}
+.pl-card .pic{width:64px;height:36px;border-radius:6px;overflow:hidden;background:#2a2b2f;flex:none}
+.pl-card img{width:100%;height:100%;object-fit:cover;display:block}
+.pl-card b{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pl-card .go{color:var(--blue-text);white-space:nowrap;margin-left:4px}
+.pl-match em{font-style:normal;color:var(--muted)}
 .pl-icons{display:flex;justify-content:space-between;align-items:center;margin:-2px -9px 0}
 .player .iconbtn{color:#fff}
 .player .iconbtn:active{background:rgba(255,255,255,.12)}
@@ -4658,7 +4670,7 @@ function openPlayer(r, at) {
         <button class="pl-big" data-p="play" aria-label="Play">${PI.play}</button>
         <button class="pl-skip" data-p="fwd" aria-label="Forward 10 seconds">${PI.fwd}<b>10</b></button></div>
       <div class="pl-bot"><div class="pl-row"><span class="pl-t now">0:00</span>
-          <div class="pl-seek" role="slider" aria-label="Position in the video"><div class="pl-track"><div class="pl-buf"></div><div class="pl-done"></div><div class="pl-knob"></div></div></div>
+          <div class="pl-seek" role="slider" aria-label="Position in the video"><div class="pl-track"><div class="pl-buf"></div><div class="pl-done"></div><div class="pl-marks"></div><div class="pl-knob"></div></div></div>
           <span class="pl-t end">0:00</span></div>
         <div class="pl-icons"><button class="iconbtn" data-p="lock" aria-label="Lock the screen">${PI.lock}</button><button class="iconbtn" data-p="fit" aria-label="Fill the screen">${PI.fit}</button></div></div>
     </div>
@@ -4679,7 +4691,7 @@ function openPlayer(r, at) {
   el.addEventListener('contextmenu', e => e.preventDefault());
   plGestures(); plSeekBar(); plSubSwipe();
   v.addEventListener('play', plPaintPlay); v.addEventListener('pause', () => { plPaintPlay(); plSave(); plShowUI(); });
-  v.addEventListener('timeupdate', () => { if (PL && PL.v === v) { plPaintTime(); if (Date.now() - PL.savedAt > 5000) plSave(); } });
+  v.addEventListener('timeupdate', () => { if (PL && PL.v === v) { plPaintTime(); plCardCheck(); if (Date.now() - PL.savedAt > 5000) plSave(); } });
   v.addEventListener('progress', plPaintTime);
   v.addEventListener('loadedmetadata', plStart);
   v.addEventListener('playing', plCheckSound);
@@ -4719,7 +4731,7 @@ function plStart() {
   if (P.startAt != null) P.v.currentTime = P.startAt; // from a saved line: the moment it was saved at
   else if (pos > 10 && (!isFinite(d) || pos < d - Math.min(60, d * 0.15))) { P.v.currentTime = pos; toast(`Carrying on from ${hms(pos)}`); }
   if (P.rec) { P.rec.dur = isFinite(d) ? d : P.rec.dur; }
-  plPaintTime(); plShowUI();
+  plPaintTime(); plShowUI(); plMarks(); plMatchSoon();
 }
 function plSave(force) {
   const P = PL; if (!P || !P.rec) return;
@@ -4832,6 +4844,8 @@ function plClick(e) {
   else if (k === 'size') { ls.set('player.sub', b.dataset.s); plApplySize(); plPanelPaint(); }
   else if (k === 'nsave') plNoteSave(b.dataset.kind);
   else if (k === 'nundo') cnUndo();
+  else if (k === 'card') plOpenCard(b.dataset.id);
+  else if (k === 'match') plMatchSheet();
 }
 function plUnlockHint() {
   const u = $('.pl-unlock', PL.el); u.hidden = false; clearTimeout(PL.lockT);
@@ -4840,13 +4854,133 @@ function plUnlockHint() {
 function plMenu() {
   const r = PL.r;
   sheet(`<h2>${esc(r.name)}</h2><p class="sub num">${fmeta(r)}</p>
-    <div class="list">${item('share', ico('share', 'Share / Open with…'))}${item('folder', ico('folder', 'Show in folder'), '', '', esc(['My Files', ...(r.dir ? r.dir.split('/') : [])].join(' › ')))}</div>`, {
+    <div class="list">${item('match', ico('image', 'Cards from'), PL.match ? esc(PL.match.name) : 'none')}${item('share', ico('share', 'Share / Open with…'))}${item('folder', ico('folder', 'Show in folder'), '', '', esc(['My Files', ...(r.dir ? r.dir.split('/') : [])].join(' › ')))}</div>`, {
+    match: () => closeSheet(plMatchSheet),
     share: () => { shareFiles([r.path]); closeSheet(); },
     folder: () => {
       const under = pages[pages.length - 1], there = under && under.kind === 'files' && under.dir === r.dir;
       back(() => { if (!there) openFolder(r.dir); }, 2); // the sheet and the player
     }
   });
+}
+
+/* ---- cards on the timeline (v43, picks A1, B1, C1): which show or film this is, found by its subtitles; a blue dot
+   for each card from it, a white one for each line saved here and not made into a card yet; a notice when the film reaches a card ---- */
+const normLine = s => String(s || '').toLowerCase().replace(/==|\*\*|\*/g, '').replace(/<[^>]+>/g, ' ').replace(/[^\p{L}\p{N}']+/gu, ' ').replace(/\s+/g, ' ').trim();
+const epTag = c => tagsOf(c).find(t => /^S\d+\s*E\d+$/i.test(t)) || '';
+/* a card's own subtitle words: the line under its scene, and the marked line of its transcript */
+function cardLines(c) {
+  const out = [];
+  if (c.sceneCaption) out.push(normLine(String(c.sceneCaption).replace(/\n/g, ' ')));
+  if (c.ref && c.ref.kind === 'transcript') for (const l of c.ref.lines || []) if (l.hit) out.push(normLine(l.text));
+  return [...new Set(out.filter(x => x.length >= 8))];
+}
+/* every show or film (and episode) the cards come from */
+function storyGroups() {
+  const m = new Map();
+  for (const c of cards) {
+    const s = srcOf(c); if (!SRC_STORY.has(String(s.kind).toLowerCase())) continue;
+    const ep = epTag(c), key = s.key + (ep ? '|' + ep.toUpperCase().replace(/\s+/g, ' ') : '');
+    if (!m.has(key)) m.set(key, { key, name: s.name + (ep ? ' · ' + ep : ''), cards: [] });
+    m.get(key).cards.push(c);
+  }
+  return m;
+}
+/* the subtitles as one string, so a card's line is found with one search even when it runs over two subtitles */
+function cueText(cues) {
+  let text = ''; const at = [];
+  for (const q of cues) { at.push(text.length); text += normLine(q.x) + ' '; }
+  const cueOf = i => { let lo = 0, hi = at.length - 1; while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (at[mid] <= i) lo = mid; else hi = mid - 1; } return cues[lo]; };
+  return { text, cueOf };
+}
+function plMatchSoon() { const P = PL; if (!P) return; clearTimeout(P.matchT); P.matchT = setTimeout(() => plMatch(P), 1200); }
+function plMatch(P) {
+  if (PL !== P || !P.rec) return;
+  const { text, cueOf } = cueText(P.cues), groups = storyGroups();
+  const timesOf = g => { // each card's moment: where its line is in the subtitles, else its scene time moved by the others' offset
+    const at = new Map(), offs = [];
+    if (text) for (const c of g.cards) for (const l of cardLines(c)) {
+      const i = text.indexOf(l); if (i < 0) continue;
+      const q = cueOf(i); at.set(c.id, q.s); if (Number.isFinite(c.sceneTime)) offs.push(q.s - c.sceneTime); break;
+    }
+    offs.sort((a, b) => a - b);
+    const off = offs.length ? offs[offs.length >> 1] : 0, hits = at.size;
+    for (const c of g.cards) if (!at.has(c.id) && Number.isFinite(c.sceneTime)) at.set(c.id, c.sceneTime + off);
+    return { at, hits };
+  };
+  const saved = P.rec.match;
+  let best = null;
+  if (saved && saved.key) { const g = groups.get(saved.key); if (g) best = Object.assign({ g }, timesOf(g)); }
+  else if (!saved && text) {
+    for (const g of groups.values()) {
+      if (!g.cards.some(c => cardLines(c).length)) continue;
+      const r = timesOf(g);
+      if (r.hits && (!best || r.hits > best.hits)) best = Object.assign({ g }, r);
+    }
+    if (best && best.hits < Math.min(2, best.g.cards.length)) best = null; // one line in common is too little to be sure
+    if (best) { P.rec.match = { key: best.g.key, by: 'subtitles', at: Date.now() }; plSave(true); P.newMatch = true; }
+  }
+  P.match = best ? { key: best.g.key, name: best.g.name, cards: best.g.cards.filter(c => best.at.has(c.id)).sort((a, b) => best.at.get(a.id) - best.at.get(b.id)), at: best.at } : null;
+  plMarks();
+  if (P.newMatch && P.match) { P.newMatch = false; plMatchLine(); }
+}
+/* A1: said once, the first time a film is matched */
+function plMatchLine() {
+  const P = PL; if (!P || !P.match) return;
+  $$('.pl-toast', P.el).forEach(x => x.remove());
+  const t = document.createElement('div'); t.className = 'pl-toast pl-match';
+  t.innerHTML = `<span>This is <b>${esc(P.match.name)}</b><em> · ${plural(P.match.cards.length, 'card')}</em></span><button data-p="match">Change</button>`;
+  P.el.appendChild(t); setTimeout(() => t.remove(), 7000);
+}
+function plMatchSheet() {
+  const P = PL; if (!P || !P.rec) return;
+  const gs = [...storyGroups().values()].sort((a, b) => a.name.localeCompare(b.name));
+  const cur = P.match ? P.match.key : '', none = !!(P.rec.match && P.rec.match.none);
+  sheet(`<h2>Cards from</h2><p class="sub">Which show or film is ${esc(P.r.name)}?</p>
+    <div class="list">${gs.map((g, i) => item('g' + i, (g.key === cur ? '✓ ' : '') + esc(g.name), plural(g.cards.length, 'card'))).join('')}${item('none', (none ? '✓ ' : '') + 'None of these')}</div>`,
+    Object.assign({ none: () => { P.rec.match = { none: true, at: Date.now() }; plSave(true); P.match = null; plMarks(); closeSheet(); } },
+      Object.fromEntries(gs.map((g, i) => ['g' + i, () => { P.rec.match = { key: g.key, by: 'you', at: Date.now() }; plSave(true); closeSheet(); plMatch(P); }]))));
+}
+/* the dots: blue for cards, white for lines saved here and not made into cards yet (B1) */
+function plMarks() {
+  const P = PL; if (!P) return;
+  const d = P.v.duration, list = [];
+  if (P.match) for (const c of P.match.cards) list.push({ t: P.match.at.get(c.id), c });
+  for (const n of CN.recs.values()) if (n.src && n.src.key === P.key && !cnCardsOf(n.id).length) list.push({ t: n.time, n });
+  P.marks = list.filter(m => Number.isFinite(m.t)).sort((a, b) => a.t - b.t);
+  $('.pl-marks', P.el).innerHTML = isFinite(d) && d > 0 ? P.marks.map(m => `<i class="${m.c ? 'c' : 'n'}" style="left:${Math.min(100, m.t / d * 100).toFixed(3)}%"></i>`).join('') : '';
+}
+function plMarkNear(x) {
+  const P = PL, d = P && P.v.duration; if (!P || !P.marks || !isFinite(d)) return null;
+  const r = $('.pl-track', P.el).getBoundingClientRect();
+  let best = null, bd = 14;
+  for (const m of P.marks) { const dx = Math.abs(r.left + m.t / d * r.width - x); if (dx < bd) { bd = dx; best = m; } }
+  return best;
+}
+/* C1: when the film plays into a card's moment, a small card at the top right for a few seconds */
+function plCardCheck() {
+  const P = PL; if (!P) return;
+  const t = P.v.currentTime, was = P.lastT; P.lastT = t;
+  if (!P.match || was == null || P.v.paused || t < was || t - was > 1.5) return;
+  const c = P.match.cards.find(c => { const at = P.match.at.get(c.id); return at > was && at <= t; });
+  if (c) plCardNotice(c);
+}
+function plCardNotice(c) {
+  const P = PL; if (!P) return;
+  $$('.pl-card', P.el).forEach(x => x.remove());
+  const b = document.createElement('button'); b.className = 'pl-card'; b.dataset.p = 'card'; b.dataset.id = c.id;
+  b.innerHTML = `<span class="pic"><img alt=""></span><b>${esc(nameOf(c) || 'Card')}</b><span class="go">Open card</span>`;
+  blobURL(c.thumbId || c.frameId).then(u => { const im = $('img', b); if (u && im) im.src = u; });
+  P.el.appendChild(b); clearTimeout(P.cardT);
+  P.cardT = setTimeout(() => { b.classList.add('out'); setTimeout(() => b.remove(), 300); }, 5000);
+}
+/* opening the card pauses the film; Back comes back to the same moment */
+function plOpenCard(id) {
+  const P = PL, c = cards.find(x => x.id === id); if (!P || !c) return;
+  P.v.pause(); $$('.pl-card', P.el).forEach(x => x.remove());
+  const d = decks.find(x => x.id === c.deckId); if (!d) return;
+  openStudy(d, c.id, P.match ? P.match.cards : [c]);
+  const st = $$('.study'); if (st.length) st[st.length - 1].style.zIndex = 55; // above the player
 }
 
 /* ---- gestures: tap for the controls, double-tap a side to skip 10 s, swipe up or down on the left for brightness, on the right for volume ---- */
@@ -4988,8 +5122,9 @@ function plSeekBar() {
   let id = null;
   const at = e => { const r = tr.getBoundingClientRect(), d = P.v.duration; return isFinite(d) ? Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * d : 0; };
   const go = t => { if (P.v.fastSeek) P.v.fastSeek(t); else P.v.currentTime = t; };
+  let x0 = 0;
   bar.addEventListener('pointerdown', e => {
-    id = e.pointerId; bar.setPointerCapture(id); bar.classList.add('drag');
+    id = e.pointerId; x0 = e.clientX; bar.setPointerCapture(id); bar.classList.add('drag');
     P.drag = at(e); plPaintTime(); plShowUI(true); go(P.drag);
   });
   bar.addEventListener('pointermove', e => {
@@ -5000,7 +5135,9 @@ function plSeekBar() {
   const end = e => {
     if (e.pointerId !== id) return;
     id = null; bar.classList.remove('drag');
-    const t = P.drag; P.drag = null; if (t != null) P.v.currentTime = t;
+    let t = P.drag; P.drag = null;
+    const m = Math.abs(e.clientX - x0) < 10 && plMarkNear(e.clientX); if (m && t != null) t = Math.max(0, m.t - 1); // a tap on a dot: a second before its card or line
+    if (t != null) P.v.currentTime = t;
     plPaintTime(); plShowUI(); plSave();
   };
   bar.addEventListener('pointerup', end); bar.addEventListener('pointercancel', end);
@@ -5182,6 +5319,7 @@ function plPanel() {
 }
 function plPanelPaint() {
   const P = PL; if (!P) return;
+  plMatchSoon(); // the subtitles changed: find which cards this film holds
   const pn = $('.pl-panel', P.el); if (pn.hidden) return;
   const cur = P.subId || 'off', size = ls.get('player.sub') || 'M';
   const row = s => `<button class="pl-opt${cur === s.id ? ' on' : ''}" data-p="sub" data-id="${esc(s.id)}"${s.ok ? '' : ' disabled'}><span class="r"></span>
@@ -5340,11 +5478,13 @@ async function plNoteSave(kind) {
   t.innerHTML = `<span>Saved “${esc(n.text.length > 40 ? n.text.slice(0, 38) + '…' : n.text)}” for a card</span><button data-p="nundo">Undo</button>`;
   P.el.appendChild(t); P.lastNote = n.id;
   setTimeout(() => t.remove(), 4500);
+  plMarks();
 }
 async function cnUndo() {
   const P = PL; if (!P || !P.lastNote) return;
   await cnDrop([P.lastNote]); P.lastNote = null;
   $$('.pl-toast', P.el).forEach(x => x.remove());
+  plMarks();
 }
 /* a film's name in the list: what it was renamed to, else its file name */
 const cnTitle = key => { const n = [...CN.recs.values()].find(r => r.src && r.src.key === key && r.src.title); return n ? n.src.title : ''; };

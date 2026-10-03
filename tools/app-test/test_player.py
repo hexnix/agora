@@ -132,6 +132,8 @@ async def main(app, out):
         await ph.shot(f'{out}/04-volume.png'); await pg.mouse.up()
         vol = await pg.evaluate("T.PL.vol")
         check(vol > 100 and await pg.evaluate("!!T.PL.gain"), f'swiping up on the right raises the volume, past 100 with a boost ({vol})')
+        gv = await pg.evaluate("T.PL.gain.g.gain.value")
+        check(abs(gv - 2 ** ((vol - 100) / 50)) < 0.01, f'the boost doubles the loudness every 50 ({gv:.2f}x at {vol})')
         await pg.mouse.move(770, 150); await pg.mouse.down(); await pg.mouse.move(770, 200, steps=5); await pg.mouse.move(770, 380, steps=10); await pg.mouse.up()
         vol2 = await pg.evaluate("[T.PL.vol, T.PL.v.volume]")
         check(vol2[0] < 100 and abs(vol2[1] - vol2[0] / 100) < 0.01, f'and down again ({vol2})')
@@ -177,6 +179,7 @@ async def main(app, out):
         t = await pg.evaluate("T.PL.v.currentTime")
         check(abs(t - 22.5) < 1.5, f'opening it again carries on from where it was left ({t:.1f})')
         check(await pg.evaluate("T.PL.subId") == 'mkv:3', 'and keeps the subtitle choice')
+        check(await pg.evaluate("T.PL.vol === 100 && !T.PL.gain"), 'a film left near silent opens at full volume, outside the boost')
         await ph.back(); await pg.wait_for_timeout(500)
 
         # a .srt beside a film without subtitles of its own is picked by itself (made from the same film, its tracks removed by name)

@@ -298,6 +298,10 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 .dtext ul{margin:8px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
 .dtext li{padding-left:1.4em;text-indent:-1.4em}
 .dtext li::before{content:"•";display:inline-block;width:1.4em;text-indent:0}
+.dtext ol{margin:8px 0 0;padding:0;list-style:none;counter-reset:n;display:flex;flex-direction:column;gap:8px}
+.dtext ol li::before{counter-increment:n;content:counter(n) ".";color:#0086FF}
+.dtext .t-img img{display:block;width:100%;border-radius:10px;background:#1C1D20;min-height:40px}
+.dtext .t-img .cap{font-size:12px;line-height:1.5;color:var(--muted);margin-top:8px;text-align:center}
 .peek .ptext{background:#000;border-radius:10px;padding:18px 0;max-height:40dvh;overflow:hidden}
 .peek .ptext .dtext{padding:0 16px;font-size:13px}
 .peek .ptext .t-headword{font-size:26px}
@@ -720,6 +724,10 @@ const ls = {
 };
 const svg = (d, s = 22) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 // the logos on the Vocabulary and My Files tiles (the owner's pick 2B): a white A with a blue a, a white folder with a blue tab
+/* Concepts (v42, the owner's pick 1A): a white light bulb with a blue filament */
+const LOGO_CONCEPTS = '<span class="logo" aria-hidden="true"><svg width="72" height="72" viewBox="0 0 48 48" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">'
+  + '<path d="M24 7a11 11 0 0 0-6.5 19.9c1.3 1 2 2.4 2 3.9V33h9v-2.2c0-1.5.7-2.9 2-3.9A11 11 0 0 0 24 7z" stroke="currentColor"/><path d="M20 37.5h8M21.5 41.5h5" stroke="currentColor"/>'
+  + '<path d="M21 22l3 3 3-3M24 25v7" style="stroke:var(--gold);stroke-width:2.2"/></svg></span>';
 const LOGO_VOCAB = '<span class="logo" aria-hidden="true"><span class="logo-aa">A<b>a</b></span></span>';
 const LOGO_FILES = '<span class="logo"><svg width="72" height="72" viewBox="0 0 48 48" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">'
   + '<path d="M6 16V36a2 2 0 0 0 2 2h32a2 2 0 0 0 2-2V18a2 2 0 0 0-2-2H6z" stroke="currentColor"/>'
@@ -869,7 +877,7 @@ async function deleteCards(list) {
   if (list.length > 1) agWhy(`Deleted ${plural(list.length, 'card')}`);
   const ids = new Set(list.map(c => c.id));
   cards = cards.filter(c => !ids.has(c.id));
-  const blobIds = list.flatMap(c => [c.frameId, c.thumbId, ...defIdsOf(c), c.ref && c.ref.thumbId]).filter(Boolean);
+  const blobIds = list.flatMap(c => [c.frameId, c.thumbId, ...defIdsOf(c), ...picIdsOf(c), c.ref && c.ref.thumbId]).filter(Boolean);
   // a magazine page can be shared by several cards: it goes with the last one
   new Set(list.map(c => c.pdf && c.pdf.id).filter(Boolean)).forEach(id => { if (!cards.some(c => c.pdf && c.pdf.id === id)) blobIds.push(id); });
   blobIds.forEach(id => { if (urls.has(id)) { URL.revokeObjectURL(urls.get(id)); urls.delete(id); } thumbIds.delete(id); });
@@ -962,11 +970,11 @@ function renderHome() {
   const total = cards.length;
   const tiles = list.map(d => {
     const cs = deckCards(d.id), n = cs.length;
-    // Vocabulary has its own logo instead of a card's picture
-    const cover = d === studyDeck() ? '' : coverOf(d, cs);
+    // Vocabulary and Concepts have their own logos instead of a card's picture
+    const cover = logoOf(d) ? '' : coverOf(d, cs);
     return `<div class="tile">
       <button class="tile-open" data-open="${d.id}" aria-label="Open ${esc(d.name)}">
-        <div class="cover">${d === studyDeck() ? LOGO_VOCAB : cover ? `<img alt="" data-blob="${cover}">` : ''}</div>
+        <div class="cover">${logoOf(d) || (cover ? `<img alt="" data-blob="${cover}">` : '')}</div>
         <div><div class="tile-name">${esc(d.name)}</div>
         <div class="tile-meta">${plural(n, 'card')}</div></div>
       </button>
@@ -1039,7 +1047,7 @@ function deckMenu(d) {
       ${item('add', 'Add cards')}
       ${n ? item('browse', 'Browse cards') : ''}
       ${item('rename', 'Rename')}
-      ${n && d !== studyDeck() ? item('cover', 'Cover image') : ''}
+      ${n && !logoOf(d) ? item('cover', 'Cover image') : ''}
       ${n ? item('merge', 'Merge into another deck', '', '', 'Moves every card, then removes this deck') : ''}
       ${item('del', 'Delete deck', '', 'danger')}
     </div>`, {
@@ -1220,7 +1228,7 @@ async function cardSheet(c) {
     del: () => confirmDeleteCards([c])
   });
   const [f, d] = await Promise.all([blobURL(c.frameId), textOf(c, 0) ? '' : blobURL(defIdsOf(c)[0])]);
-  const pf = $('#pf'), pd = $('#pd'); if (pf) pf.src = f; if (pd) pd.src = d;
+  const pf = $('#pf'), pd = $('#pd'); if (pf) pf.src = f; if (pd) pd.src = d; const pt = $('.peek .ptext'); if (pt) loadPics(pt);
 }
 function wordSheet(c, then) {
   askSheet({ title: nameOf(c) ? 'Edit word' : 'Add word', value: nameOf(c), placeholder: 'e.g. squaddie', label: 'Word', empty: true,
@@ -1572,6 +1580,8 @@ function textHTML(t) {
       case 'rule': return '<div class="t-rule"></div>';
       case 'pron': return `<div class="t-pron">${items.map(([r, ipa]) => `<span>${esc(r)} ${SPEAKER} ${esc(ipa)}</span>`).join('')}</div>`;
       case 'list': return `<ul>${items.map(i => `<li>${marks(i)}</li>`).join('')}</ul>`;
+      case 'ol': return `<ol class="t-ol">${items.map(i => `<li>${marks(i)}</li>`).join('')}</ol>`;
+      case 'img': return b.id ? `<div class="t-img"><img alt="" data-pic="${esc(b.id)}">${b.text ? `<div class="cap">${marks(b.text)}</div>` : ''}</div>` : '';
       case 'words': return `<div class="t-words">${items.map(marks).join(' · ')}</div>`;
       case 'def': return `<div class="t-def">${b.n ? `<span class="n">${esc(b.n)}</span>` : ''}${marks(b.text || '')}</div>`;
       case 'ex': return `<div class="t-ex">${b.lead ? `<span class="lead">${marks(b.lead)}</span>` : ''}${marks(b.text || '')}</div>`;
@@ -1580,6 +1590,11 @@ function textHTML(t) {
     }
   }).join('')}</div>`;
 }
+/* pictures inside a text page (a concept's explanation, v42): {t: 'img', id: its blob, src: its path in the zip it came in, text: caption} */
+const picIdsOf = c => (Array.isArray(c.defText) ? c.defText : []).flatMap(t => t && Array.isArray(t.blocks) ? t.blocks.filter(b => b && b.t === 'img' && b.id).map(b => b.id) : []);
+const loadPics = el => $$('img[data-pic]', el).forEach(img => blobURL(img.dataset.pic).then(u => { if (u) img.src = u; }));
+/* text pages compared without the pictures' ids and paths: a picture is the same when its file is (picsSame) */
+const textKey = t => JSON.stringify(t, function (k, v) { return this && this.t === 'img' && (k === 'id' || k === 'src') ? undefined : v; });
 const plainOf = t => (t && t.video) ? String(t.video.title || '') : t ? t.blocks.map(b => [b.lead, b.text, ...(b.items || []).flat()].filter(Boolean).join(' ')).join(' ').replace(/\*/g, '') : '';
 /* a card's name is the headword of its first dictionary definition ("bail on somebody" shows as "bail"), so a card has one name everywhere;
    a word typed in the app (hold the title, or Edit word) wins, and search still finds the card by its stored word too */
@@ -1718,6 +1733,7 @@ function makeSlide(c) {
   const rimg = $('.ref img', s);
   if (rimg) blobURL(c.ref.thumbId).then(u => { rimg.src = u || `https://i.ytimg.com/vi/${encodeURIComponent(c.ref.vid)}/hqdefault.jpg`; });
   $$('.def img[data-i]', s).forEach(img => blobURL(defs[+img.dataset.i]).then(u => { img.src = u; }));
+  loadPics(s);
   return s;
 }
 /* after the slide is on screen (sizes are known): fit the article, lay out the PDF page */
@@ -2424,6 +2440,8 @@ const recOf = c => SD.recs.get(c.id);
 const studied = c => { const r = recOf(c); return !!r && r.step != null; };
 const frontOf = c => { const r = recOf(c); return r && r.step == null && r.front != null ? r.front : null; };
 const studyDeck = () => decks.find(d => norm(d.name) === 'vocabulary') || null;
+const conceptDeck = () => decks.find(d => norm(d.name) === 'concepts') || null;
+const logoOf = d => d === studyDeck() ? LOGO_VOCAB : d === conceptDeck() ? LOGO_CONCEPTS : '';
 function saveRecs(list) { list.forEach(r => SD.recs.set(r.id, r)); return sstore.put('cards', list).catch(storageFail); }
 /* the queue: oldest first, a show's, film's or book's cards taking their places in story order; cards brought to the front come first */
 function queueOrder(d = studyDeck()) {
@@ -3177,8 +3195,9 @@ function loadZip() {
 }
 const EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'image/heic': 'heic' };
 const MIME = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', gif: 'image/gif', heic: 'image/heic' };
+const cleanBlock = b => (b && b.t === 'img') ? Object.assign({ t: 'img', src: String(b.src || b.file || '') }, (b.text || b.caption) ? { text: String(b.text || b.caption) } : {}) : b;
 const cleanText = t => (t && t.mode !== 'image' && Array.isArray(t.blocks) && t.blocks.length)
-  ? { src: String(t.source || t.src || ''), kind: String(t.kind || ''), blocks: t.blocks }
+  ? { src: String(t.source || t.src || ''), kind: String(t.kind || ''), blocks: t.blocks.map(cleanBlock) }
   : (t && t.video && t.video.vid) ? { src: String(t.source || t.src || ''), kind: 'youtube', video: { vid: String(t.video.vid), title: String(t.video.title || '') } } : null;
 async function appMenu() {
   let used = '';
@@ -3236,6 +3255,19 @@ async function exportAll() {
       const dfs = await Promise.all(ids.map(id => id ? store.get('blobs', id) : null));
       // a video definition keeps its src, so re-importing the backup finds the card unchanged
       const texts = ids.map((_, i) => textOf(c, i) || (vidOf(c, i) ? { src: c.defText[i].src || '', kind: 'youtube', video: vidOf(c, i) } : null));
+      // pictures inside text pages go in as files, under the path they came in with when it's free
+      for (let i = 0; i < texts.length; i++) {
+        const t = texts[i]; if (!t || !Array.isArray(t.blocks) || !t.blocks.some(b => b && b.t === 'img')) continue;
+        const blocks = [];
+        for (const b of t.blocks) {
+          if (!b || b.t !== 'img') { blocks.push(b); continue; }
+          const r = b.id && await store.get('blobs', b.id).catch(() => null); if (!r) continue;
+          let path = /^[\w ./-]+\.\w+$/.test(b.src || '') && !zip.file(b.src) ? b.src : '';
+          if (!path) { let k = 1; do path = `images/${c.id}-picture-${k++}.${EXT[r.blob.type] || 'jpg'}`; while (zip.file(path)); }
+          zip.file(path, r.blob); blocks.push(Object.assign({ t: 'img', src: path }, b.text ? { text: b.text } : {}));
+        }
+        texts[i] = Object.assign({}, t, { blocks });
+      }
       if (!f || !ids.some((_, i) => dfs[i] || texts[i])) continue;
       const fp = `images/${c.id}-scene.${EXT[f.blob.type] || 'jpg'}`;
       const dps = dfs.map((df, i) => df ? `images/${c.id}-definition${i ? '-' + (i + 1) : ''}.${EXT[df.blob.type] || 'jpg'}` : null);
@@ -3359,7 +3391,27 @@ $('#zipPicker').addEventListener('change', async e => {
           const texts = hasText ? mc.definitionText.map(cleanText) : [];
           const count = Math.max(dps.length, texts.length);
           const have = mc.id && cards.find(c => c.id === mc.id);
+          // pictures inside text pages (a concept's explanation): one already on the phone under the same path and size is kept
+          const takePics = async ts => {
+            const old = new Map();
+            if (have) for (const t of have.defText || []) for (const b of (t && t.blocks) || []) if (b && b.t === 'img' && b.id) old.set(b.src, b.id);
+            const out = [];
+            for (const t of ts) {
+              if (!t || !Array.isArray(t.blocks) || !t.blocks.some(b => b && b.t === 'img')) { out.push(t); continue; }
+              const blocks = [];
+              for (const b of t.blocks) {
+                if (!b || b.t !== 'img') { blocks.push(b); continue; }
+                const blob = await read(b.src), oid = old.get(b.src), cur = oid && await store.get('blobs', oid).catch(() => null);
+                if (cur && (!blob || cur.blob.size === blob.size)) blocks.push(Object.assign({}, b, { id: oid }));
+                else if (blob) blocks.push(Object.assign({}, b, { id: await putImage(blob) }));
+              }
+              out.push(Object.assign({}, t, { blocks }));
+            }
+            return out;
+          };
+          const tx = await takePics(texts);
           if (have) {
+            const oldPics = picIdsOf(have);
             // already in the app: keep review progress; refresh the word, the text, and the images when the file says so
             let changed = false;
             if (mc.word && mc.word !== have.word) { have.word = mc.word; changed = true; }
@@ -3377,12 +3429,12 @@ $('#zipPicker').addEventListener('change', async e => {
               const sizeOf = async id => { const r = id && await store.get('blobs', id).catch(() => null); return r && r.blob ? r.blob.size : -1; };
               const same = scene && keep.length === defIdsOf(have).length && (await sizeOf(have.frameId)) === scene.size
                 && (await Promise.all(keep.map(async (i, k) => (imgs[i] ? imgs[i].size : -1) === await sizeOf(defIdsOf(have)[k])))).every(Boolean)
-                && JSON.stringify(keep.map(i => texts[i] || null)) === JSON.stringify(have.defText);
+                && JSON.stringify(keep.map(i => tx[i] || null)) === JSON.stringify(have.defText);
               if (scene && keep.length && !same) {
                 const oldText = have.defText, old = [have.frameId, have.thumbId, ...defIdsOf(have)];
                 have.frameId = await putImage(scene); have.thumbId = await putImage(await makeThumb(scene)); thumbIds.add(have.thumbId); delete have.thumbKey;
                 have.defIds = []; for (const i of keep) have.defIds.push(imgs[i] ? await putImage(imgs[i]) : '');
-                have.defText = hasText ? keep.map(i => texts[i] || null) : (oldText.length === keep.length ? oldText : keep.map(() => null));
+                have.defText = hasText ? keep.map(i => tx[i] || null) : (oldText.length === keep.length ? oldText : keep.map(() => null));
                 have.defId = have.defIds[0]; forget(old); changed = true;
               }
             } else {
@@ -3397,7 +3449,7 @@ $('#zipPicker').addEventListener('change', async e => {
               alignText(have);
               const ids = defIdsOf(have);
               if (texts.length !== ids.length) mismatched++;
-              else texts.forEach((t, i) => {
+              else tx.forEach((t, i) => {
                 if (!t && !ids[i]) return; // never leave a definition with neither screenshot nor text
                 if (JSON.stringify(t) !== JSON.stringify(have.defText[i])) { have.defText[i] = t; changed = true; }
               });
@@ -3438,7 +3490,7 @@ $('#zipPicker').addEventListener('change', async e => {
                 if (old && old !== (pd && pd.id)) dropPdf(old);
               }
             }
-            if (changed) { await store.put('cards', [have]); updated++; touched.add(have.deckId); } else skipped++;
+            if (changed) { await store.put('cards', [have]); updated++; touched.add(have.deckId); forget(oldPics.filter(id => !picIdsOf(have).includes(id))); } else skipped++;
             continue;
           }
           const scene = await read(sp), imgs = await Promise.all(Array.from({ length: count }, (_, i) => read(dps[i])));
@@ -3446,7 +3498,7 @@ $('#zipPicker').addEventListener('change', async e => {
           if (!sp) { absent++; continue; } // a text-only file mentions a card this phone doesn't have
           if (!scene || !keep.length) { skipped++; continue; }
           const extra = { word: mc.word || '', review: !!mc.review, streak: mc.streak || 0, peeks: mc.peeks || 0, seen: mc.seen || 0, lastSeen: mc.lastSeen || 0, addedAt: mc.addedAt || Date.now(),
-            defText: keep.map(i => texts[i] || null) };
+            defText: keep.map(i => tx[i] || null) };
           if (mc.id) extra.id = mc.id;
           if (Array.isArray(mc.tags)) extra.tags = mc.tags.map(x => String(x).trim()).filter(Boolean);
           if (Number.isFinite(mc.shotAt)) extra.shotAt = mc.shotAt;
@@ -6457,7 +6509,7 @@ async function agCard(k, id, stamp, at) {
 async function agCardTo(k, c, rec, base, nm, dir, stamp, at) {
   const flatWas = !!rec && !!rec.flat, moved = !!rec && rec.dir !== dir, name = lastPart(dir), pdir = picDir(base);
   // no tile picture: on Android every file is a slow trip, and a tile is redrawn from the scene (agCardIn)
-  const slots = [['scene', c.frameId], ...defIdsOf(c).map((b, i) => [i ? `definition ${i + 1}` : 'definition', b]), ['source', c.ref && c.ref.thumbId]]
+  const slots = [['scene', c.frameId], ...defIdsOf(c).map((b, i) => [i ? `definition ${i + 1}` : 'definition', b]), ...picIdsOf(c).map((b, i) => [`picture ${i + 1}`, b]), ['source', c.ref && c.ref.thumbId]]
     .map(([stem, b]) => [`${name} ${stem}`, b]);
   // nothing changed since it was last written
   if (flatWas && !moved && hashOf(JSON.stringify(agEntry(c, rec.files, name))) === rec.sum) {

@@ -560,6 +560,76 @@ h1{font-family:var(--serif);font-weight:400;font-size:var(--fs-title);line-heigh
 /* ---------- the video player (v37; the owner's picks 1A, 3A, 4A, subtitles like the phone's own player) ---------- */
 .vplay{display:flex;flex-direction:column;align-items:center;gap:10px;color:var(--text);font-size:15px}
 .vplay .disc{width:72px;height:72px;border-radius:50%;background:var(--raised);display:grid;place-items:center}
+/* the book reader (v44): Merriweather for every word in it */
+.book{position:fixed;inset:0;z-index:45;background:#000;color:#fff;overflow:hidden;font-family:'Merriweather',Georgia,serif;animation:fadein .2s ease;
+  --bk-fs:17px;--bk-lh:1.72;--bk-pad:24px;--bk-top:calc(env(safe-area-inset-top,0px) + 46px);--bk-bot:calc(env(safe-area-inset-bottom,0px) + 46px)}
+.book .bk-head{position:absolute;left:0;right:0;top:0;height:var(--bk-top);display:flex;align-items:flex-end;justify-content:center;padding:0 60px 8px;pointer-events:none}
+.book .bk-ch,.book .bk-prog{font:300 12.5px/1.3 'Merriweather',Georgia,serif;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.book .bk-foot{position:absolute;left:0;right:0;bottom:0;height:var(--bk-bot);display:flex;align-items:flex-start;justify-content:center;padding:10px 24px 0;pointer-events:none}
+.book .bk-stage{position:absolute;left:0;right:0;top:var(--bk-top);bottom:var(--bk-bot);overflow:hidden;touch-action:pan-y}
+.book .bk-page{position:absolute;inset:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:14px var(--bk-pad) 0;will-change:transform}
+.bk-text{font:300 var(--bk-fs)/var(--bk-lh) 'Merriweather',Georgia,serif;color:#E4E4E4;hyphens:auto;-webkit-hyphens:auto;overflow-wrap:break-word}
+.bk-text p{margin:0 0 1.05em}
+.bk-text h1,.bk-text h2,.bk-text h3,.bk-text h4,.bk-text h5,.bk-text h6{font-family:'Merriweather',Georgia,serif;font-weight:700;color:#fff;line-height:1.3;margin:1.2em 0 .8em;hyphens:manual}
+.bk-text h1{font-size:1.4em}.bk-text h2{font-size:1.25em}.bk-text h3{font-size:1.1em}.bk-text h4,.bk-text h5,.bk-text h6{font-size:1em}
+.bk-text > :first-child,.bk-text > div:first-child > :first-child{margin-top:.4em}
+.bk-text b,.bk-text strong{font-weight:700;color:#fff}
+.bk-text em,.bk-text i,.bk-text cite{font-style:italic}
+.bk-text blockquote{margin:0 0 1.05em;padding-left:1em;border-left:1px solid var(--line);color:#C9CBCF}
+.bk-text ul,.bk-text ol{margin:0 0 1.05em;padding-left:1.4em}
+.bk-text li{margin:0 0 .3em}
+.bk-text hr{border:0;margin:1.6em auto;width:40%;border-top:1px solid var(--line)}
+.bk-text img{display:block;max-width:100%;height:auto;margin:.6em auto 1em;border-radius:4px}
+.bk-text figcaption{font-size:.85em;color:var(--muted);text-align:center;margin:-.4em 0 1em}
+.bk-text a[data-to],.bk-text a[data-out]{color:var(--blue-text);text-decoration:none}
+.bk-text sup,.bk-text sub{font-size:.7em;line-height:0}
+.bk-text table{border-collapse:collapse;margin:0 0 1em;font-size:.9em}
+.bk-text td,.bk-text th{border:1px solid var(--line);padding:4px 8px}
+.bk-text pre{white-space:pre-wrap;font-size:.85em}
+.book .bk-end{padding:36px 0 calc(42px + env(safe-area-inset-bottom,0px));text-align:center;font:300 13px 'Merriweather',Georgia,serif;color:var(--faint)}
+.book .bk-wait{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:0 32px;text-align:center;color:var(--muted);font:300 15px/1.6 'Merriweather',Georgia,serif;background:#000;z-index:2}
+.book .bk-wait b{color:#fff;font-weight:300}
+.book .bk-wait .btn{flex:none;font-family:'Merriweather',Georgia,serif}
+.book.failed .bk-bot,.book.failed [data-b=toc],.book.failed [data-b=text]{display:none}
+.book .bk-ctl{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .2s;z-index:3}
+.book.ui .bk-ctl{opacity:1}
+.book.ui .bk-top,.book.ui .bk-bot{pointer-events:auto}
+.book .bk-top{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:2px;padding:calc(env(safe-area-inset-top,0px) + 8px) 6px 8px;background:#000;border-bottom:1px solid var(--line)}
+.book .bk-title{flex:1;min-width:0;padding:0 6px;font:700 16px/1.3 'Merriweather',Georgia,serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bk-aa{font:700 17px 'Merriweather',Georgia,serif;letter-spacing:-.02em}
+.bk-aa small{font-size:12px;font-weight:300}
+.book .bk-bot{position:absolute;left:0;right:0;bottom:0;padding:18px 24px calc(env(safe-area-inset-bottom,0px) + 18px);background:#000;border-top:1px solid var(--line)}
+.book .bk-row{display:flex;justify-content:space-between;gap:14px;font:300 13px/1.4 'Merriweather',Georgia,serif}
+.book .bk-row.mut{color:var(--muted)}
+.book .bk-row .bk-cname{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.book .bk-row .bk-pct{color:var(--muted)}
+.book .bk-seek{padding:16px 0;margin:2px 0;touch-action:none}
+.book .bk-track{position:relative;height:3px;background:rgba(255,255,255,.3);border-radius:2px}
+.book .bk-done{position:absolute;left:0;top:0;bottom:0;background:var(--gold);border-radius:2px}
+.book .bk-ticks i{position:absolute;top:-3px;width:1px;height:9px;background:rgba(255,255,255,.45)}
+.book .bk-knob{position:absolute;top:50%;width:16px;height:16px;margin:-8px;border-radius:50%;background:var(--gold)}
+.book .bk-toc{position:absolute;inset:0;z-index:4;background:#000;overflow-y:auto;padding:0 20px 40px;transition:opacity .2s;animation:fadein .2s ease;font-family:'Merriweather',Georgia,serif}
+.book .bk-toc .pbar{margin-top:0;padding-top:calc(env(safe-area-inset-top,0px) + 8px)}
+.book .bk-toc .pt{font:700 19px/1.3 'Merriweather',Georgia,serif;letter-spacing:0}
+.book .bk-toc .summary{padding-left:32px;font:300 13px/1.6 'Merriweather',Georgia,serif}
+.book .bk-rows{margin:14px -20px 0}
+.book .bk-trow2{display:flex;gap:14px;align-items:baseline;width:100%;padding:14px 22px;text-align:left;font:300 15px/1.45 'Merriweather',Georgia,serif;color:#fff}
+.book .bk-trow2 .k{width:24px;flex:none;font-size:13px;color:var(--muted)}
+.book .bk-trow2 .nm{flex:1;min-width:0}
+.book .bk-trow2 .pg{flex:none;font-size:12.5px;color:var(--muted)}
+.book .bk-trow2.sub .nm{padding-left:14px;font-size:14px;color:#C9CBCF}
+.book .bk-trow2.read .nm{color:#B8BABF}
+.book .bk-trow2.on .nm,.book .bk-trow2.on .k,.book .bk-trow2.on .pg{color:var(--blue-text)}
+.bkfont,.bkfont h2,.bkfont .sub,.bkfont .item{font-family:'Merriweather',Georgia,serif}
+.bkfont h2{font-weight:700}
+.bk-tsheet .bk-trow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0}
+.bk-tsheet .bk-trow > span{color:var(--muted);font:300 14px 'Merriweather',Georgia,serif}
+.bk-tsheet .bk-trow > div{display:flex;align-items:center;gap:8px}
+.bk-pill{padding:9px 14px;border-radius:18px;border:1px solid #45484E;font:300 13.5px 'Merriweather',Georgia,serif;color:#fff}
+.bk-pill.on{background:var(--gold);border-color:var(--gold)}
+.bk-pill.sz{width:52px;height:40px;padding:0;display:grid;place-items:center;font-size:14px}
+.bk-pill.sz.big{font-size:21px}
+.bk-tsheet .bk-n{width:30px;text-align:center;font:300 15px 'Merriweather',Georgia,serif}
 .player{position:fixed;inset:0;z-index:50;background:#000;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
   --sub:1;--ui:0;--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--sb:env(safe-area-inset-bottom,0px)}
 .player video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;transform-origin:50% 50%}
@@ -927,7 +997,7 @@ addEventListener('popstate', e => {
 try { if (history.state && (history.state.agora || history.state.subtext)) history.replaceState(null, ''); } catch {}
 
 /* the page underneath stops scrolling while anything covers it */
-function unlockIdle() { if (!pages.length && !cardsView && !searchView && !S && !FV && !PL) document.body.classList.remove('locked'); }
+function unlockIdle() { if (!pages.length && !cardsView && !searchView && !S && !FV && !PL && !BK) document.body.classList.remove('locked'); }
 
 /* ================= toast ================= */
 let toastTimer;
@@ -4139,6 +4209,7 @@ function openViewer(list, path) {
   const order = list.filter(r => r.kind === 'file'); if (!order.length) return;
   const first = order.find(r => r.path === path);
   if (first && fkind(first) === 'vid') { openPlayer(first); return; } // films play in the player, full screen
+  if (first && first.ext === 'epub') { openBook(first); return; } // books open in the reader
   const el = document.createElement('div'); el.className = 'fview';
   el.innerHTML = `<div class="chrome"><button class="iconbtn" data-v="back" aria-label="Back">${ICON.back}</button><span class="vt"></span>
       <button class="iconbtn" data-v="more" aria-label="Options for this file">${ICON.more}</button><div class="tags"></div></div>
@@ -4194,7 +4265,7 @@ function showFileHead() {
   fitViewer();
 }
 const otherHTML = r => `<div class="vother">${ICON_DOC(56)}<span class="fn">${esc(r.name)}</span><span class="num">${esc(kindLabel(r))} · ${fsize(r.size)}</span>
-  <button class="btn primary" data-v="share">${ICON_SHARE}Share / Open with…</button></div>`;
+  ${r.ext === 'epub' ? '<button class="btn primary" data-v="read">Read</button>' : ''}<button class="btn${r.ext === 'epub' ? '' : ' primary'}" data-v="share">${ICON_SHARE}Share / Open with…</button></div>`;
 function showFile(i, dir) {
   const old = FV.slide; FV.i = i; FV.z = { s: 1, x: 0, y: 0 };
   const r = fileNow(), k = fkind(r), s = document.createElement('div');
@@ -4382,6 +4453,7 @@ function viewerClick(e) {
   const v = b.dataset.v, r = fileNow();
   if (v === 'back') back();
   else if (v === 'play') openPlayer(r);
+  else if (v === 'read') openBook(r);
   else if (v === 'share') shareFiles([r.path]);
   else if (v === 'more') viewerMenu(r);
   else if (v === 'connect') connectFiles().then(ok => { if (ok && FV) loadFull(FV.slide); });
@@ -4435,6 +4507,370 @@ function fileResults(list, titleOf) {
   return `<div class="rhead fhead"><span class="num">${[nd ? plural(nd, 'folder') : '', nf ? plural(nf, 'file') : ''].filter(Boolean).join(' · ')}</span></div>`
     + list.map(r => `<button class="res" data-fopen="${esc(r.path)}">${r.thumbId ? `<img alt="" class="fth" data-blob="${r.thumbId}">` : `<span class="gly">${r.kind === 'dir' ? ICON_FOLDER(24) : ICON_DOC(22)}</span>`}
       <span><span class="rw">${titleOf(r)}</span><span class="rd">${r.kind === 'dir' ? `Folder · ${plural(deepCount(r.path), 'file')}` : `${esc(kindLabel(r))} · ${esc(fname(r.dir))}`}</span></span></button>`).join('');
+}
+
+/* ================= the book reader ================= */
+/* .epub books from My Files open here (v44, the owner's picks): every word in Merriweather, the book's text and everything around it;
+   a chapter scrolls to its end and stops there, and a swipe left or right goes to the next or the previous chapter; the contents as a
+   page of their own (C1). While reading only the chapter's name and how far you are show; a tap brings Back, the contents, the text
+   size and a bar to move through the book. The book is read straight from the file (an epub is a zip of web pages), never copied.
+   Where each book was left is kept in a database of its own ("agora-books"), like the video player's places. */
+let BK = null;
+KEYS.books = 'id';
+let bkstore = memStore(['books']), booksReady = null;
+function openBooksDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('agora-books', 1);
+    r.onupgradeneeded = () => { r.result.createObjectStore('books', { keyPath: 'id' }); };
+    r.onsuccess = () => { const db = r.result; db.onversionchange = () => db.close(); res(db); };
+    r.onerror = () => rej(r.error);
+    r.onblocked = () => rej(new Error('blocked'));
+  });
+}
+const booksDB = () => booksReady || (booksReady = openBooksDB().then(db => { bkstore = idbStore(db); }, e => console.warn('book storage unavailable, using memory', e)));
+const bookKey = r => `b:${r.size}:${r.name}`; // known by name and size, so a moved book keeps its place
+const BK_SIZES = [14, 15, 16, 17, 18, 19, 20, 22, 24], BK_LINES = { close: 1.5, normal: 1.72, open: 1.95 }, BK_MARGINS = { narrow: 16, normal: 24, wide: 34 };
+const bkText = () => Object.assign({ s: 17, l: 'normal', m: 'normal' }, (() => { try { return JSON.parse(ls.get('book.text') || '{}') || {}; } catch { return {}; } })());
+const ICON_TOC = svg('<path d="M4 6.5h16M4 12h16M4 17.5h10"/>');
+const ICON_AA = '<span class="bk-aa" aria-hidden="true">A<small>a</small></span>';
+
+/* ---- reading the epub: container.xml names the package file, which lists the pages in reading order (the spine) and the contents ---- */
+function bkPath(base, href) {
+  let h = String(href || '').split('#')[0];
+  try { h = decodeURIComponent(h); } catch {}
+  const out = [];
+  for (const p of (h.startsWith('/') ? h.slice(1) : base + h).split('/')) { if (p === '..') out.pop(); else if (p && p !== '.') out.push(p); }
+  return out.join('/');
+}
+const bkDir = p => p.includes('/') ? p.slice(0, p.lastIndexOf('/') + 1) : '';
+const bkTag = (doc, name) => [...doc.getElementsByTagNameNS('*', name)];
+async function bkParse(file) {
+  const JSZip = await loadZip(), z = await JSZip.loadAsync(file);
+  const zf = p => z.file(p) || z.file(new RegExp('^' + p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i'))[0];
+  const txt = async p => { const f = zf(p); if (!f) throw new Error('missing ' + p); return f.async('string'); };
+  const xml = s => new DOMParser().parseFromString(s, 'application/xml');
+  const cont = xml(await txt('META-INF/container.xml'));
+  const opfPath = (bkTag(cont, 'rootfile')[0] || { getAttribute: () => '' }).getAttribute('full-path');
+  const opf = xml(await txt(opfPath)), base = bkDir(opfPath);
+  const items = new Map();
+  for (const it of bkTag(opf, 'item')) items.set(it.getAttribute('id'), { href: bkPath(base, it.getAttribute('href')), type: it.getAttribute('media-type') || '', props: it.getAttribute('properties') || '' });
+  const spine = bkTag(opf, 'itemref').filter(r => r.getAttribute('linear') !== 'no').map(r => items.get(r.getAttribute('idref')))
+    .filter(x => x && /html|xml/.test(x.type) && zf(x.href));
+  if (!spine.length) throw new Error('no pages');
+  const meta = n => { const e = bkTag(opf, n)[0]; return e ? e.textContent.trim().replace(/\s+/g, ' ') : ''; };
+  // a book whose pages are encrypted (bought with DRM) can't be read here; fonts are often obscured too, and that's fine
+  const enc = zf('META-INF/encryption.xml');
+  if (enc) {
+    const refs = bkTag(xml(await enc.async('string')), 'CipherReference').map(c => bkPath('', c.getAttribute('URI')));
+    if (refs.some(u => spine.some(s => s.href === u))) throw Object.assign(new Error('drm'), { drm: true });
+  }
+  // the contents: the EPUB 3 nav page, else the EPUB 2 toc.ncx
+  let toc = [];
+  const nav = [...items.values()].find(x => /\bnav\b/.test(x.props));
+  if (nav) try {
+    const d = new DOMParser().parseFromString(await txt(nav.href), 'application/xhtml+xml'), nb = bkDir(nav.href);
+    const navs = bkTag(d, 'nav'), tn = navs.find(n => /toc/.test(n.getAttribute('epub:type') || n.getAttributeNS('http://www.idpf.org/2007/ops', 'type') || '')) || navs[0];
+    const walk = (ol, lv) => { for (const li of [...(ol ? ol.children : [])].filter(e => e.localName === 'li')) {
+      const a = [...li.children].find(e => e.localName === 'a' || e.localName === 'span');
+      if (a && a.getAttribute('href')) toc.push({ name: a.textContent.trim().replace(/\s+/g, ' '), href: bkPath(nb, a.getAttribute('href')), frag: (a.getAttribute('href').split('#')[1] || ''), lv });
+      walk([...li.children].find(e => e.localName === 'ol'), lv + 1);
+    } };
+    if (tn) walk([...tn.getElementsByTagNameNS('*', 'ol')][0], 0);
+  } catch (e) { console.warn('book contents', e); }
+  if (!toc.length) {
+    const ncxId = (bkTag(opf, 'spine')[0] || { getAttribute: () => '' }).getAttribute('toc');
+    const ncx = items.get(ncxId) || [...items.values()].find(x => /ncx/.test(x.type));
+    if (ncx) try {
+      const d = xml(await txt(ncx.href)), nb = bkDir(ncx.href);
+      const walk = (el, lv) => { for (const np of [...el.children].filter(e => e.localName === 'navPoint')) {
+        const lab = bkTag(np, 'text')[0], src = (bkTag(np, 'content')[0] || { getAttribute: () => '' }).getAttribute('src');
+        if (lab && src) toc.push({ name: lab.textContent.trim().replace(/\s+/g, ' '), href: bkPath(nb, src), frag: src.split('#')[1] || '', lv });
+        walk(np, lv + 1);
+      } };
+      const map = bkTag(d, 'navMap')[0]; if (map) walk(map, 0);
+    } catch (e) { console.warn('book contents', e); }
+  }
+  toc = toc.filter(t => t.name && spine.some(s => s.href === t.href));
+  const size = s => { const f = zf(s.href); return Math.max(1, (f && f._data && f._data.uncompressedSize) || 1); };
+  const pages = spine.map((s, i) => ({ href: s.href, i, size: size(s), name: (toc.find(t => t.href === s.href) || {}).name || '' }));
+  return { z, zf, title: meta('title'), author: meta('creator'), pages, toc, total: pages.reduce((a, p) => a + p.size, 0) };
+}
+
+/* ---- one chapter as plain, safe HTML: the book's own styles and scripts are left out, so it reads in Agora's look ---- */
+const BK_KEEP = new Set(['p', 'div', 'section', 'article', 'header', 'footer', 'aside', 'main', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'em', 'i', 'b', 'strong', 'u', 's',
+  'sup', 'sub', 'small', 'blockquote', 'ul', 'ol', 'li', 'br', 'hr', 'img', 'a', 'figure', 'figcaption', 'table', 'thead', 'tbody', 'tr', 'td', 'th', 'pre', 'code',
+  'cite', 'q', 'dl', 'dt', 'dd', 'abbr', 'mark']);
+const BK_DROP = new Set(['script', 'style', 'link', 'meta', 'title', 'head', 'iframe', 'object', 'embed', 'form', 'input', 'button', 'video', 'audio', 'canvas', 'noscript']);
+async function bkChapter(B, i) {
+  const pg = B.pages[i], dir = bkDir(pg.href), src = await B.zf(pg.href).async('string');
+  let d = new DOMParser().parseFromString(src, 'application/xhtml+xml');
+  if (d.getElementsByTagName('parsererror').length) d = new DOMParser().parseFromString(src, 'text/html');
+  const body = d.getElementsByTagNameNS('*', 'body')[0] || d.documentElement;
+  const out = document.createElement('div'), pics = [];
+  const copy = (from, to) => {
+    for (const n of [...from.childNodes]) {
+      if (n.nodeType === 3) { to.appendChild(document.createTextNode(n.nodeValue)); continue; }
+      if (n.nodeType !== 1) continue;
+      const t = n.localName.toLowerCase();
+      if (BK_DROP.has(t)) continue;
+      if (t === 'svg') { // a cover drawn as an svg around one picture
+        const im = [...n.getElementsByTagNameNS('*', 'image')][0], h = im && (im.getAttribute('href') || im.getAttributeNS('http://www.w3.org/1999/xlink', 'href'));
+        if (h) { const e = document.createElement('img'); e.dataset.src = bkPath(dir, h); pics.push(e); to.appendChild(e); }
+        continue;
+      }
+      if (!BK_KEEP.has(t)) { copy(n, to); continue; }
+      const e = document.createElement(t);
+      const id = n.getAttribute('id'); if (id) e.dataset.id = id;
+      if (t === 'img') { const s = n.getAttribute('src'); if (s) { e.dataset.src = bkPath(dir, s); e.alt = n.getAttribute('alt') || ''; pics.push(e); } }
+      if (t === 'a') { const h = n.getAttribute('href') || ''; if (/^[a-z]+:/i.test(h)) e.dataset.out = h; else if (h) { e.dataset.to = h.startsWith('#') ? pg.href : bkPath(dir, h); e.dataset.frag = h.split('#')[1] || ''; } }
+      if (t === 'td' || t === 'th') for (const a of ['colspan', 'rowspan']) if (n.getAttribute(a)) e.setAttribute(a, n.getAttribute(a));
+      copy(n, e); to.appendChild(e);
+    }
+  };
+  copy(body, out);
+  for (const e of pics) {
+    const f = B.zf(e.dataset.src);
+    if (!f) { e.remove(); continue; }
+    const ext = e.dataset.src.split('.').pop().toLowerCase(), type = ext === 'svg' ? 'image/svg+xml' : (MIME[ext] || 'image/jpeg');
+    const u = URL.createObjectURL(new Blob([await f.async('arraybuffer')], { type })); B.urls.push(u); e.src = u;
+  }
+  return out;
+}
+
+/* ---- opening and closing ---- */
+function openBook(r) {
+  if (BK) return;
+  if (!FX.ready) { connectFiles().then(ok => { if (ok) openBook(fidx.get(r.path) || r); }); return; } // the tap that opens it also gives Agora the folder
+  const el = document.createElement('div'); el.className = 'book';
+  el.innerHTML = `<div class="bk-head"><span class="bk-ch"></span></div><div class="bk-stage"></div><div class="bk-foot"><span class="bk-prog num"></span></div>
+    <div class="bk-ctl"><div class="bk-top"><button class="iconbtn" data-b="back" aria-label="Back">${ICON.back}</button><span class="bk-title"></span>
+        <button class="iconbtn" data-b="toc" aria-label="Contents">${ICON_TOC}</button><button class="iconbtn" data-b="text" aria-label="Text size">${ICON_AA}</button>
+        <button class="iconbtn" data-b="more" aria-label="Options for this book">${ICON.more}</button></div>
+      <div class="bk-bot"><div class="bk-row"><span class="bk-cname"></span><span class="bk-pct num"></span></div>
+        <div class="bk-seek" role="slider" aria-label="Position in the book"><div class="bk-track"><div class="bk-done"></div><div class="bk-ticks"></div><div class="bk-knob"></div></div></div>
+        <div class="bk-row mut"><span class="bk-cnum num"></span><span class="bk-left num"></span></div></div></div>
+    <div class="bk-wait">Opening…</div>`;
+  document.body.appendChild(el); document.body.classList.add('locked');
+  BK = { el, r, key: bookKey(r), stage: $('.bk-stage', el), rec: null, pages: [], toc: [], urls: [], ch: 0, page: null, ui: false, seen: new Map(), saveT: 0 };
+  $('.bk-title', el).textContent = r.name.replace(/\.epub$/i, '');
+  bkApplyText();
+  el.addEventListener('click', bkClick);
+  bkGestures(); bkSeekBar();
+  pushLayer(closeBook);
+  bkLoad();
+}
+async function bkLoad() {
+  const B = BK;
+  try {
+    await booksDB();
+    B.rec = (await bkstore.get('books', B.key)) || { id: B.key, name: B.r.name, size: B.r.size };
+    B.rec.path = B.r.path;
+    const book = await bkParse(await fileOf(B.r.path));
+    if (BK !== B) return;
+    Object.assign(B, book);
+    B.rec.title = book.title || B.rec.title; B.rec.author = book.author || '';
+    if (book.title) $('.bk-title', B.el).textContent = book.title;
+    $('.bk-ticks', B.el).innerHTML = B.pages.slice(1).filter(p => p.name).map(p => `<i style="left:${(bkStartOf(p.i) * 100).toFixed(2)}%"></i>`).join('');
+    const ch = Math.min(B.pages.length - 1, Math.max(0, B.rec.ch | 0)), had = B.rec.ch != null && (ch > 0 || B.rec.y > 0.02);
+    await bkShow(ch, 0, B.rec.y || 0);
+    $('.bk-wait', B.el).remove();
+    if (had) toast(`Carrying on from ${bkName(ch)}`);
+  } catch (e) {
+    console.warn(e);
+    if (BK !== B) return;
+    const w = $('.bk-wait', B.el); B.el.classList.add('failed');
+    w.innerHTML = `<b>${e && e.drm ? 'This book is locked by its shop (DRM), so Agora can’t open it' : navigator.onLine === false && !window.JSZip ? 'Connect to the internet once to open books' : `Couldn’t open ${esc(B.r.name)}`}</b>
+      <button class="btn primary" data-b="share">${ICON_SHARE}Share / Open with…</button>`;
+    bkShowUI(true);
+  }
+}
+function closeBook() {
+  const B = BK; if (!B) return;
+  bkSave(); BK = null;
+  B.el.style.transition = 'opacity .2s'; B.el.style.opacity = '0';
+  setTimeout(() => { B.el.remove(); B.urls.forEach(u => URL.revokeObjectURL(u)); }, 220);
+  unlockIdle();
+}
+const bkName = i => { const p = BK && BK.pages[i]; return (p && p.name) || (i === 0 ? 'the start' : `part ${i + 1}`); };
+// where a chapter starts in the whole book, 0 to 1, by the length of its pages
+const bkStartOf = i => BK.pages.slice(0, i).reduce((a, p) => a + p.size, 0) / BK.total;
+
+/* ---- a chapter on screen: it scrolls to its end and stops; swiping sideways brings the next or the one before ---- */
+async function bkShow(i, dir, y, frag) {
+  const B = BK; if (!B || !B.pages[i]) return;
+  if (B.page) B.seen.set(B.ch, B.page.scrollTop);
+  const pg = document.createElement('div'); pg.className = 'bk-page';
+  const text = await bkChapter(B, i); if (BK !== B) return;
+  text.className = 'bk-text'; pg.appendChild(text);
+  pg.insertAdjacentHTML('beforeend', `<div class="bk-end">${i < B.pages.length - 1 ? `Swipe for ${esc(bkName(i + 1))} ›` : 'The end'}</div>`);
+  if (dir) { pg.style.transition = 'none'; pg.style.transform = `translateX(${dir * 100}%)`; }
+  B.stage.appendChild(pg);
+  const old = B.page; B.page = pg; B.ch = i;
+  pg.addEventListener('scroll', bkScrolled, { passive: true });
+  // pictures settle the page's height: place the reader once they have
+  await Promise.all([...$$('img', pg)].map(im => im.decode ? im.decode().catch(() => {}) : null)).then(() => {}, () => {});
+  if (BK !== B || B.page !== pg) return;
+  const t = frag && $(`[data-id="${CSS.escape(frag)}"]`, pg);
+  if (t) pg.scrollTop = t.offsetTop - 8;
+  else if (y != null) pg.scrollTop = y * Math.max(0, pg.scrollHeight - pg.clientHeight);
+  else if (B.seen.has(i)) pg.scrollTop = B.seen.get(i);
+  if (old) {
+    pg.offsetWidth; pg.style.transition = '';
+    old.style.transition = 'transform .32s var(--ease), opacity .32s'; old.style.transform = `translateX(${-dir * 100}%)`; old.style.opacity = '0'; pg.style.transform = '';
+    setTimeout(() => old.remove(), 340);
+  }
+  $('.bk-ch', B.el).textContent = bkName(i) === 'the start' ? (B.title || '') : bkName(i);
+  bkPaint(); bkSave();
+}
+function bkFrac() {
+  const p = BK && BK.page; if (!p) return 0;
+  const h = p.scrollHeight - p.clientHeight; return h > 4 ? Math.min(1, Math.max(0, p.scrollTop / h)) : 1;
+}
+function bkPaint() {
+  const B = BK; if (!B || !B.page) return;
+  const f = bkFrac(), pct = Math.min(100, Math.round((bkStartOf(B.ch) + f * B.pages[B.ch].size / B.total) * 100));
+  const words = B.page.words || (B.page.words = (B.page.textContent.match(/\S+/g) || []).length);
+  const min = Math.round(words * (1 - f) / 230); // about 230 words a minute
+  const left = f > 0.995 ? 'End of chapter' : min < 1 ? 'Less than a minute left' : `${min} min left in chapter`;
+  $('.bk-prog', B.el).textContent = `${pct}% · ${left}`;
+  $('.bk-pct', B.el).textContent = `${pct}%`; $('.bk-left', B.el).textContent = left;
+  $('.bk-cname', B.el).textContent = bkName(B.ch);
+  const tops = B.toc.filter(t => !t.lv).map(t => B.pages.findIndex(p => p.href === t.href)), n = tops.filter(i => i >= 0 && i <= B.ch).length;
+  $('.bk-cnum', B.el).textContent = tops.length && n ? `Chapter ${n} of ${tops.length}` : '';
+  if (!B.seeking) { $('.bk-done', B.el).style.width = pct + '%'; $('.bk-knob', B.el).style.left = pct + '%'; }
+  B.pct = pct;
+}
+function bkScrolled() {
+  const B = BK; if (!B) return;
+  bkPaint(); clearTimeout(B.saveT); B.saveT = setTimeout(bkSave, 800);
+}
+function bkSave() {
+  const B = BK; if (!B || !B.rec || !B.page) return;
+  Object.assign(B.rec, { ch: B.ch, y: bkFrac(), pct: B.pct || 0, at: Date.now() });
+  bkstore.put('books', [{ ...B.rec }]).catch(e => console.warn(e));
+}
+
+/* ---- a tap shows or hides the controls; a sideways swipe changes chapter, following the finger ---- */
+function bkShowUI(on) { const B = BK; if (!B) return; B.ui = on; B.el.classList.toggle('ui', on); if (on) bkPaint(); }
+function bkGestures() {
+  const st = BK.stage; let g = null;
+  st.addEventListener('pointerdown', e => { if (!BK || e.button) return; g = { x: e.clientX, y: e.clientY, t: Date.now(), dx: 0, side: false, id: e.pointerId }; });
+  st.addEventListener('pointermove', e => {
+    if (!g || e.pointerId !== g.id || !BK.page) return;
+    const dx = e.clientX - g.x, dy = e.clientY - g.y;
+    if (!g.side && Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.3) { g.side = true; BK.page.style.transition = 'none'; }
+    if (g.side) {
+      const edge = (dx > 0 && BK.ch === 0) || (dx < 0 && BK.ch === BK.pages.length - 1);
+      g.dx = edge ? dx / 4 : dx; BK.page.style.transform = `translateX(${g.dx}px)`;
+    }
+  });
+  const up = e => {
+    if (!g || e.pointerId !== g.id) return;
+    const B = BK, gg = g; g = null; if (!B || !B.page) return;
+    if (gg.side) {
+      const v = gg.dx / Math.max(1, Date.now() - gg.t), next = gg.dx < 0 ? B.ch + 1 : B.ch - 1;
+      if ((Math.abs(gg.dx) > 70 || Math.abs(v) > 0.5) && B.pages[next] && e.type === 'pointerup') { bkShowUI(false); bkShow(next, gg.dx < 0 ? 1 : -1, next < B.ch ? null : 0); }
+      else { B.page.style.transition = 'transform .25s var(--ease)'; B.page.style.transform = ''; }
+      return;
+    }
+    if (e.type === 'pointerup' && Math.hypot(e.clientX - gg.x, e.clientY - gg.y) < 10 && Date.now() - gg.t < 400 && !e.target.closest('a[data-to],a[data-out]')) bkShowUI(!B.ui);
+  };
+  st.addEventListener('pointerup', up); st.addEventListener('pointercancel', up);
+}
+/* the bar at the bottom: drag anywhere along it to move through the whole book */
+function bkSeekBar() {
+  const B = BK, bar = $('.bk-seek', B.el), tr = $('.bk-track', B.el);
+  const at = x => { const r = tr.getBoundingClientRect(); return Math.min(1, Math.max(0, (x - r.left) / r.width)); };
+  const where = f => { let i = 0; while (i < B.pages.length - 1 && bkStartOf(i + 1) <= f) i++; return { i, y: Math.min(1, (f - bkStartOf(i)) * B.total / B.pages[i].size) }; };
+  const show = f => { const w = where(f); $('.bk-done', B.el).style.width = f * 100 + '%'; $('.bk-knob', B.el).style.left = f * 100 + '%';
+    $('.bk-cname', B.el).textContent = bkName(w.i); $('.bk-pct', B.el).textContent = Math.round(f * 100) + '%'; return w; };
+  bar.addEventListener('pointerdown', e => { if (!B.pages.length) return; B.seeking = true; bar.setPointerCapture(e.pointerId); show(at(e.clientX)); });
+  bar.addEventListener('pointermove', e => { if (B.seeking) show(at(e.clientX)); });
+  const end = e => { if (!B.seeking) return; B.seeking = false; const w = show(at(e.clientX)); if (BK === B) bkShow(w.i, w.i === B.ch ? 0 : w.i > B.ch ? 1 : -1, w.y); };
+  bar.addEventListener('pointerup', end); bar.addEventListener('pointercancel', () => { B.seeking = false; bkPaint(); });
+}
+function bkClick(e) {
+  const B = BK; if (!B) return;
+  const a = e.target.closest('a[data-to],a[data-out]');
+  if (a) { // a link inside the book: a note or another chapter opens here, a web address in the browser
+    e.preventDefault();
+    if (a.dataset.out) { if (/^https?:/i.test(a.dataset.out)) window.open(a.dataset.out, '_blank', 'noopener'); return; }
+    const i = B.pages.findIndex(p => p.href === a.dataset.to);
+    if (i === B.ch) { const t = a.dataset.frag && $(`[data-id="${CSS.escape(a.dataset.frag)}"]`, B.page); if (t) B.page.scrollTop = t.offsetTop - 8; }
+    else if (i >= 0) bkShow(i, i > B.ch ? 1 : -1, null, a.dataset.frag);
+    return;
+  }
+  const b = e.target.closest('[data-b]'); if (!b) return;
+  const k = b.dataset.b;
+  if (k === 'back') back();
+  else if (k === 'toc') bkContents();
+  else if (k === 'text') bkTextSheet();
+  else if (k === 'more') bkMenu();
+  else if (k === 'share') shareFiles([B.r.path]);
+}
+function bkMenu() {
+  const r = BK.r;
+  sheet(`<div class="bkfont"><h2>${esc(BK.title || r.name)}</h2><p class="sub">${esc([BK.author, fsize(r.size)].filter(Boolean).join(' · '))}</p>
+    <div class="list">${item('share', ico('share', 'Share / Open with…'))}${item('folder', ico('folder', 'Show in folder'), '', '', esc(['My Files', ...(r.dir ? r.dir.split('/') : [])].join(' › ')))}</div></div>`, {
+    share: () => { shareFiles([r.path]); closeSheet(); },
+    folder: () => {
+      const under = pages[pages.length - 1], there = under && under.kind === 'files' && under.dir === r.dir;
+      back(() => { if (!there) openFolder(r.dir); }, 2); // the sheet and the book
+    }
+  });
+}
+
+/* ---- text size, line spacing and margins (Aa) ---- */
+function bkApplyText() {
+  const t = bkText(), el = BK && BK.el; if (!el) return;
+  el.style.setProperty('--bk-fs', t.s + 'px'); el.style.setProperty('--bk-lh', BK_LINES[t.l] || 1.72); el.style.setProperty('--bk-pad', (BK_MARGINS[t.m] || 24) + 'px');
+}
+function bkTextSheet() {
+  const paint = () => {
+    const t = bkText(), sh = $('#sheet');
+    $('.bk-n', sh).textContent = t.s;
+    $$('[data-act^="l-"]', sh).forEach(b => b.classList.toggle('on', b.dataset.act === 'l-' + t.l));
+    $$('[data-act^="m-"]', sh).forEach(b => b.classList.toggle('on', b.dataset.act === 'm-' + t.m));
+  };
+  const set = ch => { const B = BK; if (!B) return; const f = bkFrac(); ls.set('book.text', JSON.stringify(Object.assign(bkText(), ch))); bkApplyText(); paint();
+    if (B.page) B.page.scrollTop = f * Math.max(0, B.page.scrollHeight - B.page.clientHeight); bkPaint(); };
+  const step = d => { const s = bkText().s, i = BK_SIZES.indexOf(s), j = Math.min(BK_SIZES.length - 1, Math.max(0, (i < 0 ? 3 : i) + d)); set({ s: BK_SIZES[j] }); };
+  const pill = (k, v) => `<button class="bk-pill" data-act="${k}-${v}">${v[0].toUpperCase() + v.slice(1)}</button>`;
+  sheet(`<div class="bkfont bk-tsheet"><h2>Text</h2>
+    <div class="bk-trow"><span>Size</span><div><button class="bk-pill sz" data-act="smaller" aria-label="Smaller">A</button><span class="bk-n num"></span><button class="bk-pill sz big" data-act="bigger" aria-label="Bigger">A</button></div></div>
+    <div class="bk-trow"><span>Lines</span><div>${Object.keys(BK_LINES).map(v => pill('l', v)).join('')}</div></div>
+    <div class="bk-trow"><span>Margins</span><div>${Object.keys(BK_MARGINS).map(v => pill('m', v)).join('')}</div></div></div>`,
+    Object.assign({ smaller: () => step(-1), bigger: () => step(1) },
+      ...Object.keys(BK_LINES).map(v => ({ ['l-' + v]: () => set({ l: v }) })), ...Object.keys(BK_MARGINS).map(v => ({ ['m-' + v]: () => set({ m: v }) }))), paint);
+}
+
+/* ---- the contents (C1): a page of their own over the book ---- */
+function bkContents() {
+  const B = BK; if (!B || !B.pages.length || $('.bk-toc', B.el)) return;
+  const list = B.toc.length ? B.toc : B.pages.filter(p => p.name).map(p => ({ name: p.name, href: p.href, frag: '', lv: 0 }));
+  const idx = t => B.pages.findIndex(p => p.href === t.href);
+  // you're in the last contents line that starts at or before this chapter
+  let cur = -1; list.forEach((t, k) => {
+    const i = idx(t); if (i > B.ch) return;
+    if (i < B.ch || !t.frag) { cur = k; return; }
+    const e = $(`[data-id="${CSS.escape(t.frag)}"]`, B.page); // a section in this chapter: only once it has been reached
+    if (!e || e.offsetTop <= B.page.scrollTop + B.page.clientHeight / 3) cur = k;
+  });
+  const top = list.filter(t => !t.lv).length;
+  const el = document.createElement('div'); el.className = 'bk-toc';
+  el.innerHTML = `<div class="pbar"><div class="ptitle"><button class="iconbtn" data-c="back" aria-label="Back">${ICON.back}</button><h1 class="pt">Contents</h1></div></div>
+    <p class="summary">${esc([B.title, B.author].filter(Boolean).join(' · '))}</p><p class="summary">${plural(top, 'chapter')} · ${B.pct || 0}% read</p>
+    <div class="bk-rows">${list.map((t, k) => { const i = idx(t), n = list.slice(0, k + 1).filter(x => !x.lv).length;
+      return `<button class="bk-trow2${k === cur ? ' on' : k < cur ? ' read' : ''}${t.lv ? ' sub' : ''}" data-c="go" data-k="${k}"><span class="k num">${t.lv ? '' : n}</span><span class="nm">${esc(t.name)}</span>
+        <span class="pg num">${k === cur ? 'You’re here' : Math.round(bkStartOf(i) * 100) + '%'}</span></button>`; }).join('')}</div>`;
+  B.el.appendChild(el);
+  const on = $('.bk-trow2.on', el); if (on && on.offsetTop > el.clientHeight * 0.7) el.scrollTop = on.offsetTop - el.clientHeight / 3;
+  el.addEventListener('click', e => {
+    const b = e.target.closest('[data-c]'); if (!b) return;
+    if (b.dataset.c === 'back') back();
+    else { const t = list[+b.dataset.k], i = idx(t); back(() => { if (BK) { bkShowUI(false); bkShow(i, i === BK.ch ? 0 : i > BK.ch ? 1 : -1, t.frag ? null : 0, t.frag); } }); }
+  });
+  pushLayer(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 200); });
 }
 
 /* ================= the video player ================= */
